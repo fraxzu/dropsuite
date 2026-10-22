@@ -189,6 +189,12 @@
           "markdownDescription": "Enables the cancel_replay command without any pre-configured scope."
         },
         {
+          "description": "Enables the clear_cookies command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-clear-cookies",
+          "markdownDescription": "Enables the clear_cookies command without any pre-configured scope."
+        },
+        {
           "description": "Enables the clear_dropai_key command without any pre-configured scope.",
           "type": "string",
           "const": "allow-clear-dropai-key",
@@ -205,6 +211,12 @@
           "type": "string",
           "const": "allow-clear-repeater-attempts",
           "markdownDescription": "Enables the clear_repeater_attempts command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_cookie command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-cookie",
+          "markdownDescription": "Enables the delete_cookie command without any pre-configured scope."
         },
         {
           "description": "Enables the delete_repeater_tab command without any pre-configured scope.",
@@ -259,6 +271,12 @@
           "type": "string",
           "const": "allow-generate-ca-certificate",
           "markdownDescription": "Enables the generate_ca_certificate command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_apply_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-apply-settings",
+          "markdownDescription": "Enables the get_apply_settings command without any pre-configured scope."
         },
         {
           "description": "Enables the get_dropai_config command without any pre-configured scope.",
@@ -327,6 +345,18 @@
           "markdownDescription": "Enables the get_transaction command without any pre-configured scope."
         },
         {
+          "description": "Enables the import_challenge_cookies command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-import-challenge-cookies",
+          "markdownDescription": "Enables the import_challenge_cookies command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_cookies command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-cookies",
+          "markdownDescription": "Enables the list_cookies command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_dropai_models command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-dropai-models",
@@ -357,6 +387,12 @@
           "markdownDescription": "Enables the list_repeater_attempts command without any pre-configured scope."
         },
         {
+          "description": "Enables the open_challenge_browser command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-challenge-browser",
+          "markdownDescription": "Enables the open_challenge_browser command without any pre-configured scope."
+        },
+        {
           "description": "Enables the open_embedded_browser command without any pre-configured scope.",
           "type": "string",
           "const": "allow-open-embedded-browser",
@@ -367,6 +403,12 @@
           "type": "string",
           "const": "allow-remove-ca-certificate",
           "markdownDescription": "Enables the remove_ca_certificate command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_cookie command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-cookie",
+          "markdownDescription": "Enables the save_cookie command without any pre-configured scope."
         },
         {
           "description": "Enables the save_repeater_attempt command without any pre-configured scope.",
@@ -385,6 +427,12 @@
           "type": "string",
           "const": "allow-send-replay",
           "markdownDescription": "Enables the send_replay command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_apply_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-apply-settings",
+          "markdownDescription": "Enables the set_apply_settings command without any pre-configured scope."
         },
         {
           "description": "Enables the set_dropai_config command without any pre-configured scope.",
@@ -477,6 +525,12 @@
           "markdownDescription": "Denies the cancel_replay command without any pre-configured scope."
         },
         {
+          "description": "Denies the clear_cookies command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-clear-cookies",
+          "markdownDescription": "Denies the clear_cookies command without any pre-configured scope."
+        },
+        {
           "description": "Denies the clear_dropai_key command without any pre-configured scope.",
           "type": "string",
           "const": "deny-clear-dropai-key",
@@ -493,6 +547,12 @@
           "type": "string",
           "const": "deny-clear-repeater-attempts",
           "markdownDescription": "Denies the clear_repeater_attempts command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_cookie command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-cookie",
+          "markdownDescription": "Denies the delete_cookie command without any pre-configured scope."
         },
         {
           "description": "Denies the delete_repeater_tab command without any pre-configured scope.",
@@ -547,6 +607,12 @@
           "type": "string",
           "const": "deny-generate-ca-certificate",
           "markdownDescription": "Denies the generate_ca_certificate command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_apply_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-apply-settings",
+          "markdownDescription": "Denies the get_apply_settings command without any pre-configured scope."
         },
         {
           "description": "Denies the get_dropai_config command without any pre-configured scope.",
@@ -615,6 +681,18 @@
           "markdownDescription": "Denies the get_transaction command without any pre-configured scope."
         },
         {
+          "description": "Denies the import_challenge_cookies command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-import-challenge-cookies",
+          "markdownDescription": "Denies the import_challenge_cookies command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_cookies command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-cookies",
+          "markdownDescription": "Denies the list_cookies command without any pre-configured scope."
+        },
+        {
           "description": "Denies the list_dropai_models command without any pre-configured scope.",
           "type": "string",
           "const": "deny-list-dropai-models",
@@ -645,6 +723,12 @@
           "markdownDescription": "Denies the list_repeater_attempts command without any pre-configured scope."
         },
         {
+          "description": "Denies the open_challenge_browser command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-challenge-browser",
+          "markdownDescription": "Denies the open_challenge_browser command without any pre-configured scope."
+        },
+        {
           "description": "Denies the open_embedded_browser command without any pre-configured scope.",
           "type": "string",
           "const": "deny-open-embedded-browser",
@@ -655,6 +739,12 @@
           "type": "string",
           "const": "deny-remove-ca-certificate",
           "markdownDescription": "Denies the remove_ca_certificate command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_cookie command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-cookie",
+          "markdownDescription": "Denies the save_cookie command without any pre-configured scope."
         },
         {
           "description": "Denies the save_repeater_attempt command without any pre-configured scope.",
@@ -673,6 +763,12 @@
           "type": "string",
           "const": "deny-send-replay",
           "markdownDescription": "Denies the send_replay command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_apply_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-apply-settings",
+          "markdownDescription": "Denies the set_apply_settings command without any pre-configured scope."
         },
         {
           "description": "Denies the set_dropai_config command without any pre-configured scope.",

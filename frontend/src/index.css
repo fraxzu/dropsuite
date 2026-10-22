@@ -2218,6 +2218,30 @@ button.attempt-row[aria-pressed='true'] {
   text-overflow: ellipsis;
 }
 
+/* Status and the optional challenge tag share one grid cell, so a challenged attempt
+   keeps the row's six columns instead of pushing dur/size out of place. */
+.attempt-row .status-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.attempt-row .status-cell .status {
+  flex: 0 0 auto;
+}
+
+.attempt-row .chal-tag {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-xs);
+  color: var(--s4);
+}
+
 .snapshot-banner {
   display: flex;
   align-items: center;

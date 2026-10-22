@@ -51,6 +51,14 @@ fn main() {
             "test_dropai",
             "list_dropai_models",
             "open_embedded_browser",
+            "list_cookies",
+            "save_cookie",
+            "delete_cookie",
+            "clear_cookies",
+            "get_apply_settings",
+            "set_apply_settings",
+            "open_challenge_browser",
+            "import_challenge_cookies",
         ]),
     ))
     .expect("failed to run tauri-build");

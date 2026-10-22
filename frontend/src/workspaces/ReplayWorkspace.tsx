@@ -429,12 +429,14 @@ const AttemptList: React.FC<{
           <span className="seq mono">#{a.seq}</span>
           <span className="time mono">{clock(a.at)}</span>
           <span className="method">{a.method}</span>
-          {r ? <span className={`status mono ${statusClass(r.status)}`}>{r.status}</span> : <span className="status failed">✕ {FAILURE_TITLE[a.failure?.kind ?? ''] ?? 'Failed'}</span>}
-          {r?.challenge && (
-            <span className="field-hint mono" title={r.challenge.evidence}>
-              {CHALLENGE_VENDOR[r.challenge.vendor]}
-            </span>
-          )}
+          <span className="status-cell">
+            {r ? <span className={`status mono ${statusClass(r.status)}`}>{r.status}</span> : <span className="status failed">✕ {FAILURE_TITLE[a.failure?.kind ?? ''] ?? 'Failed'}</span>}
+            {r?.challenge && (
+              <span className="chal-tag mono" title={r.challenge.evidence}>
+                {CHALLENGE_VENDOR[r.challenge.vendor]}
+              </span>
+            )}
+          </span>
           <span className="dur mono">{r ? formatDuration(r.duration_ms) : ''}</span>
           <span className="size mono">{r ? formatBytes(r.total_bytes) : ''}</span>
         </>

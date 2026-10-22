@@ -112,3 +112,9 @@ Saat menguji, catat singkat:
 3. Screenshot kalau bisa (terutama banner di langkah 6 dan hasil di langkah 12).
 
 Dari catatan itu saya bisa tahu apakah yang perlu diperbaiki ada di fitur DropSuite, atau hanya soal pengaturan Cloudflare.
+
+## Jika muncul "not allowed by ACL"
+
+Artinya aplikasi yang terpasang lebih tua daripada daftar izin command. Command baru hanya
+bisa dipanggil kalau capability mengizinkannya, dan capability ikut dikompilasi ke binary.
+Pasang ulang installer terbaru; menjalankan file lama tidak akan menambah izin.
