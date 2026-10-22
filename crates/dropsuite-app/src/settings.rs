@@ -29,7 +29,8 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             proxy_port: DEFAULT_PROXY_PORT,
-            https_allowlist: dropsuite_core::InterceptAllowlist::loopback_default().to_user_entries(),
+            https_allowlist: dropsuite_core::InterceptAllowlist::loopback_default()
+                .to_user_entries(),
             header_preset: dropsuite_core::BrowserPreset::Off,
             cookie_jar: true,
             drop_ai: crate::dropai::DropAiConfig::default(),
@@ -46,8 +47,11 @@ pub fn load(dir: &Path) -> Settings {
     match std::fs::read(&file) {
         Ok(bytes) => match serde_json::from_slice::<Settings>(&bytes) {
             Ok(mut s) if validate_port(s.proxy_port as u32).is_ok() => {
-                if dropsuite_core::InterceptAllowlist::from_user_entries(&s.https_allowlist).is_err() {
-                    s.https_allowlist = dropsuite_core::InterceptAllowlist::loopback_default().to_user_entries();
+                if dropsuite_core::InterceptAllowlist::from_user_entries(&s.https_allowlist)
+                    .is_err()
+                {
+                    s.https_allowlist =
+                        dropsuite_core::InterceptAllowlist::loopback_default().to_user_entries();
                 }
                 s
             }
@@ -97,7 +101,14 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("dropsuite-settings-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         assert_eq!(load(&dir).proxy_port, DEFAULT_PROXY_PORT, "missing file");
-        save(&dir, &Settings { proxy_port: 18555, ..Default::default() }).unwrap();
+        save(
+            &dir,
+            &Settings {
+                proxy_port: 18555,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(load(&dir).proxy_port, 18555);
         std::fs::write(path(&dir), b"{not json").unwrap();
         assert_eq!(load(&dir).proxy_port, DEFAULT_PROXY_PORT, "corrupt file");

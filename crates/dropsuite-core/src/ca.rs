@@ -158,11 +158,11 @@ impl CaManager {
 
     fn load_existing(&self) -> Result<CaMaterial, CaError> {
         let params_path = self.dir.join(CA_PARAMS_FILE);
-        let params: CaParamsSerializable = serde_json::from_str(
-            &std::fs::read_to_string(&params_path)
-                .map_err(|_| CaError::Key("CA params file not found. CA must be regenerated.".into()))?,
-        )
-        .map_err(|e| CaError::Cert(e.to_string()))?;
+        let params: CaParamsSerializable =
+            serde_json::from_str(&std::fs::read_to_string(&params_path).map_err(|_| {
+                CaError::Key("CA params file not found. CA must be regenerated.".into())
+            })?)
+            .map_err(|e| CaError::Cert(e.to_string()))?;
 
         let key_der = self.load_key()?;
         let key = make_key(&key_der)?;
@@ -208,8 +208,7 @@ impl CaManager {
     }
 
     fn generate_new(&self) -> Result<CaMaterial, CaError> {
-        let key = KeyPair::generate()
-            .map_err(|e| CaError::Generation(e.to_string()))?;
+        let key = KeyPair::generate().map_err(|e| CaError::Generation(e.to_string()))?;
 
         let mut dn = DistinguishedName::new();
         dn.push(DnType::CommonName, "DropSuite Local Root CA");
@@ -298,7 +297,9 @@ impl CaManager {
     fn load_key(&self) -> Result<Vec<u8>, CaError> {
         let dpapi_path = self.dir.join(CA_KEY_DPAPI_FILE);
         if !dpapi_path.exists() {
-            return Err(CaError::Key("CA private key not found or not DPAPI-protected".into()));
+            return Err(CaError::Key(
+                "CA private key not found or not DPAPI-protected".into(),
+            ));
         }
         let blob = std::fs::read(&dpapi_path)?;
         dpapi::unprotect(&blob).map_err(|e| CaError::Key(e.to_string()))
@@ -316,8 +317,7 @@ impl CaManager {
             return Err(CaError::Key("CA private key not found".into()));
         }
         let pem_data = std::fs::read_to_string(&key_path)?;
-        let key = rcgen::KeyPair::from_pem(&pem_data)
-            .map_err(|e| CaError::Key(e.to_string()))?;
+        let key = rcgen::KeyPair::from_pem(&pem_data).map_err(|e| CaError::Key(e.to_string()))?;
         Ok(key.serialize_der())
     }
 }
@@ -344,9 +344,10 @@ pub fn issue_leaf(ca: &CaMaterial, host: &str) -> Result<LeafCert, CaError> {
         params.subject_alt_names = vec![SanType::IpAddress(ip)];
     } else {
         params.subject_alt_names = vec![SanType::DnsName(
-            clean_host.to_string().try_into().map_err(|_| {
-                CaError::Generation("invalid DNS name".into())
-            })?,
+            clean_host
+                .to_string()
+                .try_into()
+                .map_err(|_| CaError::Generation("invalid DNS name".into()))?,
         )];
     }
 
@@ -432,9 +433,8 @@ mod dpapi {
         if ok == 0 {
             return Err(io::Error::last_os_error());
         }
-        let result = unsafe {
-            std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec()
-        };
+        let result =
+            unsafe { std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec() };
         unsafe { LocalFree(output.pbData as _) };
         Ok(result)
     }
@@ -462,9 +462,8 @@ mod dpapi {
         if ok == 0 {
             return Err(io::Error::last_os_error());
         }
-        let result = unsafe {
-            std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec()
-        };
+        let result =
+            unsafe { std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec() };
         unsafe { LocalFree(output.pbData as _) };
         Ok(result)
     }

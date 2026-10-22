@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashSet};
 use crate::models::TransactionSummary;
 use crate::scope::ScopeEngine;
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashSet};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SiteNodeSummary {
@@ -87,10 +87,14 @@ pub fn build_sitemap(items: &[TransactionSummary], scope: &ScopeEngine) -> Vec<S
     let mut roots: BTreeMap<String, InternalNode> = BTreeMap::new();
 
     for t in items {
-        let host = if t.host.is_empty() { "unknown".to_string() } else { t.host.clone() };
-        let root = roots
-            .entry(host.clone())
-            .or_insert_with(|| InternalNode::new(host.clone(), host.clone(), String::new(), host.clone(), 0));
+        let host = if t.host.is_empty() {
+            "unknown".to_string()
+        } else {
+            t.host.clone()
+        };
+        let root = roots.entry(host.clone()).or_insert_with(|| {
+            InternalNode::new(host.clone(), host.clone(), String::new(), host.clone(), 0)
+        });
 
         let status_class = format!("s{}", t.status_code / 100);
         root.total += 1;
@@ -124,7 +128,13 @@ pub fn build_sitemap(items: &[TransactionSummary], scope: &ScopeEngine) -> Vec<S
             let seg_key = format!("{}{}", cur.host, path_acc);
 
             cur = cur.children.entry(seg.to_string()).or_insert_with(|| {
-                InternalNode::new(seg_key, cur.host.clone(), path_acc.clone(), seg.to_string(), i + 1)
+                InternalNode::new(
+                    seg_key,
+                    cur.host.clone(),
+                    path_acc.clone(),
+                    seg.to_string(),
+                    i + 1,
+                )
             });
 
             cur.total += 1;

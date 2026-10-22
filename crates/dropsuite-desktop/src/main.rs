@@ -35,11 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let data_dir = std::env::var("DROPSUITE_DATA_DIR")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|_| std::path::PathBuf::from("."));
-    let mut proxy_engine = ProxyEngine::new(
-        "127.0.0.1",
-        proxy_port,
-        storage.clone(),
-    );
+    let mut proxy_engine = ProxyEngine::new("127.0.0.1", proxy_port, storage.clone());
     let https_cfg = dropsuite_core::HttpsInterceptConfig {
         ca_dir: data_dir.join("ca"),
         allowlist: dropsuite_core::InterceptAllowlist::loopback_default(),
@@ -209,7 +205,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     } else if let Some(id_str) = path.strip_prefix("/api/intercept/forward/") {
                         if let Ok(id) = id_str.parse::<u64>() {
                             let p = proxy.lock().await;
-                            let ok = p.intercept().resolve(id, dropsuite_core::interception::InterceptAction::Forward { modified_wire: None }).await;
+                            let ok = p
+                                .intercept()
+                                .resolve(
+                                    id,
+                                    dropsuite_core::interception::InterceptAction::Forward {
+                                        modified_wire: None,
+                                    },
+                                )
+                                .await;
                             let json = format!("{{\"ok\":{ok}}}");
                             let resp = format!(
                                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{}Content-Length: {}\r\n\r\n{}",
@@ -221,7 +225,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     } else if let Some(id_str) = path.strip_prefix("/api/intercept/drop/") {
                         if let Ok(id) = id_str.parse::<u64>() {
                             let p = proxy.lock().await;
-                            let ok = p.intercept().resolve(id, dropsuite_core::interception::InterceptAction::Drop).await;
+                            let ok = p
+                                .intercept()
+                                .resolve(id, dropsuite_core::interception::InterceptAction::Drop)
+                                .await;
                             let json = format!("{{\"ok\":{ok}}}");
                             let resp = format!(
                                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{}Content-Length: {}\r\n\r\n{}",
@@ -254,8 +261,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         );
                         let _ = stream.write_all(resp.as_bytes()).await;
                     } else if path == "/api/repeater/tabs" && method == "POST" {
-                        let body_str = req_str.find("\r\n\r\n").map(|i| &req_str[i + 4..]).unwrap_or("");
-                        if let Ok(tab) = serde_json::from_str::<dropsuite_core::RepeaterTabRecord>(body_str) {
+                        let body_str = req_str
+                            .find("\r\n\r\n")
+                            .map(|i| &req_str[i + 4..])
+                            .unwrap_or("");
+                        if let Ok(tab) =
+                            serde_json::from_str::<dropsuite_core::RepeaterTabRecord>(body_str)
+                        {
                             let id = storage.save_repeater_tab(&tab).unwrap_or(-1);
                             let json = format!("{{\"id\":{id}}}");
                             let resp = format!(
@@ -264,7 +276,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             );
                             let _ = stream.write_all(resp.as_bytes()).await;
                         } else {
-                            let resp = format!("HTTP/1.1 400 Bad Request\r\n{}Content-Length: 0\r\n\r\n", cors);
+                            let resp = format!(
+                                "HTTP/1.1 400 Bad Request\r\n{}Content-Length: 0\r\n\r\n",
+                                cors
+                            );
                             let _ = stream.write_all(resp.as_bytes()).await;
                         }
                     } else if let Some(id_str) = path.strip_prefix("/api/repeater/tabs/") {
@@ -284,7 +299,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 tab_id = kv[1].parse().unwrap_or(0);
                             }
                         }
-                        let attempts = storage.list_repeater_attempts(tab_id, None).unwrap_or_default();
+                        let attempts = storage
+                            .list_repeater_attempts(tab_id, None)
+                            .unwrap_or_default();
                         let json = serde_json::to_string(&attempts).unwrap_or_default();
                         let resp = format!(
                             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{}Content-Length: {}\r\n\r\n{}",
@@ -292,8 +309,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         );
                         let _ = stream.write_all(resp.as_bytes()).await;
                     } else if path == "/api/repeater/attempts" && method == "POST" {
-                        let body_str = req_str.find("\r\n\r\n").map(|i| &req_str[i + 4..]).unwrap_or("");
-                        if let Ok(attempt) = serde_json::from_str::<dropsuite_core::RepeaterAttemptRecord>(body_str) {
+                        let body_str = req_str
+                            .find("\r\n\r\n")
+                            .map(|i| &req_str[i + 4..])
+                            .unwrap_or("");
+                        if let Ok(attempt) =
+                            serde_json::from_str::<dropsuite_core::RepeaterAttemptRecord>(body_str)
+                        {
                             let id = storage.save_repeater_attempt(&attempt).unwrap_or(-1);
                             let json = format!("{{\"id\":{id}}}");
                             let resp = format!(
@@ -302,7 +324,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             );
                             let _ = stream.write_all(resp.as_bytes()).await;
                         } else {
-                            let resp = format!("HTTP/1.1 400 Bad Request\r\n{}Content-Length: 0\r\n\r\n", cors);
+                            let resp = format!(
+                                "HTTP/1.1 400 Bad Request\r\n{}Content-Length: 0\r\n\r\n",
+                                cors
+                            );
                             let _ = stream.write_all(resp.as_bytes()).await;
                         }
                     } else if path == "/api/repeater/attempts" && method == "DELETE" {
@@ -317,9 +342,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let resp = format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{}Content-Length: 15\r\n\r\n{{\"status\":\"ok\"}}", cors);
                         let _ = stream.write_all(resp.as_bytes()).await;
                     } else if path == "/api/history/export/har" && method == "POST" {
-                        let body_str = req_str.find("\r\n\r\n").map(|i| &req_str[i + 4..]).unwrap_or("");
+                        let body_str = req_str
+                            .find("\r\n\r\n")
+                            .map(|i| &req_str[i + 4..])
+                            .unwrap_or("");
                         let ids: Vec<i64> = serde_json::from_str(body_str).unwrap_or_default();
-                        let har = storage.export_har(&ids).unwrap_or_else(|_| "{}".to_string());
+                        let har = storage
+                            .export_har(&ids)
+                            .unwrap_or_else(|_| "{}".to_string());
                         let resp = format!(
                             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{}Content-Length: {}\r\n\r\n{}",
                             cors, har.len(), har
@@ -343,8 +373,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         );
                         let _ = stream.write_all(resp.as_bytes()).await;
                     } else if path == "/api/scope" && method == "POST" {
-                        let body_str = req_str.find("\r\n\r\n").map(|i| &req_str[i + 4..]).unwrap_or("");
-                        if let Ok(cfg) = serde_json::from_str::<dropsuite_core::ScopeConfig>(body_str) {
+                        let body_str = req_str
+                            .find("\r\n\r\n")
+                            .map(|i| &req_str[i + 4..])
+                            .unwrap_or("");
+                        if let Ok(cfg) =
+                            serde_json::from_str::<dropsuite_core::ScopeConfig>(body_str)
+                        {
                             let p = proxy.lock().await;
                             p.scope().set_config(cfg.clone());
                             let json = serde_json::to_string(&cfg).unwrap_or_default();
@@ -354,7 +389,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             );
                             let _ = stream.write_all(resp.as_bytes()).await;
                         } else {
-                            let resp = format!("HTTP/1.1 400 Bad Request\r\n{}Content-Length: 0\r\n\r\n", cors);
+                            let resp = format!(
+                                "HTTP/1.1 400 Bad Request\r\n{}Content-Length: 0\r\n\r\n",
+                                cors
+                            );
                             let _ = stream.write_all(resp.as_bytes()).await;
                         }
                     } else if path == "/api/match-replace" && method == "GET" {
@@ -367,8 +405,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         );
                         let _ = stream.write_all(resp.as_bytes()).await;
                     } else if path == "/api/match-replace" && method == "POST" {
-                        let body_str = req_str.find("\r\n\r\n").map(|i| &req_str[i + 4..]).unwrap_or("");
-                        if let Ok(cfg) = serde_json::from_str::<dropsuite_core::MatchReplaceConfig>(body_str) {
+                        let body_str = req_str
+                            .find("\r\n\r\n")
+                            .map(|i| &req_str[i + 4..])
+                            .unwrap_or("");
+                        if let Ok(cfg) =
+                            serde_json::from_str::<dropsuite_core::MatchReplaceConfig>(body_str)
+                        {
                             let p = proxy.lock().await;
                             p.match_replace().set_config(cfg.clone());
                             let json = serde_json::to_string(&cfg).unwrap_or_default();
@@ -378,11 +421,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             );
                             let _ = stream.write_all(resp.as_bytes()).await;
                         } else {
-                            let resp = format!("HTTP/1.1 400 Bad Request\r\n{}Content-Length: 0\r\n\r\n", cors);
+                            let resp = format!(
+                                "HTTP/1.1 400 Bad Request\r\n{}Content-Length: 0\r\n\r\n",
+                                cors
+                            );
                             let _ = stream.write_all(resp.as_bytes()).await;
                         }
                     } else if path == "/api/sitemap" && method == "GET" {
-                        let summaries = storage.list_summaries(&HistoryFilter { limit: Some(2000), ..Default::default() }).unwrap_or_default();
+                        let summaries = storage
+                            .list_summaries(&HistoryFilter {
+                                limit: Some(2000),
+                                ..Default::default()
+                            })
+                            .unwrap_or_default();
                         let p = proxy.lock().await;
                         let tree = dropsuite_core::build_sitemap(&summaries, &p.scope());
                         let json = serde_json::to_string(&tree).unwrap_or_default();

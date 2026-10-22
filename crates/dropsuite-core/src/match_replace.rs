@@ -72,21 +72,31 @@ impl MatchReplaceEngine {
             return wire.to_vec();
         }
 
-        let enabled_rules: Vec<&MatchReplaceRule> = cfg.rules.iter().filter(|r| r.enabled).collect();
+        let enabled_rules: Vec<&MatchReplaceRule> =
+            cfg.rules.iter().filter(|r| r.enabled).collect();
 
         // 1. Process RequestFirstLine on line 0
-        for r in enabled_rules.iter().filter(|r| r.target == MatchReplaceTarget::RequestFirstLine) {
+        for r in enabled_rules
+            .iter()
+            .filter(|r| r.target == MatchReplaceTarget::RequestFirstLine)
+        {
             lines[0] = apply_string_rule(r, &lines[0]);
         }
 
         // 2. Process RequestHeader rules on lines 1..
-        for r in enabled_rules.iter().filter(|r| r.target == MatchReplaceTarget::RequestHeader) {
+        for r in enabled_rules
+            .iter()
+            .filter(|r| r.target == MatchReplaceTarget::RequestHeader)
+        {
             if r.pattern.trim().is_empty() && !r.replacement.trim().is_empty() {
                 // Header Addition rule (empty pattern)
                 // Insert the new header before the blank line that terminates the head, so it stays
                 // a header instead of spilling past the CRLFCRLF into the body (which malforms the
                 // message and makes upstreams/proxies reject it).
-                let insert_at = lines.iter().position(|l| l.is_empty()).unwrap_or(lines.len());
+                let insert_at = lines
+                    .iter()
+                    .position(|l| l.is_empty())
+                    .unwrap_or(lines.len());
                 lines.insert(insert_at, r.replacement.trim().to_string());
             } else {
                 let mut i = 1;
@@ -152,7 +162,10 @@ impl MatchReplaceEngine {
                 // Insert the new header before the blank line that terminates the head, so it stays
                 // a header instead of spilling past the CRLFCRLF into the body (which malforms the
                 // message and makes upstreams/proxies reject it).
-                let insert_at = lines.iter().position(|l| l.is_empty()).unwrap_or(lines.len());
+                let insert_at = lines
+                    .iter()
+                    .position(|l| l.is_empty())
+                    .unwrap_or(lines.len());
                 lines.insert(insert_at, r.replacement.trim().to_string());
             } else {
                 let mut i = 1;
@@ -227,7 +240,8 @@ fn is_match(rule: &MatchReplaceRule, text: &str) -> bool {
             false
         }
     } else {
-        text.to_ascii_lowercase().contains(&rule.pattern.to_ascii_lowercase())
+        text.to_ascii_lowercase()
+            .contains(&rule.pattern.to_ascii_lowercase())
     }
 }
 
@@ -342,12 +356,20 @@ mod tests {
         let out = String::from_utf8(engine.apply_request_head(head)).unwrap();
 
         // Exactly one head/body separator and nothing after it.
-        assert!(out.ends_with("\r\n\r\n"), "head must end with the terminator: {out:?}");
+        assert!(
+            out.ends_with("\r\n\r\n"),
+            "head must end with the terminator: {out:?}"
+        );
         let (head_part, body_part) = out.split_once("\r\n\r\n").unwrap();
-        assert_eq!(body_part, "", "nothing may follow the header terminator: {body_part:?}");
+        assert_eq!(
+            body_part, "",
+            "nothing may follow the header terminator: {body_part:?}"
+        );
         // The injected header is a real header line within the head, and the request line stays first.
         assert!(
-            head_part.split("\r\n").any(|l| l == "X-DropSuite-Audit: true"),
+            head_part
+                .split("\r\n")
+                .any(|l| l == "X-DropSuite-Audit: true"),
             "injected header must be a header line: {head_part:?}"
         );
         assert!(head_part.starts_with("GET http://127.0.0.1:9000/cek HTTP/1.1\r\n"));

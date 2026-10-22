@@ -53,3 +53,15 @@ precedence, cookie attachment and matching, explicit `Cookie` precedence, off-pr
 equality, challenge detection and the request snapshot. Unit tests live in `cookies`,
 `challenge`, `header_preset`, `storage` (persistence, upsert, purge) and `platform` (date
 round-trip against the jar parser).
+
+## HTTP/2 upstream
+
+Replay and Fuzzer offer `h2` first in ALPN and speak h2 when the destination selects it
+(`dropsuite-core::http2`). Connection-only fields are dropped, `Host` becomes `:authority`, and
+the response is captured under the same limits as HTTP/1.1. A destination that answers with
+`http/1.1` is unaffected.
+
+Current scope: the leg **DropSuite to the destination** for Replay and Fuzzer. Intercepted proxy
+traffic still negotiates `http/1.1` upstream, and the browser-to-DropSuite leg stays HTTP/1.1.
+Traffic that goes through the challenge window is tunneled, so it already keeps real browser h2
+end to end.

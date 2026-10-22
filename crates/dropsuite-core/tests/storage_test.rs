@@ -160,14 +160,20 @@ fn test_clear_transactions_empties_history() {
         let removed = storage.clear_transactions().unwrap();
         assert_eq!(removed, 3);
         assert_eq!(storage.count_transactions().unwrap(), 0);
-        assert!(storage.list_summaries(&HistoryFilter::default()).unwrap().is_empty());
+        assert!(storage
+            .list_summaries(&HistoryFilter::default())
+            .unwrap()
+            .is_empty());
 
         // Clearing an already-empty table removes nothing and does not error.
         assert_eq!(storage.clear_transactions().unwrap(), 0);
 
         // New captures still insert after a clear; ids keep climbing (AUTOINCREMENT).
         let new_id = storage.insert_transaction(&rec("/d")).unwrap();
-        assert!(new_id > 3, "id should not be reused after clear, got {new_id}");
+        assert!(
+            new_id > 3,
+            "id should not be reused after clear, got {new_id}"
+        );
         assert_eq!(storage.count_transactions().unwrap(), 1);
     }
 
@@ -182,7 +188,12 @@ fn test_clear_transactions_empties_history() {
     let _ = std::fs::remove_file(test_db_path);
 }
 
-fn cookie(host: &str, name: &str, path: &str, expires_at: Option<i64>) -> dropsuite_core::StoredCookie {
+fn cookie(
+    host: &str,
+    name: &str,
+    path: &str,
+    expires_at: Option<i64>,
+) -> dropsuite_core::StoredCookie {
     dropsuite_core::StoredCookie {
         domain: None,
         host: host.to_string(),
@@ -203,8 +214,12 @@ fn cookies_persist_upsert_and_filter_by_host() {
 
     {
         let storage = StorageManager::new(db).expect("init storage");
-        storage.upsert_cookie(&cookie("api.example.com", "cf_clearance", "/", None)).unwrap();
-        storage.upsert_cookie(&cookie("other.test", "sid", "/", None)).unwrap();
+        storage
+            .upsert_cookie(&cookie("api.example.com", "cf_clearance", "/", None))
+            .unwrap();
+        storage
+            .upsert_cookie(&cookie("other.test", "sid", "/", None))
+            .unwrap();
 
         let for_host = storage.cookies_for_host("api.example.com").unwrap();
         assert_eq!(for_host.len(), 1);
@@ -230,10 +245,21 @@ fn cookies_persist_upsert_and_filter_by_host() {
         let mut parent = cookie("example.com", "wide", "/", None);
         parent.domain = Some("example.com".to_string());
         reopened.upsert_cookie(&parent).unwrap();
-        assert_eq!(reopened.cookies_for_host("api.example.com").unwrap().len(), 2);
-        assert_eq!(reopened.cookies_for_host("unrelated.test").unwrap().len(), 0);
+        assert_eq!(
+            reopened.cookies_for_host("api.example.com").unwrap().len(),
+            2
+        );
+        assert_eq!(
+            reopened.cookies_for_host("unrelated.test").unwrap().len(),
+            0
+        );
 
-        assert_eq!(reopened.delete_cookie("api.example.com", "cf_clearance", "/").unwrap(), 1);
+        assert_eq!(
+            reopened
+                .delete_cookie("api.example.com", "cf_clearance", "/")
+                .unwrap(),
+            1
+        );
         // `sid` on other.test and the wide parent cookie remain.
         assert_eq!(reopened.list_cookies().unwrap().len(), 2);
         assert_eq!(reopened.clear_cookies().unwrap(), 2);
@@ -246,11 +272,22 @@ fn cookies_persist_upsert_and_filter_by_host() {
 #[test]
 fn expired_cookies_are_purged_only() {
     let storage = StorageManager::new_in_memory().unwrap();
-    storage.upsert_cookie(&cookie("a.test", "old", "/", Some(1_600_000_000))).unwrap();
-    storage.upsert_cookie(&cookie("a.test", "fresh", "/", Some(1_800_000_000))).unwrap();
-    storage.upsert_cookie(&cookie("a.test", "session", "/", None)).unwrap();
+    storage
+        .upsert_cookie(&cookie("a.test", "old", "/", Some(1_600_000_000)))
+        .unwrap();
+    storage
+        .upsert_cookie(&cookie("a.test", "fresh", "/", Some(1_800_000_000)))
+        .unwrap();
+    storage
+        .upsert_cookie(&cookie("a.test", "session", "/", None))
+        .unwrap();
 
     assert_eq!(storage.purge_expired_cookies(1_700_000_000).unwrap(), 1);
-    let names: Vec<String> = storage.list_cookies().unwrap().into_iter().map(|c| c.name).collect();
+    let names: Vec<String> = storage
+        .list_cookies()
+        .unwrap()
+        .into_iter()
+        .map(|c| c.name)
+        .collect();
     assert_eq!(names, vec!["fresh".to_string(), "session".to_string()]);
 }

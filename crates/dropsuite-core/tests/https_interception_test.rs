@@ -10,8 +10,8 @@ use dropsuite_core::replay::{
 };
 use dropsuite_core::{ProxyEngine, StorageManager};
 use rcgen::{
-    BasicConstraints, CertificateParams, DistinguishedName, DnType, ExtendedKeyUsagePurpose,
-    IsCa, KeyPair, KeyUsagePurpose, SanType,
+    BasicConstraints, CertificateParams, DistinguishedName, DnType, ExtendedKeyUsagePurpose, IsCa,
+    KeyPair, KeyUsagePurpose, SanType,
 };
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{ClientConfig, RootCertStore, ServerConfig};
@@ -134,7 +134,10 @@ async fn setup_test_proxy(
 
     let mut proxy = ProxyEngine::new("127.0.0.1", 0, storage.clone());
     let allowlist = InterceptAllowlist::from_user_entries(
-        &allowlist_entries.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+        &allowlist_entries
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>(),
     )
     .unwrap();
 
@@ -189,12 +192,13 @@ async fn successful_tls_interception_and_capture() {
     let (leaf_der, leaf_key) = make_leaf(&ca_cert, &ca_key, "localhost");
     let (server_port, _server_task) = start_mock_https_server(leaf_der, leaf_key).await;
 
-    let (proxy, storage, dir, proxy_port) =
-        setup_test_proxy(&["localhost"], vec![ca_der]).await;
+    let (proxy, storage, dir, proxy_port) = setup_test_proxy(&["localhost"], vec![ca_der]).await;
 
     // Connect to proxy and send CONNECT
     let mut stream = TcpStream::connect(("127.0.0.1", proxy_port)).await.unwrap();
-    let connect_req = format!("CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n");
+    let connect_req = format!(
+        "CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n"
+    );
     stream.write_all(connect_req.as_bytes()).await.unwrap();
 
     let mut buf = vec![0u8; 1024];
@@ -225,7 +229,8 @@ async fn successful_tls_interception_and_capture() {
     let mut tls_client = connector.connect(server_name, stream).await.unwrap();
 
     // Send an HTTP request over the intercepted TLS tunnel
-    let http_req = format!("GET /test-path HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
+    let http_req =
+        format!("GET /test-path HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
     tls_client.write_all(http_req.as_bytes()).await.unwrap();
 
     let mut response_buf = vec![0u8; 2048];
@@ -240,10 +245,17 @@ async fn successful_tls_interception_and_capture() {
     assert_eq!(records.len(), 1);
     assert_eq!(records[0].status_code, 200);
 
-    let full_record = storage.get_transaction_by_id(records[0].id).unwrap().unwrap();
+    let full_record = storage
+        .get_transaction_by_id(records[0].id)
+        .unwrap()
+        .unwrap();
     assert!(full_record.url.starts_with("https://localhost"));
     assert_eq!(full_record.method, "GET");
-    assert_eq!(proxy.outbound_connect_attempts(), 1, "Exactly one pinned upstream connect");
+    assert_eq!(
+        proxy.outbound_connect_attempts(),
+        1,
+        "Exactly one pinned upstream connect"
+    );
 
     // Clean up
     let _ = proxy;
@@ -256,11 +268,12 @@ async fn untrusted_client_tls_handshake_fails() {
     let (leaf_der, leaf_key) = make_leaf(&ca_cert, &ca_key, "localhost");
     let (server_port, _server_task) = start_mock_https_server(leaf_der, leaf_key).await;
 
-    let (_proxy, _storage, _dir, proxy_port) =
-        setup_test_proxy(&["localhost"], vec![ca_der]).await;
+    let (_proxy, _storage, _dir, proxy_port) = setup_test_proxy(&["localhost"], vec![ca_der]).await;
 
     let mut stream = TcpStream::connect(("127.0.0.1", proxy_port)).await.unwrap();
-    let connect_req = format!("CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n");
+    let connect_req = format!(
+        "CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n"
+    );
     stream.write_all(connect_req.as_bytes()).await.unwrap();
 
     let mut buf = vec![0u8; 1024];
@@ -275,7 +288,10 @@ async fn untrusted_client_tls_handshake_fails() {
 
     let server_name: ServerName<'static> = "localhost".to_string().try_into().unwrap();
     let handshake_res = connector.connect(server_name, stream).await;
-    assert!(handshake_res.is_err(), "Handshake must fail when client does not trust the CA");
+    assert!(
+        handshake_res.is_err(),
+        "Handshake must fail when client does not trust the CA"
+    );
 }
 
 #[tokio::test]
@@ -285,11 +301,12 @@ async fn upstream_hostname_mismatch_rejected() {
     let (leaf_der, leaf_key) = make_leaf(&ca_cert, &ca_key, "wrong.domain.test");
     let (server_port, _server_task) = start_mock_https_server(leaf_der, leaf_key).await;
 
-    let (proxy, _storage, _dir, proxy_port) =
-        setup_test_proxy(&["localhost"], vec![ca_der]).await;
+    let (proxy, _storage, _dir, proxy_port) = setup_test_proxy(&["localhost"], vec![ca_der]).await;
 
     let mut stream = TcpStream::connect(("127.0.0.1", proxy_port)).await.unwrap();
-    let connect_req = format!("CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n");
+    let connect_req = format!(
+        "CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n"
+    );
     stream.write_all(connect_req.as_bytes()).await.unwrap();
 
     let mut buf = vec![0u8; 1024];
@@ -323,7 +340,10 @@ async fn upstream_hostname_mismatch_rejected() {
     let mut response_buf = vec![0u8; 1024];
     let n = tls_client.read(&mut response_buf).await.unwrap_or(0);
     let resp = String::from_utf8_lossy(&response_buf[..n]);
-    assert!(resp.starts_with("HTTP/1.1 502 Bad Gateway"), "Expected 502 Bad Gateway on hostname mismatch, got: {resp}");
+    assert!(
+        resp.starts_with("HTTP/1.1 502 Bad Gateway"),
+        "Expected 502 Bad Gateway on hostname mismatch, got: {resp}"
+    );
 }
 
 #[tokio::test]
@@ -341,11 +361,11 @@ async fn non_allowlisted_connect_is_tunneled_without_decryption() {
     });
 
     // Proxy only allowlists "lumens.my.id", NOT 127.0.0.1 or localhost
-    let (proxy, storage, _dir, proxy_port) =
-        setup_test_proxy(&["lumens.my.id"], vec![]).await;
+    let (proxy, storage, _dir, proxy_port) = setup_test_proxy(&["lumens.my.id"], vec![]).await;
 
     let mut stream = TcpStream::connect(("127.0.0.1", proxy_port)).await.unwrap();
-    let connect_req = format!("CONNECT 127.0.0.1:{echo_port} HTTP/1.1\r\nHost: 127.0.0.1:{echo_port}\r\n\r\n");
+    let connect_req =
+        format!("CONNECT 127.0.0.1:{echo_port} HTTP/1.1\r\nHost: 127.0.0.1:{echo_port}\r\n\r\n");
     stream.write_all(connect_req.as_bytes()).await.unwrap();
 
     let mut buf = vec![0u8; 1024];
@@ -364,8 +384,16 @@ async fn non_allowlisted_connect_is_tunneled_without_decryption() {
     // Verify NOTHING was captured in SQLite storage (zero records!)
     tokio::time::sleep(Duration::from_millis(50)).await;
     let records = storage.list_summaries(&HistoryFilter::default()).unwrap();
-    assert_eq!(records.len(), 0, "Non-allowlisted traffic must NOT be decrypted or stored in history");
-    assert_eq!(proxy.outbound_connect_attempts(), 1, "Blind tunnel connects upstream exactly once");
+    assert_eq!(
+        records.len(),
+        0,
+        "Non-allowlisted traffic must NOT be decrypted or stored in history"
+    );
+    assert_eq!(
+        proxy.outbound_connect_attempts(),
+        1,
+        "Blind tunnel connects upstream exactly once"
+    );
 }
 
 #[tokio::test]
@@ -415,7 +443,11 @@ async fn replay_https_hostname_mismatch_rejected() {
     };
 
     let err = replay_send(&req, &opts).await.unwrap_err();
-    assert_eq!(err.kind, "tls", "Expected tls error on hostname mismatch, got: {:?}", err);
+    assert_eq!(
+        err.kind, "tls",
+        "Expected tls error on hostname mismatch, got: {:?}",
+        err
+    );
 }
 
 #[test]
@@ -457,7 +489,10 @@ async fn connect_ipv4_mapped_ipv6_loop_rejected() {
     let mut buf = vec![0u8; 1024];
     let n = stream.read(&mut buf).await.unwrap();
     let resp = String::from_utf8_lossy(&buf[..n]);
-    assert!(resp.starts_with("HTTP/1.1 508 Loop Detected"), "Must reject IPv4-mapped loopback with 508, got: {resp}");
+    assert!(
+        resp.starts_with("HTTP/1.1 508 Loop Detected"),
+        "Must reject IPv4-mapped loopback with 508, got: {resp}"
+    );
 }
 
 #[tokio::test]
@@ -472,8 +507,15 @@ async fn connect_cloud_metadata_link_local_rejected() {
     let mut buf = vec![0u8; 1024];
     let n = stream.read(&mut buf).await.unwrap();
     let resp = String::from_utf8_lossy(&buf[..n]);
-    assert!(resp.starts_with("HTTP/1.1 403 Forbidden"), "Must block cloud metadata / link-local with 403, got: {resp}");
-    assert_eq!(proxy.outbound_connect_attempts(), 0, "No tunnel connection may be attempted");
+    assert!(
+        resp.starts_with("HTTP/1.1 403 Forbidden"),
+        "Must block cloud metadata / link-local with 403, got: {resp}"
+    );
+    assert_eq!(
+        proxy.outbound_connect_attempts(),
+        0,
+        "No tunnel connection may be attempted"
+    );
 }
 
 #[tokio::test]
@@ -487,7 +529,10 @@ async fn connect_smtp_port_25_rejected() {
     let mut buf = vec![0u8; 1024];
     let n = stream.read(&mut buf).await.unwrap();
     let resp = String::from_utf8_lossy(&buf[..n]);
-    assert!(resp.starts_with("HTTP/1.1 403 Forbidden"), "Must block port 25 SMTP with 403, got: {resp}");
+    assert!(
+        resp.starts_with("HTTP/1.1 403 Forbidden"),
+        "Must block port 25 SMTP with 403, got: {resp}"
+    );
 }
 
 #[tokio::test]
@@ -507,7 +552,10 @@ async fn connect_userinfo_or_path_in_authority_rejected() {
         let mut buf = vec![0u8; 1024];
         let n = stream.read(&mut buf).await.unwrap();
         let resp = String::from_utf8_lossy(&buf[..n]);
-        assert!(resp.starts_with("HTTP/1.1 400 Bad Request"), "Authority '{bad_authority}' must be rejected with 400, got: {resp}");
+        assert!(
+            resp.starts_with("HTTP/1.1 400 Bad Request"),
+            "Authority '{bad_authority}' must be rejected with 400, got: {resp}"
+        );
     }
 }
 
@@ -517,11 +565,12 @@ async fn tls_session_cross_host_absolute_target_rejected() {
     let (leaf_der, leaf_key) = make_leaf(&ca_cert, &ca_key, "localhost");
     let (server_port, _server_task) = start_mock_https_server(leaf_der, leaf_key).await;
 
-    let (proxy, _storage, _dir, proxy_port) =
-        setup_test_proxy(&["localhost"], vec![ca_der]).await;
+    let (proxy, _storage, _dir, proxy_port) = setup_test_proxy(&["localhost"], vec![ca_der]).await;
 
     let mut stream = TcpStream::connect(("127.0.0.1", proxy_port)).await.unwrap();
-    let connect_req = format!("CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n");
+    let connect_req = format!(
+        "CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n"
+    );
     stream.write_all(connect_req.as_bytes()).await.unwrap();
 
     let mut buf = vec![0u8; 1024];
@@ -554,7 +603,10 @@ async fn tls_session_cross_host_absolute_target_rejected() {
     let mut response_buf = vec![0u8; 1024];
     let n = tls_client.read(&mut response_buf).await.unwrap_or(0);
     let resp = String::from_utf8_lossy(&response_buf[..n]);
-    assert!(resp.starts_with("HTTP/1.1 400 Bad Request"), "Must reject cross-host absolute target with 400, got: {resp}");
+    assert!(
+        resp.starts_with("HTTP/1.1 400 Bad Request"),
+        "Must reject cross-host absolute target with 400, got: {resp}"
+    );
 }
 
 #[tokio::test]
@@ -563,11 +615,12 @@ async fn tls_session_missing_host_header_rejected() {
     let (leaf_der, leaf_key) = make_leaf(&ca_cert, &ca_key, "localhost");
     let (server_port, _server_task) = start_mock_https_server(leaf_der, leaf_key).await;
 
-    let (proxy, _storage, _dir, proxy_port) =
-        setup_test_proxy(&["localhost"], vec![ca_der]).await;
+    let (proxy, _storage, _dir, proxy_port) = setup_test_proxy(&["localhost"], vec![ca_der]).await;
 
     let mut stream = TcpStream::connect(("127.0.0.1", proxy_port)).await.unwrap();
-    let connect_req = format!("CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n");
+    let connect_req = format!(
+        "CONNECT localhost:{server_port} HTTP/1.1\r\nHost: localhost:{server_port}\r\n\r\n"
+    );
     stream.write_all(connect_req.as_bytes()).await.unwrap();
 
     let mut buf = vec![0u8; 1024];
@@ -600,7 +653,10 @@ async fn tls_session_missing_host_header_rejected() {
     let mut response_buf = vec![0u8; 1024];
     let n = tls_client.read(&mut response_buf).await.unwrap_or(0);
     let resp = String::from_utf8_lossy(&response_buf[..n]);
-    assert!(resp.starts_with("HTTP/1.1 400 Bad Request"), "Must reject missing Host header with 400, got: {resp}");
+    assert!(
+        resp.starts_with("HTTP/1.1 400 Bad Request"),
+        "Must reject missing Host header with 400, got: {resp}"
+    );
 }
 
 #[tokio::test]
@@ -631,7 +687,9 @@ async fn non_loopback_listener_bind_is_rejected() {
     let mut proxy_any = ProxyEngine::new("0.0.0.0", 0, storage.clone());
     let err_any = proxy_any.start().await.unwrap_err();
     assert!(
-        err_any.to_string().contains("Non-loopback bind address '0.0.0.0' is prohibited"),
+        err_any
+            .to_string()
+            .contains("Non-loopback bind address '0.0.0.0' is prohibited"),
         "Must fail closed on 0.0.0.0, got: {err_any}"
     );
 
@@ -639,7 +697,9 @@ async fn non_loopback_listener_bind_is_rejected() {
     let mut proxy_lan = ProxyEngine::new("192.168.1.1", 0, storage.clone());
     let err_lan = proxy_lan.start().await.unwrap_err();
     assert!(
-        err_lan.to_string().contains("Non-loopback bind address '192.168.1.1' is prohibited"),
+        err_lan
+            .to_string()
+            .contains("Non-loopback bind address '192.168.1.1' is prohibited"),
         "Must fail closed on LAN IP, got: {err_lan}"
     );
 }
@@ -665,7 +725,11 @@ async fn interception_allowlist_cannot_override_cloud_metadata_block() {
         resp.contains("link-local and cloud metadata addresses are strictly prohibited"),
         "Expected strict prohibition message, got: {resp}"
     );
-    assert_eq!(proxy.outbound_connect_attempts(), 0, "No interception upstream may be attempted");
+    assert_eq!(
+        proxy.outbound_connect_attempts(),
+        0,
+        "No interception upstream may be attempted"
+    );
 }
 
 #[tokio::test]
@@ -695,7 +759,9 @@ async fn dns_resolution_connection_pinning_prevents_toctou() {
     let mut reader = upstream.reader;
     let mut writer = upstream.writer;
 
-    let req = format!("GET /pinning-test HTTP/1.1\r\nHost: {unresolvable_host}\r\nConnection: close\r\n\r\n");
+    let req = format!(
+        "GET /pinning-test HTTP/1.1\r\nHost: {unresolvable_host}\r\nConnection: close\r\n\r\n"
+    );
     writer.write_all(req.as_bytes()).await.unwrap();
 
     let mut buf = vec![0u8; 1024];
@@ -814,7 +880,9 @@ async fn tls_session_request_rechecks_destination_after_rebinding() {
     let mut tls_client = connector.connect(server_name, stream).await.unwrap();
 
     tls_client
-        .write_all(b"GET /latest/meta-data/ HTTP/1.1\r\nHost: rebind.test\r\nConnection: close\r\n\r\n")
+        .write_all(
+            b"GET /latest/meta-data/ HTTP/1.1\r\nHost: rebind.test\r\nConnection: close\r\n\r\n",
+        )
         .await
         .unwrap();
     let mut response_buf = vec![0u8; 1024];
@@ -825,8 +893,16 @@ async fn tls_session_request_rechecks_destination_after_rebinding() {
         "Rebound session host must be refused, got: {resp}"
     );
     assert!(resp.contains("link-local and cloud metadata addresses are strictly prohibited"));
-    assert_eq!(lookups.load(Ordering::SeqCst), 2, "CONNECT and the request each resolve");
-    assert_eq!(proxy.outbound_connect_attempts(), 0, "No upstream connect after rebinding");
+    assert_eq!(
+        lookups.load(Ordering::SeqCst),
+        2,
+        "CONNECT and the request each resolve"
+    );
+    assert_eq!(
+        proxy.outbound_connect_attempts(),
+        0,
+        "No upstream connect after rebinding"
+    );
 }
 
 #[tokio::test]
@@ -863,15 +939,22 @@ async fn replay_https_connects_to_checked_address_and_verifies_original_hostname
         apply: dropsuite_core::replay::ApplyConfig::default(),
     };
 
-    let res = replay_send_with(&req, &opts(vec![ca_der]), &net).await.unwrap();
+    let res = replay_send_with(&req, &opts(vec![ca_der]), &net)
+        .await
+        .unwrap();
     assert_eq!(res.status, 200);
     assert!(String::from_utf8_lossy(&res.message).contains("hello from mock https"));
     assert_eq!(gate_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
 
     // Without the test root (what the app passes: an empty list, meaning webpki roots) the same
     // server is not trusted: test trust is opt-in per call and never the default.
-    let err = replay_send_with(&req, &opts(Vec::new()), &net).await.unwrap_err();
-    assert_eq!(err.kind, "tls", "Expected tls error with default roots, got: {err:?}");
+    let err = replay_send_with(&req, &opts(Vec::new()), &net)
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.kind, "tls",
+        "Expected tls error with default roots, got: {err:?}"
+    );
 }
 
 /// CONNECT to an allowlisted host and read the proxy's answer to it.
@@ -897,7 +980,10 @@ async fn handshake_trusting(stream: TcpStream, ca_pem: &str) -> Result<(), std::
         .with_root_certificates(root_store)
         .with_no_client_auth();
     let name: ServerName<'static> = "localhost".to_string().try_into().unwrap();
-    TlsConnector::from(Arc::new(config)).connect(name, stream).await.map(|_| ())
+    TlsConnector::from(Arc::new(config))
+        .connect(name, stream)
+        .await
+        .map(|_| ())
 }
 
 #[tokio::test]
@@ -915,10 +1001,19 @@ async fn allowlisted_connect_without_ca_fails_closed_and_creates_none() {
     proxy.start().await.unwrap();
 
     let (_stream, head) = connect_head(proxy.port(), "localhost:443").await;
-    assert!(head.starts_with("HTTP/1.1 502 Bad Gateway"), "Expected 502 without a CA, got: {head}");
-    assert!(head.contains("needs a root CA"), "Expected the generate hint, got: {head}");
+    assert!(
+        head.starts_with("HTTP/1.1 502 Bad Gateway"),
+        "Expected 502 without a CA, got: {head}"
+    );
+    assert!(
+        head.contains("needs a root CA"),
+        "Expected the generate hint, got: {head}"
+    );
     assert!(!head.contains("200 Connection Established"));
-    assert!(!proxy.https_status().unwrap().present, "No CA may be created implicitly");
+    assert!(
+        !proxy.https_status().unwrap().present,
+        "No CA may be created implicitly"
+    );
     assert!(!dir.join("ca").join("root-ca.pem").exists());
     assert_eq!(proxy.outbound_connect_attempts(), 0);
 }
@@ -929,15 +1024,23 @@ async fn ca_removal_disables_interception_until_explicit_generate() {
     let pem1 = proxy.https_status().unwrap().cert_pem.unwrap();
     let (stream, head) = connect_head(proxy_port, "localhost:443").await;
     assert!(head.starts_with("HTTP/1.1 200 Connection Established"));
-    handshake_trusting(stream, &pem1).await.expect("interception with the generated CA");
+    handshake_trusting(stream, &pem1)
+        .await
+        .expect("interception with the generated CA");
 
     // Remove: interception fails closed and nothing is regenerated behind the user's back.
     proxy.remove_ca().await.unwrap();
     for _ in 0..2 {
         let (_stream, head) = connect_head(proxy_port, "localhost:443").await;
-        assert!(head.starts_with("HTTP/1.1 502 Bad Gateway"), "Expected 502 after removal, got: {head}");
+        assert!(
+            head.starts_with("HTTP/1.1 502 Bad Gateway"),
+            "Expected 502 after removal, got: {head}"
+        );
     }
-    assert!(!proxy.https_status().unwrap().present, "Removal must stick until Generate");
+    assert!(
+        !proxy.https_status().unwrap().present,
+        "Removal must stick until Generate"
+    );
     assert!(!dir.join("ca").join("root-ca.pem").exists());
 
     // Explicit Generate: interception works again, with a new CA the old trust does not cover.
@@ -947,7 +1050,12 @@ async fn ca_removal_disables_interception_until_explicit_generate() {
     assert_ne!(pem1, pem2, "a new CA, not the removed one");
     let (stream, head) = connect_head(proxy_port, "localhost:443").await;
     assert!(head.starts_with("HTTP/1.1 200 Connection Established"));
-    handshake_trusting(stream, &pem2).await.expect("interception with the new CA");
+    handshake_trusting(stream, &pem2)
+        .await
+        .expect("interception with the new CA");
     let (stream, _) = connect_head(proxy_port, "localhost:443").await;
-    assert!(handshake_trusting(stream, &pem1).await.is_err(), "the removed CA must not sign anything");
+    assert!(
+        handshake_trusting(stream, &pem1).await.is_err(),
+        "the removed CA must not sign anything"
+    );
 }

@@ -184,7 +184,7 @@ async fn text_url_and_custom_header_secrets_never_reach_storage_replay_or_logs()
             response_timeout: Duration::from_secs(5),
             own_listener: None,
             tls_roots: Vec::new(),
-        apply: dropsuite_core::replay::ApplyConfig::default(),
+            apply: dropsuite_core::replay::ApplyConfig::default(),
         },
     )
     .await

@@ -131,7 +131,12 @@ fn load_key(dir: &Path) -> Result<String, String> {
 }
 
 /// Run one completion with the stored key. `system` and `user` are the two prompt parts.
-pub async fn complete(cfg: &DropAiConfig, dir: &Path, system: &str, user: &str) -> Result<String, String> {
+pub async fn complete(
+    cfg: &DropAiConfig,
+    dir: &Path,
+    system: &str,
+    user: &str,
+) -> Result<String, String> {
     complete_inner(cfg, dir, system, user, cfg.max_tokens, REQUEST_TIMEOUT).await
 }
 
@@ -171,8 +176,12 @@ async fn complete_inner(
         .map_err(|e| format!("Could not create HTTP client: {e}"))?;
 
     match cfg.provider {
-        Provider::OpenAiCompatible => openai_complete(&client, base, &key, cfg, system, user, max_tokens).await,
-        Provider::AnthropicCompatible => anthropic_complete(&client, base, &key, cfg, system, user, max_tokens).await,
+        Provider::OpenAiCompatible => {
+            openai_complete(&client, base, &key, cfg, system, user, max_tokens).await
+        }
+        Provider::AnthropicCompatible => {
+            anthropic_complete(&client, base, &key, cfg, system, user, max_tokens).await
+        }
     }
 }
 
@@ -308,7 +317,9 @@ async fn response_body(resp: reqwest::Response) -> Result<String, String> {
             .unwrap_or_else(|| text.chars().take(300).collect());
         return Err(match status.as_u16() {
             401 | 403 => format!("The endpoint rejected the key ({status}). {detail}"),
-            404 => format!("Endpoint or model not found ({status}). Check the base URL and model. {detail}"),
+            404 => format!(
+                "Endpoint or model not found ({status}). Check the base URL and model. {detail}"
+            ),
             429 => format!("Rate limited by the endpoint ({status}). {detail}"),
             _ => format!("The endpoint returned {status}. {detail}"),
         });
@@ -329,7 +340,8 @@ fn unparsable(text: &str) -> String {
 
 /// `data:` payloads from a Server-Sent-Events body (some proxies stream even when asked not to).
 fn sse_data_lines(text: &str) -> impl Iterator<Item = &str> {
-    text.lines().filter_map(|l| l.strip_prefix("data:").map(|d| d.trim()))
+    text.lines()
+        .filter_map(|l| l.strip_prefix("data:").map(|d| d.trim()))
 }
 
 /// The model answered but we found no usable text. Include a raw snippet so an unusual response
@@ -366,10 +378,18 @@ fn join_content(v: &serde_json::Value) -> Option<String> {
 fn extract_openai(text: &str) -> Result<String, String> {
     if let Ok(v) = serde_json::from_str::<serde_json::Value>(text) {
         if let Some(choice) = v.pointer("/choices/0") {
-            if let Some(t) = choice.get("message").and_then(|m| m.get("content")).and_then(join_content) {
+            if let Some(t) = choice
+                .get("message")
+                .and_then(|m| m.get("content"))
+                .and_then(join_content)
+            {
                 return Ok(t);
             }
-            if let Some(t) = choice.get("text").and_then(|t| t.as_str()).filter(|s| !s.is_empty()) {
+            if let Some(t) = choice
+                .get("text")
+                .and_then(|t| t.as_str())
+                .filter(|s| !s.is_empty())
+            {
                 return Ok(t.to_string());
             }
             if choice.get("finish_reason").and_then(|r| r.as_str()) == Some("length") {
@@ -474,7 +494,10 @@ mod dpapi {
             cbData: plain.len() as u32,
             pbData: plain.as_ptr() as *mut u8,
         };
-        let mut output = CRYPT_INTEGER_BLOB { cbData: 0, pbData: std::ptr::null_mut() };
+        let mut output = CRYPT_INTEGER_BLOB {
+            cbData: 0,
+            pbData: std::ptr::null_mut(),
+        };
         let ok = unsafe {
             CryptProtectData(
                 &input,
@@ -489,7 +512,8 @@ mod dpapi {
         if ok == 0 {
             return Err(io::Error::last_os_error());
         }
-        let result = unsafe { std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec() };
+        let result =
+            unsafe { std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec() };
         unsafe { LocalFree(output.pbData as _) };
         Ok(result)
     }
@@ -499,7 +523,10 @@ mod dpapi {
             cbData: blob.len() as u32,
             pbData: blob.as_ptr() as *mut u8,
         };
-        let mut output = CRYPT_INTEGER_BLOB { cbData: 0, pbData: std::ptr::null_mut() };
+        let mut output = CRYPT_INTEGER_BLOB {
+            cbData: 0,
+            pbData: std::ptr::null_mut(),
+        };
         let ok = unsafe {
             CryptUnprotectData(
                 &input,
@@ -514,7 +541,8 @@ mod dpapi {
         if ok == 0 {
             return Err(io::Error::last_os_error());
         }
-        let result = unsafe { std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec() };
+        let result =
+            unsafe { std::slice::from_raw_parts(output.pbData, output.cbData as usize).to_vec() };
         unsafe { LocalFree(output.pbData as _) };
         Ok(result)
     }
@@ -566,6 +594,8 @@ mod tests {
 
     #[test]
     fn non_json_is_unparsable() {
-        assert!(extract_openai("<html>502</html>").unwrap_err().contains("not JSON"));
+        assert!(extract_openai("<html>502</html>")
+            .unwrap_err()
+            .contains("not JSON"));
     }
 }

@@ -183,9 +183,15 @@ pub fn detect(status: u16, headers: &[(String, String)], body: &[u8]) -> Option<
             // No vendor: only the strong shared markers count, so an app's own 403 stays clean.
             let lower = body.to_ascii_lowercase();
             if JS_MARKERS.iter().any(|m| lower.contains(m)) {
-                (ChallengeVendor::Cloudflare, "body: browser-check marker".into())
+                (
+                    ChallengeVendor::Cloudflare,
+                    "body: browser-check marker".into(),
+                )
             } else if BLOCK_MARKERS.iter().any(|m| lower.contains(m)) {
-                (ChallengeVendor::Cloudflare, "body: block-page marker".into())
+                (
+                    ChallengeVendor::Cloudflare,
+                    "body: block-page marker".into(),
+                )
             } else {
                 return None;
             }
@@ -193,7 +199,11 @@ pub fn detect(status: u16, headers: &[(String, String)], body: &[u8]) -> Option<
         None => return None,
     };
     let kind = kind_from(status, headers, &body);
-    Some(ChallengeSignal { vendor, kind, evidence })
+    Some(ChallengeSignal {
+        vendor,
+        kind,
+        evidence,
+    })
 }
 
 #[cfg(test)]
@@ -201,7 +211,10 @@ mod tests {
     use super::*;
 
     fn h(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
-        pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
 
     #[test]
@@ -231,7 +244,12 @@ mod tests {
 
     #[test]
     fn turnstile_wins_over_js() {
-        let sig = detect(403, &h(&[("server", "cloudflare")]), b"<div class=\"cf-turnstile\">").unwrap();
+        let sig = detect(
+            403,
+            &h(&[("server", "cloudflare")]),
+            b"<div class=\"cf-turnstile\">",
+        )
+        .unwrap();
         assert_eq!(sig.kind, ChallengeKind::Interactive);
     }
 
@@ -244,19 +262,27 @@ mod tests {
     #[test]
     fn other_vendors_are_recognised() {
         assert_eq!(
-            detect(403, &h(&[("x-datadome", "protected")]), b"").unwrap().vendor,
+            detect(403, &h(&[("x-datadome", "protected")]), b"")
+                .unwrap()
+                .vendor,
             ChallengeVendor::DataDome
         );
         assert_eq!(
-            detect(403, &h(&[("x-iinfo", "1-2-3")]), b"").unwrap().vendor,
+            detect(403, &h(&[("x-iinfo", "1-2-3")]), b"")
+                .unwrap()
+                .vendor,
             ChallengeVendor::Imperva
         );
         assert_eq!(
-            detect(403, &h(&[("x-sucuri-id", "1")]), b"").unwrap().vendor,
+            detect(403, &h(&[("x-sucuri-id", "1")]), b"")
+                .unwrap()
+                .vendor,
             ChallengeVendor::Sucuri
         );
         assert_eq!(
-            detect(503, &h(&[("server", "AkamaiGHost")]), b"").unwrap().vendor,
+            detect(503, &h(&[("server", "AkamaiGHost")]), b"")
+                .unwrap()
+                .vendor,
             ChallengeVendor::Akamai
         );
     }
@@ -265,7 +291,10 @@ mod tests {
     fn only_the_head_of_the_body_is_scanned() {
         let mut body = vec![b'a'; BODY_SCAN_LIMIT];
         body.extend_from_slice(b"Just a moment...");
-        assert!(detect(403, &h(&[]), &body).is_none(), "marker past the limit is missed");
+        assert!(
+            detect(403, &h(&[]), &body).is_none(),
+            "marker past the limit is missed"
+        );
         let mut short = b"Just a moment...".to_vec();
         short.extend(std::iter::repeat(b'a').take(BODY_SCAN_LIMIT));
         assert!(detect(403, &h(&[]), &short).is_some());

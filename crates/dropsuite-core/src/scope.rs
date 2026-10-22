@@ -14,10 +14,10 @@ pub struct ScopeRule {
     pub id: String,
     pub enabled: bool,
     pub rule_type: ScopeRuleType,
-    pub protocol: Option<String>,     // "http", "https", or None (any)
-    pub host: String,                 // e.g. "api.target.com", "*.target.com", or regex
+    pub protocol: Option<String>, // "http", "https", or None (any)
+    pub host: String,             // e.g. "api.target.com", "*.target.com", or regex
     pub port: Option<u16>,
-    pub path_prefix: Option<String>,  // e.g. "/api"
+    pub path_prefix: Option<String>, // e.g. "/api"
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -67,7 +67,10 @@ impl ScopeEngine {
         }
 
         // 1. Check if matches any Exclude rule -> immediately out of scope
-        for r in enabled_rules.iter().filter(|r| r.rule_type == ScopeRuleType::Exclude) {
+        for r in enabled_rules
+            .iter()
+            .filter(|r| r.rule_type == ScopeRuleType::Exclude)
+        {
             if matches_rule(r, &parsed) {
                 return false;
             }
@@ -123,7 +126,11 @@ fn parse_url_components(url_str: &str) -> UrlComponents<'_> {
     let (host, port) = if let Some(idx) = authority.rfind(':') {
         let h = &authority[..idx];
         let p = authority[idx + 1..].parse::<u16>().unwrap_or_else(|_| {
-            if scheme == Some("https") { 443 } else { 80 }
+            if scheme == Some("https") {
+                443
+            } else {
+                80
+            }
         });
         (h, p)
     } else {

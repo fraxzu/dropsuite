@@ -1,6 +1,6 @@
 use dropsuite_core::{
-    build_sitemap, MatchReplaceConfig, MatchReplaceEngine, MatchReplaceRule,
-    MatchReplaceTarget, ScopeConfig, ScopeEngine, ScopeRule, ScopeRuleType, TransactionSummary,
+    build_sitemap, MatchReplaceConfig, MatchReplaceEngine, MatchReplaceRule, MatchReplaceTarget,
+    ScopeConfig, ScopeEngine, ScopeRule, ScopeRuleType, TransactionSummary,
 };
 
 #[test]
@@ -215,7 +215,10 @@ fn test_sitemap_building_and_scope_tagging() {
 
     assert_eq!(sitemap.len(), 2);
 
-    let secure_root = sitemap.iter().find(|n| n.host == "app.securetarget.com").expect("Found secure target");
+    let secure_root = sitemap
+        .iter()
+        .find(|n| n.host == "app.securetarget.com")
+        .expect("Found secure target");
     assert!(secure_root.in_scope);
     assert_eq!(secure_root.total, 2);
     assert_eq!(secure_root.methods, vec!["GET", "POST"]);
@@ -235,6 +238,9 @@ fn test_sitemap_building_and_scope_tagging() {
     assert!(items_node.parameters.contains(&"limit".to_string()));
     assert!(items_node.parameters.contains(&"token".to_string()));
 
-    let out_node = sitemap.iter().find(|n| n.host == "cdn.out-of-scope.net").expect("Found out-of-scope root");
+    let out_node = sitemap
+        .iter()
+        .find(|n| n.host == "cdn.out-of-scope.net")
+        .expect("Found out-of-scope root");
     assert!(!out_node.in_scope);
 }

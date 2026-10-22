@@ -3,10 +3,10 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tracing::{debug, info};
 
+use crate::cookies::StoredCookie;
 use crate::models::{
     HistoryFilter, RepeaterAttemptRecord, RepeaterTabRecord, TransactionRecord, TransactionSummary,
 };
-use crate::cookies::StoredCookie;
 use crate::sanitize::{
     sanitize_header_pairs, sanitize_raw_message, sanitize_record, sanitize_target,
 };
@@ -279,7 +279,10 @@ impl StorageManager {
             _ => "DESC",
         };
 
-        query.push_str(&format!(" ORDER BY {} {} LIMIT ? OFFSET ?", sort_column, sort_dir));
+        query.push_str(&format!(
+            " ORDER BY {} {} LIMIT ? OFFSET ?",
+            sort_column, sort_dir
+        ));
         params.push(Box::new(limit as i64));
         params.push(Box::new(offset as i64));
 
@@ -522,7 +525,11 @@ impl StorageManager {
             )?;
             Ok(tab.id)
         } else {
-            let created = if tab.created_at > 0 { tab.created_at } else { now };
+            let created = if tab.created_at > 0 {
+                tab.created_at
+            } else {
+                now
+            };
             conn.execute(
                 "INSERT INTO repeater_tabs (name, color, group_name, method, url, headers, body, created_at, updated_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
@@ -545,7 +552,10 @@ impl StorageManager {
     /// Delete a repeater tab and all associated attempts.
     pub fn delete_repeater_tab(&self, id: i64) -> Result<()> {
         let conn = self.conn.lock().unwrap();
-        conn.execute("DELETE FROM repeater_attempts WHERE tab_id = ?1", params![id])?;
+        conn.execute(
+            "DELETE FROM repeater_attempts WHERE tab_id = ?1",
+            params![id],
+        )?;
         conn.execute("DELETE FROM repeater_tabs WHERE id = ?1", params![id])?;
         Ok(())
     }
@@ -642,7 +652,10 @@ impl StorageManager {
     /// Clear all attempts for a given repeater tab.
     pub fn clear_repeater_attempts(&self, tab_id: i64) -> Result<()> {
         let conn = self.conn.lock().unwrap();
-        conn.execute("DELETE FROM repeater_attempts WHERE tab_id = ?1", params![tab_id])?;
+        conn.execute(
+            "DELETE FROM repeater_attempts WHERE tab_id = ?1",
+            params![tab_id],
+        )?;
         Ok(())
     }
 
@@ -741,11 +754,7 @@ impl StorageManager {
         });
 
         serde_json::to_string_pretty(&har).map_err(|e| {
-            rusqlite::Error::FromSqlConversionFailure(
-                0,
-                rusqlite::types::Type::Text,
-                Box::new(e),
-            )
+            rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e))
         })
     }
 

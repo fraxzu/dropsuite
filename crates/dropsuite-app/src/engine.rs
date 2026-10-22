@@ -50,8 +50,9 @@ impl Engine {
         let env_port = env_proxy_port();
         let port = env_port.unwrap_or(settings.proxy_port);
         let mut proxy = ProxyEngine::new(BIND_IP, port, storage.clone());
-        let allowlist = dropsuite_core::InterceptAllowlist::from_user_entries(&settings.https_allowlist)
-            .unwrap_or_else(|_| dropsuite_core::InterceptAllowlist::loopback_default());
+        let allowlist =
+            dropsuite_core::InterceptAllowlist::from_user_entries(&settings.https_allowlist)
+                .unwrap_or_else(|_| dropsuite_core::InterceptAllowlist::loopback_default());
         let https_cfg = dropsuite_core::HttpsInterceptConfig {
             ca_dir: dir.join("ca"),
             allowlist,

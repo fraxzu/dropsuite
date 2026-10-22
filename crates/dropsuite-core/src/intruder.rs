@@ -48,7 +48,10 @@ pub struct IntruderError {
 
 impl IntruderError {
     fn new(kind: &'static str, message: impl Into<String>) -> Self {
-        Self { kind, message: message.into() }
+        Self {
+            kind,
+            message: message.into(),
+        }
     }
 }
 
@@ -78,7 +81,10 @@ impl PayloadSet {
             PayloadSet::List { values } => Ok(values.clone()),
             PayloadSet::NumberRange { from, to, step } => {
                 if *step == 0 {
-                    return Err(IntruderError::new("invalid", "Number range step cannot be 0."));
+                    return Err(IntruderError::new(
+                        "invalid",
+                        "Number range step cannot be 0.",
+                    ));
                 }
                 let mut out = Vec::new();
                 let mut n = *from;
@@ -140,7 +146,9 @@ fn percent_encode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for b in s.bytes() {
         match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char)
+            }
             _ => out.push_str(&format!("%{b:02X}")),
         }
     }
@@ -290,8 +298,10 @@ fn build_jobs(
             }
         }
         Attack::ClusterBomb { payload_sets } => {
-            let value_sets: Vec<Vec<String>> =
-                payload_sets.iter().map(|s| s.values()).collect::<Result<_, _>>()?;
+            let value_sets: Vec<Vec<String>> = payload_sets
+                .iter()
+                .map(|s| s.values())
+                .collect::<Result<_, _>>()?;
             cartesian(&value_sets, &mut jobs);
         }
     }
@@ -333,7 +343,10 @@ fn plan_size(template: &Template, attack: &Attack) -> Result<usize, IntruderErro
             if payload_sets.len() != p {
                 return Err(IntruderError::new(
                     "mismatch",
-                    format!("Cluster bomb needs one payload set per position ({p}); got {}.", payload_sets.len()),
+                    format!(
+                        "Cluster bomb needs one payload set per position ({p}); got {}.",
+                        payload_sets.len()
+                    ),
                 ));
             }
             let mut total: usize = 1;
@@ -351,7 +364,12 @@ fn cartesian(sets: &[Vec<String>], out: &mut Vec<Vec<String>>) {
     }
     let mut current = vec![0usize; sets.len()];
     loop {
-        out.push(sets.iter().zip(&current).map(|(s, &i)| s[i].clone()).collect());
+        out.push(
+            sets.iter()
+                .zip(&current)
+                .map(|(s, &i)| s[i].clone())
+                .collect(),
+        );
         // increment mixed-radix counter
         let mut k = sets.len();
         loop {
@@ -441,8 +459,13 @@ pub async fn run(
     let template = Template::parse(base);
     let jobs = build_jobs(&template, attack, guards.max_attempts)?;
 
-    let mut stats = RunStats { planned: jobs.len(), ..Default::default() };
-    let sem = Arc::new(Semaphore::new(effective_concurrency(guards.max_concurrency)));
+    let mut stats = RunStats {
+        planned: jobs.len(),
+        ..Default::default()
+    };
+    let sem = Arc::new(Semaphore::new(effective_concurrency(
+        guards.max_concurrency,
+    )));
     let opts = Arc::new(opts);
     let mut handles = Vec::new();
 
@@ -460,7 +483,10 @@ pub async fn run(
                 .send(AttemptOutcome {
                     index,
                     replacements: repl,
-                    result: Err(ReplayError::new("scope", "Target is out of scope; not sent.")),
+                    result: Err(ReplayError::new(
+                        "scope",
+                        "Target is out of scope; not sent.",
+                    )),
                 })
                 .await;
             continue;
@@ -485,7 +511,13 @@ pub async fn run(
                 destination: r.destination,
                 challenge: r.challenge,
             });
-            let _ = tx.send(AttemptOutcome { index, replacements: repl, result }).await;
+            let _ = tx
+                .send(AttemptOutcome {
+                    index,
+                    replacements: repl,
+                    result,
+                })
+                .await;
         }));
     }
 
@@ -515,7 +547,11 @@ mod tests {
     #[test]
     fn parses_custom_delimiter_and_ignores_section_sign() {
         // `{{ }}` is a position; `§` is just a literal character (not Burp's marker).
-        let t = Template::parse(&req("GET", "http://t/u?x={{admin}}&y=§notmarker§", "id={{1}}"));
+        let t = Template::parse(&req(
+            "GET",
+            "http://t/u?x={{admin}}&y=§notmarker§",
+            "id={{1}}",
+        ));
         assert_eq!(t.position_count(), 2);
         assert_eq!(t.bases, vec!["admin".to_string(), "1".to_string()]);
         let rendered = t.render(&["root".to_string(), "99".to_string()], false);
@@ -533,15 +569,23 @@ mod tests {
     #[test]
     fn url_payloads_are_percent_encoded_when_enabled() {
         let t = Template::parse(&req("GET", "http://t/s?q={{x}}", ""));
-        assert_eq!(t.render(&["a b'--".to_string()], true).url, "http://t/s?q=a%20b%27--");
-        assert_eq!(t.render(&["a b'--".to_string()], false).url, "http://t/s?q=a b'--");
+        assert_eq!(
+            t.render(&["a b'--".to_string()], true).url,
+            "http://t/s?q=a%20b%27--"
+        );
+        assert_eq!(
+            t.render(&["a b'--".to_string()], false).url,
+            "http://t/s?q=a b'--"
+        );
     }
 
     #[test]
     fn sniper_is_positions_times_payloads() {
         let t = Template::parse(&req("GET", "http://t/{{a}}/{{b}}", ""));
         let attack = Attack::Sniper {
-            payloads: PayloadSet::List { values: vec!["1".into(), "2".into(), "3".into()] },
+            payloads: PayloadSet::List {
+                values: vec!["1".into(), "2".into(), "3".into()],
+            },
         };
         let jobs = build_jobs(&t, &attack, 1000).unwrap();
         assert_eq!(jobs.len(), 2 * 3);
@@ -554,8 +598,14 @@ mod tests {
         let t = Template::parse(&req("GET", "http://t/{{a}}/{{b}}", ""));
         let attack = Attack::ClusterBomb {
             payload_sets: vec![
-                PayloadSet::List { values: vec!["x".into(), "y".into()] },
-                PayloadSet::NumberRange { from: 1, to: 3, step: 1 },
+                PayloadSet::List {
+                    values: vec!["x".into(), "y".into()],
+                },
+                PayloadSet::NumberRange {
+                    from: 1,
+                    to: 3,
+                    step: 1,
+                },
             ],
         };
         let jobs = build_jobs(&t, &attack, 1000).unwrap();
@@ -568,7 +618,9 @@ mod tests {
     fn cluster_bomb_rejects_wrong_set_count() {
         let t = Template::parse(&req("GET", "http://t/{{a}}/{{b}}", ""));
         let attack = Attack::ClusterBomb {
-            payload_sets: vec![PayloadSet::List { values: vec!["x".into()] }], // 1 set for 2 positions
+            payload_sets: vec![PayloadSet::List {
+                values: vec!["x".into()],
+            }], // 1 set for 2 positions
         };
         assert_eq!(build_jobs(&t, &attack, 1000).unwrap_err().kind, "mismatch");
     }
@@ -578,7 +630,11 @@ mod tests {
         // Criterion 5: the plan is capped before anything is sent.
         let t = Template::parse(&req("GET", "http://t/{{a}}", ""));
         let attack = Attack::Sniper {
-            payloads: PayloadSet::NumberRange { from: 1, to: 1000, step: 1 },
+            payloads: PayloadSet::NumberRange {
+                from: 1,
+                to: 1000,
+                step: 1,
+            },
         };
         assert_eq!(build_jobs(&t, &attack, 10).unwrap_err().kind, "too_many");
     }
@@ -609,7 +665,11 @@ mod tests {
             }],
         });
         let base = req("GET", "http://other.test/{{a}}", "");
-        let attack = Attack::Sniper { payloads: PayloadSet::List { values: vec!["p".into()] } };
+        let attack = Attack::Sniper {
+            payloads: PayloadSet::List {
+                values: vec!["p".into()],
+            },
+        };
         let (tx, mut rx) = mpsc::channel(8);
         let stats = run(
             &base,
@@ -619,7 +679,7 @@ mod tests {
                 response_timeout: Duration::from_secs(2),
                 own_listener: None,
                 tls_roots: Vec::new(),
-        apply: crate::replay::ApplyConfig::default(),
+                apply: crate::replay::ApplyConfig::default(),
             },
             &scope,
             &Guards::default(),
@@ -641,7 +701,11 @@ mod tests {
         // is replay::send and it runs is_restricted_destination before connecting. No real egress.
         let scope = ScopeEngine::new(); // empty => everything in scope
         let base = req("GET", "http://169.254.169.254/{{a}}", "");
-        let attack = Attack::Sniper { payloads: PayloadSet::List { values: vec!["latest".into()] } };
+        let attack = Attack::Sniper {
+            payloads: PayloadSet::List {
+                values: vec!["latest".into()],
+            },
+        };
         let (tx, mut rx) = mpsc::channel(8);
         let stats = run(
             &base,
@@ -651,7 +715,7 @@ mod tests {
                 response_timeout: Duration::from_secs(2),
                 own_listener: None,
                 tls_roots: Vec::new(),
-        apply: crate::replay::ApplyConfig::default(),
+                apply: crate::replay::ApplyConfig::default(),
             },
             &scope,
             &Guards::default(),

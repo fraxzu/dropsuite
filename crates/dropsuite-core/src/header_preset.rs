@@ -130,11 +130,15 @@ fn fields(preset: BrowserPreset) -> Vec<(&'static str, &'static str)> {
 
 /// Preset headers to insert, skipping names the request already carries. The returned names are
 /// lowercased and in emission order; values are already correct for the preset.
-pub fn fill(preset: BrowserPreset, present: &[(String, String)]) -> Vec<(&'static str, &'static str)> {
+pub fn fill(
+    preset: BrowserPreset,
+    present: &[(String, String)],
+) -> Vec<(&'static str, &'static str)> {
     fields(preset)
         .into_iter()
         .filter(|(name, _)| {
-            !CALLER_OWNED.contains(name) && !present.iter().any(|(n, _)| n.eq_ignore_ascii_case(name))
+            !CALLER_OWNED.contains(name)
+                && !present.iter().any(|(n, _)| n.eq_ignore_ascii_case(name))
         })
         .collect()
 }
@@ -179,7 +183,10 @@ mod tests {
         let ua = filled.iter().find(|(n, _)| *n == "user-agent").unwrap().1;
         assert!(ua.contains("Chrome/131"));
         assert!(!ua.contains("Edg/"));
-        assert!(names.iter().position(|n| *n == "user-agent") < names.iter().position(|n| *n == "accept"));
+        assert!(
+            names.iter().position(|n| *n == "user-agent")
+                < names.iter().position(|n| *n == "accept")
+        );
     }
 
     #[test]
@@ -188,7 +195,10 @@ mod tests {
         let ua = filled.iter().find(|(n, _)| *n == "user-agent").unwrap().1;
         let hints = filled.iter().find(|(n, _)| *n == "sec-ch-ua").unwrap().1;
         assert!(ua.contains("Edg/131"));
-        assert!(ua.contains("Chrome/131"), "Edge UA still names its Chromium base");
+        assert!(
+            ua.contains("Chrome/131"),
+            "Edge UA still names its Chromium base"
+        );
         assert!(hints.contains("Microsoft Edge"));
     }
 
@@ -200,26 +210,58 @@ mod tests {
             assert!(names.contains(&"sec-fetch-site"), "{preset:?}");
         }
         let ff = fill(BrowserPreset::Firefox, &[]);
-        assert!(ff.iter().any(|(n, v)| *n == "user-agent" && v.contains("Firefox/133")));
+        assert!(ff
+            .iter()
+            .any(|(n, v)| *n == "user-agent" && v.contains("Firefox/133")));
         let sf = fill(BrowserPreset::Safari, &[]);
-        assert!(sf.iter().any(|(n, v)| *n == "user-agent" && v.contains("Version/18.1")));
+        assert!(sf
+            .iter()
+            .any(|(n, v)| *n == "user-agent" && v.contains("Version/18.1")));
     }
 
     #[test]
     fn explicit_headers_win_and_caller_fields_are_skipped() {
-        let given = present(&["User-Agent", "Accept", "Host", "Cookie", "Content-Length", "Content-Type"]);
-        let names: Vec<&str> = fill(BrowserPreset::Chrome, &given).iter().map(|(n, _)| *n).collect();
-        for absent in ["user-agent", "accept", "host", "cookie", "content-length", "content-type"] {
+        let given = present(&[
+            "User-Agent",
+            "Accept",
+            "Host",
+            "Cookie",
+            "Content-Length",
+            "Content-Type",
+        ]);
+        let names: Vec<&str> = fill(BrowserPreset::Chrome, &given)
+            .iter()
+            .map(|(n, _)| *n)
+            .collect();
+        for absent in [
+            "user-agent",
+            "accept",
+            "host",
+            "cookie",
+            "content-length",
+            "content-type",
+        ] {
             assert!(!names.contains(&absent), "{absent} must not be filled");
         }
-        assert!(names.contains(&"accept-language"), "unset fields still filled");
+        assert!(
+            names.contains(&"accept-language"),
+            "unset fields still filled"
+        );
     }
 
     #[test]
     fn values_are_header_safe() {
-        for preset in [BrowserPreset::Chrome, BrowserPreset::Edge, BrowserPreset::Firefox, BrowserPreset::Safari] {
+        for preset in [
+            BrowserPreset::Chrome,
+            BrowserPreset::Edge,
+            BrowserPreset::Firefox,
+            BrowserPreset::Safari,
+        ] {
             for (_, value) in fill(preset, &[]) {
-                assert!(!value.bytes().any(|b| (b < b' ' && b != b'\t') || b == 0x7f), "{preset:?}");
+                assert!(
+                    !value.bytes().any(|b| (b < b' ' && b != b'\t') || b == 0x7f),
+                    "{preset:?}"
+                );
             }
         }
         assert!(has(&present(&["User-Agent"]), "user-agent"));

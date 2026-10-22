@@ -63,8 +63,16 @@ const RESTRICTED_NAMES: &[&str] = &[
 fn resolver_table() -> HashMap<&'static str, Vec<IpAddr>> {
     HashMap::from([
         ("metadata.test", vec![METADATA]),
-        ("ll6.test", vec![IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))]),
-        ("mapped.test", vec![IpAddr::V6(Ipv4Addr::new(169, 254, 169, 254).to_ipv6_mapped())]),
+        (
+            "ll6.test",
+            vec![IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))],
+        ),
+        (
+            "mapped.test",
+            vec![IpAddr::V6(
+                Ipv4Addr::new(169, 254, 169, 254).to_ipv6_mapped(),
+            )],
+        ),
         // A reachable, permitted address first must not let the restricted one slip through.
         ("mixed.test", vec![LOCAL, METADATA]),
         ("alibaba-meta.test", vec![ALIBABA_METADATA]),
@@ -72,7 +80,10 @@ fn resolver_table() -> HashMap<&'static str, Vec<IpAddr>> {
         // Loopback first, on a port with no listener: its connect would fail and fall through
         // to the next address, so every answer must be checked before the first connect.
         ("mixed-alibaba.test", vec![LOCAL, ALIBABA_METADATA]),
-        ("mixed-aws6.test", vec![IpAddr::V6(Ipv6Addr::LOCALHOST), AWS_METADATA_V6]),
+        (
+            "mixed-aws6.test",
+            vec![IpAddr::V6(Ipv6Addr::LOCALHOST), AWS_METADATA_V6],
+        ),
         ("allowed.test", vec![LOCAL]),
         ("nat64-meta.test", vec![NAT64_METADATA]),
         ("nat64-alibaba.test", vec![NAT64_ALIBABA]),
@@ -198,7 +209,9 @@ async fn start_origin() -> u16 {
                     }
                 }
                 let _ = sock
-                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 6\r\nConnection: close\r\n\r\norigin")
+                    .write_all(
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 6\r\nConnection: close\r\n\r\norigin",
+                    )
                     .await;
                 let _ = sock.shutdown().await;
             });
@@ -210,7 +223,10 @@ async fn start_origin() -> u16 {
 #[tokio::test]
 async fn http_absolute_form_to_metadata_ip_is_refused_before_connect() {
     // With and without HTTPS interception configured: the plain-HTTP path must not depend on it.
-    for (tag, intercept) in [("abs-plain", None), ("abs-intercept", Some(&["localhost"][..]))] {
+    for (tag, intercept) in [
+        ("abs-plain", None),
+        ("abs-intercept", Some(&["localhost"][..])),
+    ] {
         let (proxy, storage, port) = start_proxy(tag, intercept).await;
         let resp = send(
             port,
@@ -226,11 +242,22 @@ async fn http_absolute_form_to_metadata_ip_is_refused_before_connect() {
 async fn http_restricted_address_classes_are_refused_before_connect() {
     let (proxy, storage, port) = start_proxy("http-classes", None).await;
     for lit in RESTRICTED_LITERALS {
-        let absolute = format!("GET http://{lit}/latest/meta-data/ HTTP/1.1\r\nHost: {lit}\r\n\r\n");
-        assert_refused(&send(port, &absolute).await, &proxy, &storage, &format!("absolute {lit}"));
+        let absolute =
+            format!("GET http://{lit}/latest/meta-data/ HTTP/1.1\r\nHost: {lit}\r\n\r\n");
+        assert_refused(
+            &send(port, &absolute).await,
+            &proxy,
+            &storage,
+            &format!("absolute {lit}"),
+        );
 
         let origin = format!("GET /latest/meta-data/ HTTP/1.1\r\nHost: {lit}\r\n\r\n");
-        assert_refused(&send(port, &origin).await, &proxy, &storage, &format!("origin-form {lit}"));
+        assert_refused(
+            &send(port, &origin).await,
+            &proxy,
+            &storage,
+            &format!("origin-form {lit}"),
+        );
     }
 }
 
@@ -238,11 +265,19 @@ async fn http_restricted_address_classes_are_refused_before_connect() {
 async fn connect_restricted_address_classes_are_refused_before_tunnel() {
     let allow_all = allowlist_with_restricted();
     // Not allowlisted -> would be a blind tunnel; allowlisted -> would be intercepted.
-    for (tag, allow) in [("connect-blind", &["localhost"][..]), ("connect-allow", &allow_all[..])] {
+    for (tag, allow) in [
+        ("connect-blind", &["localhost"][..]),
+        ("connect-allow", &allow_all[..]),
+    ] {
         let (proxy, storage, port) = start_proxy(tag, Some(allow)).await;
         for lit in RESTRICTED_LITERALS {
             let req = format!("CONNECT {lit}:443 HTTP/1.1\r\nHost: {lit}:443\r\n\r\n");
-            assert_refused(&send(port, &req).await, &proxy, &storage, &format!("{tag} {lit}"));
+            assert_refused(
+                &send(port, &req).await,
+                &proxy,
+                &storage,
+                &format!("{tag} {lit}"),
+            );
         }
     }
 }
@@ -250,7 +285,10 @@ async fn connect_restricted_address_classes_are_refused_before_tunnel() {
 #[tokio::test]
 async fn hostname_resolving_to_restricted_address_is_refused_on_every_path() {
     let allow_all = allowlist_with_restricted();
-    for (tag, allow) in [("name-blind", &["localhost"][..]), ("name-allow", &allow_all[..])] {
+    for (tag, allow) in [
+        ("name-blind", &["localhost"][..]),
+        ("name-allow", &allow_all[..]),
+    ] {
         let (proxy, storage, port) = start_proxy(tag, Some(allow)).await;
         for name in RESTRICTED_NAMES {
             let cases = [
@@ -275,7 +313,12 @@ async fn interception_allowlist_does_not_override_policy_for_absolute_https_form
     let targets = RESTRICTED_LITERALS.iter().chain(RESTRICTED_NAMES);
     for host in targets {
         let req = format!("GET https://{host}/latest/meta-data/ HTTP/1.1\r\nHost: {host}\r\n\r\n");
-        assert_refused(&send(port, &req).await, &proxy, &storage, &format!("https:// {host}"));
+        assert_refused(
+            &send(port, &req).await,
+            &proxy,
+            &storage,
+            &format!("https:// {host}"),
+        );
     }
 }
 
@@ -311,9 +354,16 @@ async fn permitted_http_forwarding_still_connects_once_per_request() {
     ];
     for (i, req) in cases.iter().enumerate() {
         let resp = send(port, req).await;
-        assert!(resp.starts_with("HTTP/1.1 200 OK\r\n"), "case {i}: got: {resp}");
+        assert!(
+            resp.starts_with("HTTP/1.1 200 OK\r\n"),
+            "case {i}: got: {resp}"
+        );
         assert!(resp.ends_with("origin"), "case {i}: got: {resp}");
-        assert_eq!(proxy.outbound_connect_attempts(), i + 1, "case {i}: one connect per request");
+        assert_eq!(
+            proxy.outbound_connect_attempts(),
+            i + 1,
+            "case {i}: one connect per request"
+        );
     }
     tokio::time::sleep(Duration::from_millis(50)).await;
     assert_eq!(stored(&storage), cases.len());
@@ -324,7 +374,10 @@ async fn additional_cloud_metadata_endpoints_are_refused_on_every_path() {
     // The matrix tests above already include these addresses; this one pins the reason, so the
     // refusal is known to come from the metadata rule and not from some other check.
     let allow_all = allowlist_with_restricted();
-    for (tag, allow) in [("meta-blind", &["localhost"][..]), ("meta-allow", &allow_all[..])] {
+    for (tag, allow) in [
+        ("meta-blind", &["localhost"][..]),
+        ("meta-allow", &allow_all[..]),
+    ] {
         let (proxy, storage, port) = start_proxy(tag, Some(allow)).await;
         for host in [
             "100.100.100.200",
@@ -379,7 +432,10 @@ fn metadata_rule_is_exact_and_keeps_existing_classes() {
         "ff02::1".parse().unwrap(),
     ];
     for ip in blocked {
-        assert!(is_restricted_destination(at(ip)).is_some(), "{ip} must be blocked");
+        assert!(
+            is_restricted_destination(at(ip)).is_some(),
+            "{ip} must be blocked"
+        );
     }
     // Exact addresses only: neighbours, the rest of 100.64.0.0/10, other ULAs and loopback stay
     // permitted.
@@ -394,7 +450,10 @@ fn metadata_rule_is_exact_and_keeps_existing_classes() {
         "10.0.0.1",
     ] {
         let ip: IpAddr = allowed.parse().unwrap();
-        assert!(is_restricted_destination(at(ip)).is_none(), "{allowed} must stay permitted");
+        assert!(
+            is_restricted_destination(at(ip)).is_none(),
+            "{allowed} must stay permitted"
+        );
     }
 }
 
@@ -407,7 +466,11 @@ fn canonical_ip_keeps_ipv6_loopback_and_unspecified() {
     assert_eq!(canonical_ip(v4_loop), v4_loop);
     assert!(canonical_ip(v4_loop).is_loopback());
 
-    assert_eq!(canonical_ip(v6_loop), v6_loop, "::1 must not become 0.0.0.1");
+    assert_eq!(
+        canonical_ip(v6_loop),
+        v6_loop,
+        "::1 must not become 0.0.0.1"
+    );
     assert!(canonical_ip(v6_loop).is_loopback());
 
     assert_eq!(canonical_ip(v6_any), v6_any);
@@ -415,7 +478,10 @@ fn canonical_ip_keeps_ipv6_loopback_and_unspecified() {
 
     // IPv4-mapped forms fold to IPv4.
     assert_eq!(canonical_ip("::ffff:127.0.0.1".parse().unwrap()), v4_loop);
-    assert_eq!(canonical_ip("::ffff:169.254.169.254".parse().unwrap()), METADATA);
+    assert_eq!(
+        canonical_ip("::ffff:169.254.169.254".parse().unwrap()),
+        METADATA
+    );
     // The deprecated IPv4-compatible form still folds, so it cannot slip past the IPv4 rules.
     assert_eq!(canonical_ip("::169.254.169.254".parse().unwrap()), METADATA);
     // Ordinary IPv6 is left alone.
@@ -425,18 +491,30 @@ fn canonical_ip_keeps_ipv6_loopback_and_unspecified() {
 #[test]
 fn own_listener_comparison_is_consistent_across_families() {
     let port = 18080;
-    let listeners: [SocketAddr; 2] = ["127.0.0.1:18080".parse().unwrap(), "[::1]:18080".parse().unwrap()];
+    let listeners: [SocketAddr; 2] = [
+        "127.0.0.1:18080".parse().unwrap(),
+        "[::1]:18080".parse().unwrap(),
+    ];
     for listen in listeners {
         for own in ["127.0.0.1", "::ffff:127.0.0.1", "::1", "0.0.0.0", "::"] {
             let target = SocketAddr::new(own.parse().unwrap(), port);
-            assert!(is_own_listener(target, listen), "{target} is the proxy at {listen}");
+            assert!(
+                is_own_listener(target, listen),
+                "{target} is the proxy at {listen}"
+            );
         }
         for other in ["10.0.0.1", "::ffff:10.0.0.1", "::2", "fd00:ec2::254"] {
             let target = SocketAddr::new(other.parse().unwrap(), port);
-            assert!(!is_own_listener(target, listen), "{target} is not the proxy at {listen}");
+            assert!(
+                !is_own_listener(target, listen),
+                "{target} is not the proxy at {listen}"
+            );
         }
         let elsewhere = SocketAddr::new("::1".parse().unwrap(), port + 1);
-        assert!(!is_own_listener(elsewhere, listen), "a different port is not the proxy");
+        assert!(
+            !is_own_listener(elsewhere, listen),
+            "a different port is not the proxy"
+        );
     }
 }
 
@@ -454,10 +532,17 @@ async fn own_loopback_listener_is_refused_in_both_families() {
             format!("CONNECT {host} HTTP/1.1\r\nHost: {host}\r\n\r\n"),
         ] {
             let resp = send(port, &req).await;
-            assert!(resp.starts_with("HTTP/1.1 508 Loop Detected\r\n"), "v4 {req:?}: got: {resp}");
+            assert!(
+                resp.starts_with("HTTP/1.1 508 Loop Detected\r\n"),
+                "v4 {req:?}: got: {resp}"
+            );
         }
     }
-    assert_eq!(proxy.outbound_connect_attempts(), 0, "no forwarding loop is started");
+    assert_eq!(
+        proxy.outbound_connect_attempts(),
+        0,
+        "no forwarding loop is started"
+    );
     assert_eq!(stored(&storage), 0);
 
     // IPv6 listener on ::1, where the host supports it.
@@ -465,7 +550,8 @@ async fn own_loopback_listener_is_refused_in_both_families() {
         eprintln!("SKIPPED: IPv6 loopback is not available on this host");
         return;
     }
-    let (proxy6, storage6, port6) = start_proxy_on("::1", "loop-v6", Some(&["localhost"][..])).await;
+    let (proxy6, storage6, port6) =
+        start_proxy_on("::1", "loop-v6", Some(&["localhost"][..])).await;
     assert_ne!(port6, 0, "::1 is accepted as a loopback bind address");
     let listener6 = SocketAddr::new("::1".parse().unwrap(), port6);
     for host in [
@@ -479,10 +565,17 @@ async fn own_loopback_listener_is_refused_in_both_families() {
             format!("CONNECT {host} HTTP/1.1\r\nHost: {host}\r\n\r\n"),
         ] {
             let resp = send_to(listener6, &req).await;
-            assert!(resp.starts_with("HTTP/1.1 508 Loop Detected\r\n"), "v6 {req:?}: got: {resp}");
+            assert!(
+                resp.starts_with("HTTP/1.1 508 Loop Detected\r\n"),
+                "v6 {req:?}: got: {resp}"
+            );
         }
     }
-    assert_eq!(proxy6.outbound_connect_attempts(), 0, "no forwarding loop is started");
+    assert_eq!(
+        proxy6.outbound_connect_attempts(),
+        0,
+        "no forwarding loop is started"
+    );
     assert_eq!(stored(&storage6), 0);
 }
 
@@ -514,11 +607,18 @@ fn nat64_well_known_prefix_gets_the_ipv4_rules() {
     ] {
         let reason = is_restricted_destination(at(nat64));
         assert!(reason.is_some(), "{nat64} must be refused like {v4}");
-        assert_eq!(reason, is_restricted_destination(at(v4)), "{nat64} reason matches {v4}");
+        assert_eq!(
+            reason,
+            is_restricted_destination(at(v4)),
+            "{nat64} reason matches {v4}"
+        );
     }
     // The prefix alone is not a reason: permitted embedded addresses stay permitted.
     for allowed in ["64:ff9b::808:808", "64:ff9b::6464:64c7", "64:ff9b::a00:1"] {
-        assert!(is_restricted_destination(at(allowed)).is_none(), "{allowed} stays permitted");
+        assert!(
+            is_restricted_destination(at(allowed)).is_none(),
+            "{allowed} stays permitted"
+        );
     }
     // Only the well-known /96 is decoded; network-specific prefixes (here the RFC 8215 local-use
     // 64:ff9b:1::/48) are not guessed at.
@@ -540,9 +640,19 @@ async fn permitted_nat64_destination_reaches_the_connector() {
     for (i, req) in cases.iter().enumerate() {
         let resp = send(port, req).await;
         let what = req.lines().next().unwrap();
-        assert!(resp.starts_with("HTTP/1.1 502 Bad Gateway\r\n"), "{what}: got: {resp}");
-        assert!(!resp.contains("prohibited"), "{what}: not refused by policy, got: {resp}");
-        assert_eq!(proxy.outbound_connect_attempts(), i + 1, "{what}: reached the connector");
+        assert!(
+            resp.starts_with("HTTP/1.1 502 Bad Gateway\r\n"),
+            "{what}: got: {resp}"
+        );
+        assert!(
+            !resp.contains("prohibited"),
+            "{what}: not refused by policy, got: {resp}"
+        );
+        assert_eq!(
+            proxy.outbound_connect_attempts(),
+            i + 1,
+            "{what}: reached the connector"
+        );
     }
     assert_eq!(stored(&storage), 0);
 }

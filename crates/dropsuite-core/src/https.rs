@@ -50,7 +50,9 @@ impl LeafCache {
     }
 
     pub fn get_host(&self, fp: &str) -> Option<&str> {
-        self.by_fingerprint.get(&fp.to_ascii_lowercase()).map(|s| s.as_str())
+        self.by_fingerprint
+            .get(&fp.to_ascii_lowercase())
+            .map(|s| s.as_str())
     }
 
     pub fn contains_fingerprint(&self, fp: &str) -> bool {
@@ -67,16 +69,24 @@ impl LeafCache {
     ) {
         let now = SystemTime::now();
         let fp_clean = fingerprint.trim().to_ascii_lowercase();
-        debug_assert!(fp_clean.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+        debug_assert!(fp_clean
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
 
         // 1. Evict expired entries
         self.by_host.retain(|_, e| e.expires > now);
-        let valid_fps: HashSet<String> = self.by_host.values().map(|e| e.fingerprint.to_ascii_lowercase()).collect();
+        let valid_fps: HashSet<String> = self
+            .by_host
+            .values()
+            .map(|e| e.fingerprint.to_ascii_lowercase())
+            .collect();
         self.by_fingerprint.retain(|fp, _| valid_fps.contains(fp));
 
         // 2. Bound size to MAX_LEAF_CACHE
         if self.by_host.len() >= MAX_LEAF_CACHE {
-            if let Some(oldest_host) = self.by_host.iter()
+            if let Some(oldest_host) = self
+                .by_host
+                .iter()
                 .min_by_key(|(_, e)| e.expires)
                 .map(|(h, _)| h.clone())
             {
@@ -88,12 +98,15 @@ impl LeafCache {
 
         // 3. Insert new leaf
         self.by_fingerprint.insert(fp_clean.clone(), host.clone());
-        self.by_host.insert(host, LeafEntry {
-            acceptor,
-            fingerprint: fp_clean,
-            cert_der,
-            expires,
-        });
+        self.by_host.insert(
+            host,
+            LeafEntry {
+                acceptor,
+                fingerprint: fp_clean,
+                cert_der,
+                expires,
+            },
+        );
     }
 }
 
@@ -162,12 +175,16 @@ impl HttpsInterception {
     }
 
     pub fn is_minted_leaf(&self, fp: &str) -> bool {
-        let Ok(cache) = self.leaf_cache.read() else { return false; };
+        let Ok(cache) = self.leaf_cache.read() else {
+            return false;
+        };
         cache.contains_fingerprint(fp)
     }
 
     pub fn minted_leaf_host(&self, fp: &str) -> Option<String> {
-        let Ok(cache) = self.leaf_cache.read() else { return None; };
+        let Ok(cache) = self.leaf_cache.read() else {
+            return None;
+        };
         cache.get_host(fp).map(|s| s.to_string())
     }
 
@@ -281,11 +298,7 @@ impl HttpsInterception {
         Ok(UpstreamTls { reader, writer })
     }
 
-    pub async fn connect_upstream(
-        &self,
-        host: &str,
-        port: u16,
-    ) -> Result<UpstreamTls, TlsError> {
+    pub async fn connect_upstream(&self, host: &str, port: u16) -> Result<UpstreamTls, TlsError> {
         let addrs = tokio::net::lookup_host((host, port))
             .await
             .map_err(|e| TlsError::Connect(format!("resolve {host}: {e}")))?;

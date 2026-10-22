@@ -334,15 +334,16 @@ pub async fn generate_ca_certificate(
 ) -> Result<HttpsSettings, String> {
     let engine = state.engine()?;
     let proxy = engine.proxy.lock().await;
-    proxy.load_or_generate_ca().await.map_err(|e| e.to_string())?;
+    proxy
+        .load_or_generate_ca()
+        .await
+        .map_err(|e| e.to_string())?;
     drop(proxy);
     get_https_settings(state).await
 }
 
 #[tauri::command]
-pub async fn remove_ca_certificate(
-    state: State<'_, EngineState>,
-) -> Result<HttpsSettings, String> {
+pub async fn remove_ca_certificate(state: State<'_, EngineState>) -> Result<HttpsSettings, String> {
     let engine = state.engine()?;
     let proxy = engine.proxy.lock().await;
     proxy.remove_ca().await.map_err(|e| e.to_string())?;
@@ -354,9 +355,8 @@ pub async fn remove_ca_certificate(
 pub async fn export_ca_certificate(state: State<'_, EngineState>) -> Result<String, String> {
     let engine = state.engine()?;
     let cert_path = engine.data_dir.join("ca").join("root-ca.pem");
-    std::fs::read_to_string(&cert_path).map_err(|e| {
-        format!("Could not read root CA certificate (generate it first): {e}")
-    })
+    std::fs::read_to_string(&cert_path)
+        .map_err(|e| format!("Could not read root CA certificate (generate it first): {e}"))
 }
 
 #[tauri::command]
@@ -466,7 +466,10 @@ pub fn get_repeater_tabs(
     state: State<'_, EngineState>,
 ) -> Result<Vec<dropsuite_core::RepeaterTabRecord>, String> {
     let engine = state.engine()?;
-    engine.storage.list_repeater_tabs().map_err(|e| e.to_string())
+    engine
+        .storage
+        .list_repeater_tabs()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -475,16 +478,19 @@ pub fn save_repeater_tab(
     tab: dropsuite_core::RepeaterTabRecord,
 ) -> Result<i64, String> {
     let engine = state.engine()?;
-    engine.storage.save_repeater_tab(&tab).map_err(|e| e.to_string())
+    engine
+        .storage
+        .save_repeater_tab(&tab)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn delete_repeater_tab(
-    state: State<'_, EngineState>,
-    id: i64,
-) -> Result<(), String> {
+pub fn delete_repeater_tab(state: State<'_, EngineState>, id: i64) -> Result<(), String> {
     let engine = state.engine()?;
-    engine.storage.delete_repeater_tab(id).map_err(|e| e.to_string())
+    engine
+        .storage
+        .delete_repeater_tab(id)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -494,7 +500,10 @@ pub fn list_repeater_attempts(
     limit: Option<usize>,
 ) -> Result<Vec<dropsuite_core::RepeaterAttemptRecord>, String> {
     let engine = state.engine()?;
-    engine.storage.list_repeater_attempts(tab_id, limit).map_err(|e| e.to_string())
+    engine
+        .storage
+        .list_repeater_attempts(tab_id, limit)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -503,23 +512,23 @@ pub fn save_repeater_attempt(
     attempt: dropsuite_core::RepeaterAttemptRecord,
 ) -> Result<i64, String> {
     let engine = state.engine()?;
-    engine.storage.save_repeater_attempt(&attempt).map_err(|e| e.to_string())
+    engine
+        .storage
+        .save_repeater_attempt(&attempt)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn clear_repeater_attempts(
-    state: State<'_, EngineState>,
-    tab_id: i64,
-) -> Result<(), String> {
+pub fn clear_repeater_attempts(state: State<'_, EngineState>, tab_id: i64) -> Result<(), String> {
     let engine = state.engine()?;
-    engine.storage.clear_repeater_attempts(tab_id).map_err(|e| e.to_string())
+    engine
+        .storage
+        .clear_repeater_attempts(tab_id)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn export_history_har(
-    state: State<'_, EngineState>,
-    ids: Vec<i64>,
-) -> Result<String, String> {
+pub fn export_history_har(state: State<'_, EngineState>, ids: Vec<i64>) -> Result<String, String> {
     let engine = state.engine()?;
     engine.storage.export_har(&ids).map_err(|e| e.to_string())
 }
@@ -529,7 +538,10 @@ pub fn export_history_har(
 #[tauri::command]
 pub fn clear_history(state: State<'_, EngineState>) -> Result<usize, String> {
     let engine = state.engine()?;
-    engine.storage.clear_transactions().map_err(|e| e.to_string())
+    engine
+        .storage
+        .clear_transactions()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -664,7 +676,11 @@ pub fn list_cookies(state: State<'_, EngineState>) -> Result<Vec<CookieRow>, Str
 /// Save a cookie typed or pasted for `host`. `raw` is `name=value` and may carry attributes
 /// (`; Path=/`, `; Secure`, …), so a whole `cf_clearance=…` line from a browser can be pasted.
 #[tauri::command]
-pub fn save_cookie(state: State<'_, EngineState>, host: String, raw: String) -> Result<CookieRow, String> {
+pub fn save_cookie(
+    state: State<'_, EngineState>,
+    host: String,
+    raw: String,
+) -> Result<CookieRow, String> {
     let engine = state.engine()?;
     let host = host.trim().trim_end_matches('.').to_ascii_lowercase();
     if host.is_empty() || host.contains('/') || host.contains(' ') {
@@ -672,7 +688,10 @@ pub fn save_cookie(state: State<'_, EngineState>, host: String, raw: String) -> 
     }
     let cookie = dropsuite_core::cookies::parse_set_cookie(&host, raw.trim(), now_secs())
         .ok_or_else(|| "That is not a storable cookie for this host. Check the name, the value and any Domain attribute.".to_string())?;
-    engine.storage.upsert_cookie(&cookie).map_err(|e| e.to_string())?;
+    engine
+        .storage
+        .upsert_cookie(&cookie)
+        .map_err(|e| e.to_string())?;
     Ok(CookieRow::from(cookie))
 }
 
@@ -798,10 +817,7 @@ pub async fn import_challenge_cookies(
     host: String,
 ) -> Result<usize, String> {
     let engine = state.engine()?;
-    let host = host
-        .trim()
-        .trim_end_matches('.')
-        .to_ascii_lowercase();
+    let host = host.trim().trim_end_matches('.').to_ascii_lowercase();
     if host.is_empty() {
         return Err("Enter the host whose challenge was solved.".into());
     }
@@ -861,10 +877,17 @@ pub async fn open_embedded_browser(
         .filter(|s| !s.trim().is_empty())
         .unwrap_or("https://lumens.my.id/");
 
-    crate::platform::spawn_embedded_browser(&app, proxy_url, browser_dir, target_url, leaf_cache, crate::platform::BrowserMode::Intercept).await?;
+    crate::platform::spawn_embedded_browser(
+        &app,
+        proxy_url,
+        browser_dir,
+        target_url,
+        leaf_cache,
+        crate::platform::BrowserMode::Intercept,
+    )
+    .await?;
     Ok(())
 }
-
 
 // ---------------------------------------------------------------------------------------------
 // Intruder (Fuzzer)
@@ -1094,9 +1117,16 @@ pub fn cancel_intruder(intruder_state: State<'_, IntruderState>) {
 // ---------------------------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn get_dropai_config(state: State<'_, EngineState>) -> Result<crate::dropai::DropAiStatus, String> {
+pub fn get_dropai_config(
+    state: State<'_, EngineState>,
+) -> Result<crate::dropai::DropAiStatus, String> {
     let engine = state.engine()?;
-    let cfg = engine.settings.lock().unwrap_or_else(|e| e.into_inner()).drop_ai.clone();
+    let cfg = engine
+        .settings
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .drop_ai
+        .clone();
     Ok(crate::dropai::DropAiStatus::from(&cfg, &engine.data_dir))
 }
 
@@ -1106,11 +1136,18 @@ pub fn set_dropai_config(
     config: crate::dropai::DropAiConfig,
 ) -> Result<crate::dropai::DropAiStatus, String> {
     let engine = state.engine()?;
-    let mut saved = engine.settings.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let mut saved = engine
+        .settings
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone();
     saved.drop_ai = config;
     settings::save(&engine.data_dir, &saved)?;
     *engine.settings.lock().unwrap_or_else(|e| e.into_inner()) = saved.clone();
-    Ok(crate::dropai::DropAiStatus::from(&saved.drop_ai, &engine.data_dir))
+    Ok(crate::dropai::DropAiStatus::from(
+        &saved.drop_ai,
+        &engine.data_dir,
+    ))
 }
 
 /// Store the API key, protected at rest. An empty string clears it.
@@ -1135,7 +1172,12 @@ pub async fn dropai_complete(
     user: String,
 ) -> Result<String, String> {
     let engine = state.engine()?;
-    let cfg = engine.settings.lock().unwrap_or_else(|e| e.into_inner()).drop_ai.clone();
+    let cfg = engine
+        .settings
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .drop_ai
+        .clone();
     crate::dropai::complete(&cfg, &engine.data_dir, &system, &user).await
 }
 
@@ -1143,7 +1185,12 @@ pub async fn dropai_complete(
 #[tauri::command]
 pub async fn test_dropai(state: State<'_, EngineState>) -> Result<String, String> {
     let engine = state.engine()?;
-    let cfg = engine.settings.lock().unwrap_or_else(|e| e.into_inner()).drop_ai.clone();
+    let cfg = engine
+        .settings
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .drop_ai
+        .clone();
     crate::dropai::test(&cfg, &engine.data_dir).await
 }
 

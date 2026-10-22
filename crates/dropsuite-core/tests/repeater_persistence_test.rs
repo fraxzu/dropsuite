@@ -67,14 +67,20 @@ fn test_repeater_tab_crud_and_persistence() {
         assert_eq!(tabs[1].name, "User Info");
 
         // Update tab 2
-        let mut t2_updated = storage.get_repeater_tab(id2).unwrap().expect("Tab 2 exists");
+        let mut t2_updated = storage
+            .get_repeater_tab(id2)
+            .unwrap()
+            .expect("Tab 2 exists");
         t2_updated.name = "User Info (Updated)".to_string();
         t2_updated.color = Some("purple".to_string());
         t2_updated.body = "{\"include_roles\":true}".to_string();
         let saved_id2 = storage.save_repeater_tab(&t2_updated).unwrap();
         assert_eq!(saved_id2, id2);
 
-        let t2_fetched = storage.get_repeater_tab(id2).unwrap().expect("Tab 2 exists");
+        let t2_fetched = storage
+            .get_repeater_tab(id2)
+            .unwrap()
+            .expect("Tab 2 exists");
         assert_eq!(t2_fetched.name, "User Info (Updated)");
         assert_eq!(t2_fetched.color, Some("purple".to_string()));
         assert_eq!(t2_fetched.body, "{\"include_roles\":true}");
@@ -134,7 +140,10 @@ fn test_repeater_attempts_recording_pruning_and_sanitization() {
                 duration_ms: 10 + i as u64,
                 total_bytes: 500,
                 sent_bytes: 120,
-                response_headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+                response_headers: vec![(
+                    "Content-Type".to_string(),
+                    "application/json".to_string(),
+                )],
                 response_body: format!("{{\"seq\":{}}}", i).into_bytes(),
                 content_type: Some("application/json".to_string()),
                 failure_kind: None,
@@ -163,7 +172,10 @@ fn test_repeater_attempts_recording_pruning_and_sanitization() {
             total_bytes: 600,
             sent_bytes: 150,
             response_headers: vec![
-                ("Set-Cookie".to_string(), "session=secret_token_12345; Path=/".to_string()),
+                (
+                    "Set-Cookie".to_string(),
+                    "session=secret_token_12345; Path=/".to_string(),
+                ),
                 ("X-Api-Key".to_string(), "sk-live-secret-999".to_string()),
             ],
             response_body: b"{\"token\":\"sk-live-secret-999\",\"public\":\"visible\"}".to_vec(),
@@ -180,7 +192,11 @@ fn test_repeater_attempts_recording_pruning_and_sanitization() {
         // Verify Set-Cookie and X-Api-Key are redacted
         for (k, v) in &last.response_headers {
             if k.eq_ignore_ascii_case("set-cookie") {
-                assert!(v.contains("[REDACTED"), "Cookie value should be redacted: {}", v);
+                assert!(
+                    v.contains("[REDACTED"),
+                    "Cookie value should be redacted: {}",
+                    v
+                );
             }
             if k.eq_ignore_ascii_case("x-api-key") {
                 assert!(v.contains("[REDACTED"), "API key should be redacted: {}", v);
@@ -189,7 +205,10 @@ fn test_repeater_attempts_recording_pruning_and_sanitization() {
 
         // 3. Clear attempts
         storage.clear_repeater_attempts(tab_id).unwrap();
-        assert_eq!(storage.list_repeater_attempts(tab_id, None).unwrap().len(), 0);
+        assert_eq!(
+            storage.list_repeater_attempts(tab_id, None).unwrap().len(),
+            0
+        );
     }
 
     let _ = std::fs::remove_file(db_path);
@@ -220,10 +239,18 @@ fn test_advanced_history_filters_sorting_and_har_export() {
             content_length: len,
         };
 
-        storage.insert_transaction(&make_tx(1, 200, "application/json", 50, 200)).unwrap();
-        storage.insert_transaction(&make_tx(2, 302, "text/html", 10, 50)).unwrap();
-        storage.insert_transaction(&make_tx(3, 404, "text/plain", 120, 15)).unwrap();
-        storage.insert_transaction(&make_tx(4, 500, "application/json", 300, 500)).unwrap();
+        storage
+            .insert_transaction(&make_tx(1, 200, "application/json", 50, 200))
+            .unwrap();
+        storage
+            .insert_transaction(&make_tx(2, 302, "text/html", 10, 50))
+            .unwrap();
+        storage
+            .insert_transaction(&make_tx(3, 404, "text/plain", 120, 15))
+            .unwrap();
+        storage
+            .insert_transaction(&make_tx(4, 500, "application/json", 300, 500))
+            .unwrap();
 
         // Filter status range 400-599
         let err_filter = HistoryFilter {

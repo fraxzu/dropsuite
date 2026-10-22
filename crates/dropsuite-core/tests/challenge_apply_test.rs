@@ -106,25 +106,41 @@ fn header_line<'a>(head: &'a str, name: &str) -> Option<&'a str> {
 #[tokio::test]
 async fn preset_fills_missing_browser_headers() {
     let (port, seen) = fixture().await;
-    let apply = ApplyConfig { preset: BrowserPreset::Chrome, ..Default::default() };
-    send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply)).await.unwrap();
+    let apply = ApplyConfig {
+        preset: BrowserPreset::Chrome,
+        ..Default::default()
+    };
+    send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply))
+        .await
+        .unwrap();
 
     let head = seen.lock().unwrap()[0].head.clone();
     let ua = header_line(&head, "user-agent").expect("preset must add a User-Agent");
     assert!(ua.contains("Chrome/131"));
-    assert!(header_line(&head, "sec-ch-ua").unwrap().contains("Google Chrome"));
+    assert!(header_line(&head, "sec-ch-ua")
+        .unwrap()
+        .contains("Google Chrome"));
     assert_eq!(header_line(&head, "sec-fetch-dest"), Some("document"));
-    assert_eq!(header_line(&head, "accept-language"), Some("en-US,en;q=0.9"));
+    assert_eq!(
+        header_line(&head, "accept-language"),
+        Some("en-US,en;q=0.9")
+    );
 }
 
 #[tokio::test]
 async fn explicit_headers_survive_the_preset() {
     let (port, seen) = fixture().await;
-    let apply = ApplyConfig { preset: BrowserPreset::Chrome, ..Default::default() };
+    let apply = ApplyConfig {
+        preset: BrowserPreset::Chrome,
+        ..Default::default()
+    };
     send(
         &req(
             format!("http://127.0.0.1:{port}/"),
-            &[("User-Agent", "MyAgent/1.0"), ("Accept", "application/json")],
+            &[
+                ("User-Agent", "MyAgent/1.0"),
+                ("Accept", "application/json"),
+            ],
         ),
         &opts(apply),
     )
@@ -139,18 +155,27 @@ async fn explicit_headers_survive_the_preset() {
         .filter(|l| l.to_ascii_lowercase().starts_with("user-agent:"))
         .count();
     assert_eq!(ua_lines, 1, "no duplicate User-Agent");
-    assert!(header_line(&head, "sec-ch-ua").is_some(), "other preset fields still fill");
+    assert!(
+        header_line(&head, "sec-ch-ua").is_some(),
+        "other preset fields still fill"
+    );
 }
 
 #[tokio::test]
 async fn off_preset_leaves_the_request_alone() {
     let (port, seen) = fixture().await;
-    send(&req(format!("http://127.0.0.1:{port}/plain"), &[]), &opts(ApplyConfig::default()))
-        .await
-        .unwrap();
+    send(
+        &req(format!("http://127.0.0.1:{port}/plain"), &[]),
+        &opts(ApplyConfig::default()),
+    )
+    .await
+    .unwrap();
 
     let head = seen.lock().unwrap()[0].head.clone();
-    assert_eq!(head, format!("GET /plain HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"));
+    assert_eq!(
+        head,
+        format!("GET /plain HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n")
+    );
 }
 
 #[tokio::test]
@@ -165,15 +190,21 @@ async fn jar_cookies_are_attached_when_they_match() {
         ],
         ..Default::default()
     };
-    send(&req(format!("http://127.0.0.1:{port}/app/x"), &[]), &opts(apply))
-        .await
-        .unwrap();
+    send(
+        &req(format!("http://127.0.0.1:{port}/app/x"), &[]),
+        &opts(apply),
+    )
+    .await
+    .unwrap();
 
     let head = seen.lock().unwrap()[0].head.clone();
     let sent = header_line(&head, "cookie").expect("matching cookies must be sent");
     assert!(sent.contains("cf_clearance=good"));
     assert!(sent.contains("narrow=only-under-app"));
-    assert!(!sent.contains("__Host-sec"), "secure cookie must not go over plain HTTP");
+    assert!(
+        !sent.contains("__Host-sec"),
+        "secure cookie must not go over plain HTTP"
+    );
 }
 
 #[tokio::test]
@@ -184,9 +215,12 @@ async fn jar_skips_cookies_for_other_paths() {
         cookies: vec![cookie("narrow", "1", "/app", false)],
         ..Default::default()
     };
-    send(&req(format!("http://127.0.0.1:{port}/elsewhere"), &[]), &opts(apply))
-        .await
-        .unwrap();
+    send(
+        &req(format!("http://127.0.0.1:{port}/elsewhere"), &[]),
+        &opts(apply),
+    )
+    .await
+    .unwrap();
     assert!(header_line(&seen.lock().unwrap()[0].head, "cookie").is_none());
 }
 
@@ -199,7 +233,10 @@ async fn explicit_cookie_header_wins_over_the_jar() {
         ..Default::default()
     };
     send(
-        &req(format!("http://127.0.0.1:{port}/"), &[("Cookie", "from=editor")]),
+        &req(
+            format!("http://127.0.0.1:{port}/"),
+            &[("Cookie", "from=editor")],
+        ),
         &opts(apply),
     )
     .await
@@ -207,23 +244,36 @@ async fn explicit_cookie_header_wins_over_the_jar() {
 
     let head = seen.lock().unwrap()[0].head.clone();
     assert_eq!(header_line(&head, "cookie"), Some("from=editor"));
-    assert_eq!(head.lines().filter(|l| l.to_ascii_lowercase().starts_with("cookie:")).count(), 1);
+    assert_eq!(
+        head.lines()
+            .filter(|l| l.to_ascii_lowercase().starts_with("cookie:"))
+            .count(),
+        1
+    );
 }
 
 #[tokio::test]
 async fn attach_disabled_sends_no_cookie() {
     let (port, seen) = fixture().await;
-    let apply = ApplyConfig { cookies: vec![cookie("a", "1", "/", false)], ..Default::default() };
-    send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply)).await.unwrap();
+    let apply = ApplyConfig {
+        cookies: vec![cookie("a", "1", "/", false)],
+        ..Default::default()
+    };
+    send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply))
+        .await
+        .unwrap();
     assert!(header_line(&seen.lock().unwrap()[0].head, "cookie").is_none());
 }
 
 #[tokio::test]
 async fn challenge_is_reported_with_vendor_and_kind() {
     let (port, _seen) = fixture().await;
-    let r = send(&req(format!("http://127.0.0.1:{port}/blocked"), &[]), &opts(ApplyConfig::default()))
-        .await
-        .unwrap();
+    let r = send(
+        &req(format!("http://127.0.0.1:{port}/blocked"), &[]),
+        &opts(ApplyConfig::default()),
+    )
+    .await
+    .unwrap();
     assert_eq!(r.status, 403);
     let signal = r.challenge.expect("a challenge must be reported");
     assert_eq!(signal.vendor, ChallengeVendor::Cloudflare);
@@ -234,9 +284,12 @@ async fn challenge_is_reported_with_vendor_and_kind() {
 #[tokio::test]
 async fn ordinary_response_has_no_challenge() {
     let (port, _seen) = fixture().await;
-    let r = send(&req(format!("http://127.0.0.1:{port}/fine"), &[]), &opts(ApplyConfig::default()))
-        .await
-        .unwrap();
+    let r = send(
+        &req(format!("http://127.0.0.1:{port}/fine"), &[]),
+        &opts(ApplyConfig::default()),
+    )
+    .await
+    .unwrap();
     assert_eq!(r.status, 200);
     assert!(r.challenge.is_none());
 }
@@ -249,11 +302,16 @@ async fn preset_and_jar_are_transparent_to_the_snapshot() {
         attach_cookies: true,
         cookies: vec![cookie("cf_clearance", "abc", "/", false)],
     };
-    let r = send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply)).await.unwrap();
+    let r = send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply))
+        .await
+        .unwrap();
 
     // The snapshot is what history would keep, so injected fields must be visible there too.
     // Cookie values are redacted there while names survive, so only the name is asserted.
-    assert!(r.request_headers.iter().any(|(n, _)| n.eq_ignore_ascii_case("user-agent")));
+    assert!(r
+        .request_headers
+        .iter()
+        .any(|(n, _)| n.eq_ignore_ascii_case("user-agent")));
     assert!(r
         .request_headers
         .iter()

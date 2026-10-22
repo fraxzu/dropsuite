@@ -54,7 +54,10 @@ impl StoredCookie {
 /// the stored domain is tolerated because servers still write it.
 pub fn domain_match(host: &str, scope: &str) -> bool {
     let host = host.trim_end_matches('.').to_ascii_lowercase();
-    let scope = scope.trim_start_matches('.').trim_end_matches('.').to_ascii_lowercase();
+    let scope = scope
+        .trim_start_matches('.')
+        .trim_end_matches('.')
+        .to_ascii_lowercase();
     if scope.is_empty() {
         return false;
     }
@@ -67,15 +70,16 @@ pub fn path_match(request_path: &str, cookie_path: &str) -> bool {
         return true;
     }
     request_path.starts_with(cookie_path)
-        && (cookie_path.ends_with('/') || request_path.as_bytes().get(cookie_path.len()) == Some(&b'/'))
+        && (cookie_path.ends_with('/')
+            || request_path.as_bytes().get(cookie_path.len()) == Some(&b'/'))
 }
 
 fn valid_name(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= MAX_NAME_LEN
-        && name.bytes().all(|b| {
-            b.is_ascii_alphanumeric() || b"!#$%&'*+-.^_`|~".contains(&b)
-        })
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"!#$%&'*+-.^_`|~".contains(&b))
 }
 
 fn valid_value(value: &str) -> bool {
@@ -112,7 +116,10 @@ pub fn parse_set_cookie(host: &str, header: &str, now: i64) -> Option<StoredCook
         };
         match key.as_str() {
             "domain" => {
-                let d = val.trim_start_matches('.').trim_end_matches('.').to_ascii_lowercase();
+                let d = val
+                    .trim_start_matches('.')
+                    .trim_end_matches('.')
+                    .to_ascii_lowercase();
                 if d.is_empty() || !domain_match(host, &d) {
                     // A domain the host does not belong to is dropped, as a browser does.
                     continue;
@@ -232,12 +239,23 @@ fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
 }
 
 /// Build a `Cookie` header value from the jar, longest path first, deduplicated by name.
-pub fn header_value(cookies: &[StoredCookie], host: &str, path: &str, tls: bool, now: i64) -> Option<String> {
+pub fn header_value(
+    cookies: &[StoredCookie],
+    host: &str,
+    path: &str,
+    tls: bool,
+    now: i64,
+) -> Option<String> {
     let mut usable: Vec<&StoredCookie> = cookies
         .iter()
         .filter(|c| c.matches(host, path, tls, now))
         .collect();
-    usable.sort_by(|a, b| b.path.len().cmp(&a.path.len()).then(a.created_at.cmp(&b.created_at)));
+    usable.sort_by(|a, b| {
+        b.path
+            .len()
+            .cmp(&a.path.len())
+            .then(a.created_at.cmp(&b.created_at))
+    });
 
     let mut seen: Vec<&str> = Vec::new();
     let mut out = String::new();
@@ -317,7 +335,10 @@ mod tests {
     fn prefix_rules_are_enforced() {
         assert!(parse("__Host-a=1; Secure; Path=/").is_some());
         assert!(parse("__Host-a=1; Path=/").is_none(), "needs Secure");
-        assert!(parse("__Host-a=1; Secure; Path=/x").is_none(), "needs root path");
+        assert!(
+            parse("__Host-a=1; Secure; Path=/x").is_none(),
+            "needs root path"
+        );
         assert!(parse("__Host-a=1; Secure; Path=/; Domain=example.com").is_none());
         assert!(parse("__Secure-a=1; Secure").is_some());
         assert!(parse("__Secure-a=1").is_none());
@@ -328,7 +349,10 @@ mod tests {
         assert!(parse("no-equals").is_none());
         assert!(parse("=nameless").is_none());
         assert!(parse("name=with space").is_none());
-        assert!(parse("name=ok; Path=relative").is_some(), "relative path falls back to /");
+        assert!(
+            parse("name=ok; Path=relative").is_some(),
+            "relative path falls back to /"
+        );
     }
 
     #[test]
@@ -338,7 +362,8 @@ mod tests {
         let mut deep = parse("a=2; Path=/app").unwrap();
         deep.created_at = NOW;
         let other = parse("b=3").unwrap();
-        let value = header_value(&[root, deep, other], "api.example.com", "/app/x", true, NOW).unwrap();
+        let value =
+            header_value(&[root, deep, other], "api.example.com", "/app/x", true, NOW).unwrap();
         assert_eq!(value, "a=2; b=3");
     }
 

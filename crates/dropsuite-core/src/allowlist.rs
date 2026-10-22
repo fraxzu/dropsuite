@@ -27,9 +27,18 @@ impl InterceptAllowlist {
     pub fn loopback_default() -> Self {
         InterceptAllowlist {
             entries: vec![
-                AllowEntry { host: "localhost".into(), ports: None },
-                AllowEntry { host: "127.0.0.1".into(), ports: None },
-                AllowEntry { host: "::1".into(), ports: None },
+                AllowEntry {
+                    host: "localhost".into(),
+                    ports: None,
+                },
+                AllowEntry {
+                    host: "127.0.0.1".into(),
+                    ports: None,
+                },
+                AllowEntry {
+                    host: "::1".into(),
+                    ports: None,
+                },
             ],
         }
     }
@@ -46,14 +55,17 @@ impl InterceptAllowlist {
 
     /// Serialize back to the user-facing string form.
     pub fn to_user_entries(&self) -> Vec<String> {
-        self.entries.iter().map(|e| match &e.ports {
-            None => e.host.clone(),
-            Some(ports) if ports.is_empty() => e.host.clone(),
-            Some(ports) => {
-                let p: Vec<String> = ports.iter().map(|p| p.to_string()).collect();
-                format!("{}:{}", format_host(&e.host), p.join(","))
-            }
-        }).collect()
+        self.entries
+            .iter()
+            .map(|e| match &e.ports {
+                None => e.host.clone(),
+                Some(ports) if ports.is_empty() => e.host.clone(),
+                Some(ports) => {
+                    let p: Vec<String> = ports.iter().map(|p| p.to_string()).collect();
+                    format!("{}:{}", format_host(&e.host), p.join(","))
+                }
+            })
+            .collect()
     }
 
     /// True when the given host and port are on the allowlist.
@@ -159,7 +171,10 @@ fn parse_entry(s: &str) -> Result<AllowEntry, String> {
     // A bare IPv6 literal (`::1`, as `to_user_entries` writes it) is a host with no port;
     // ports on IPv6 need the bracket form above.
     if let Ok(ip) = s.parse::<std::net::Ipv6Addr>() {
-        return Ok(AllowEntry { host: ip.to_string(), ports: None });
+        return Ok(AllowEntry {
+            host: ip.to_string(),
+            ports: None,
+        });
     }
 
     // host or host:port(s)
@@ -175,8 +190,7 @@ fn parse_entry(s: &str) -> Result<AllowEntry, String> {
         (s, None)
     };
 
-    let host = normalize_host(host_part)
-        .ok_or_else(|| format!("Invalid host in: {s}"))?;
+    let host = normalize_host(host_part).ok_or_else(|| format!("Invalid host in: {s}"))?;
     let ports = parse_ports(port_part, s)?;
     Ok(AllowEntry { host, ports })
 }
@@ -251,7 +265,8 @@ mod tests {
             "localhost".into(),
             "lumens.my.id:443".into(),
             "[::1]:8443".into(),
-        ]).unwrap();
+        ])
+        .unwrap();
         assert!(al.allows("localhost", 80));
         assert!(al.allows("localhost", 443));
         assert!(al.allows("lumens.my.id", 443));
@@ -276,20 +291,25 @@ mod tests {
         // saving that text back must give the same list, not an error.
         let al = InterceptAllowlist::loopback_default();
         assert_eq!(al.to_user_entries(), vec!["localhost", "127.0.0.1", "::1"]);
-        assert_eq!(InterceptAllowlist::from_user_entries(&al.to_user_entries()).unwrap(), al);
+        assert_eq!(
+            InterceptAllowlist::from_user_entries(&al.to_user_entries()).unwrap(),
+            al
+        );
         let e = parse_entry("fe80::1").unwrap();
         assert_eq!((e.host.as_str(), e.ports), ("fe80::1", None));
         // Ports on IPv6 still need brackets; host:port for names is unchanged.
         assert_eq!(parse_entry("[::1]:8443").unwrap().ports, Some(vec![8443]));
-        assert_eq!(parse_entry("example.com:443").unwrap().ports, Some(vec![443]));
+        assert_eq!(
+            parse_entry("example.com:443").unwrap().ports,
+            Some(vec![443])
+        );
     }
 
     #[test]
     fn round_trip() {
-        let al = InterceptAllowlist::from_user_entries(&[
-            "localhost".into(),
-            "example.com:443".into(),
-        ]).unwrap();
+        let al =
+            InterceptAllowlist::from_user_entries(&["localhost".into(), "example.com:443".into()])
+                .unwrap();
         let entries = al.to_user_entries();
         let al2 = InterceptAllowlist::from_user_entries(&entries).unwrap();
         assert_eq!(al, al2);

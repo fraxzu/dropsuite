@@ -25,6 +25,9 @@ rcgen = { workspace = true }
 webpki-roots = { workspace = true }
 time = { workspace = true }
 regex = "1.11"
+h2 = "0.4"
+bytes = "1"
+http = "1"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Security_Cryptography", "Win32_Foundation"] }

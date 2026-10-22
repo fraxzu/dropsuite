@@ -39,7 +39,11 @@ fn start_target() -> u16 {
                 }
                 // Drain the rest of the headers so the client's write completes cleanly.
                 let mut header = String::new();
-                while reader.read_line(&mut header).map(|n| n > 0).unwrap_or(false) {
+                while reader
+                    .read_line(&mut header)
+                    .map(|n| n > 0)
+                    .unwrap_or(false)
+                {
                     if header == "\r\n" || header == "\n" {
                         break;
                     }
@@ -132,21 +136,32 @@ async fn content_discovery_surfaces_real_paths_against_a_404_baseline() {
     let sentinel_set: HashSet<&str> = sentinels.iter().copied().collect();
     let rows: Vec<(String, u16)> = outcomes
         .iter()
-        .filter_map(|o| o.result.as_ref().ok().map(|s| (o.replacements.join(""), s.status)))
+        .filter_map(|o| {
+            o.result
+                .as_ref()
+                .ok()
+                .map(|s| (o.replacements.join(""), s.status))
+        })
         .collect();
-    assert_eq!(rows.len(), planned, "every probe returned a status (none errored)");
+    assert_eq!(
+        rows.len(),
+        planned,
+        "every probe returned a status (none errored)"
+    );
 
     let baseline = rows
         .iter()
         .find(|(p, _)| sentinel_set.contains(p.as_str()))
         .map(|(_, st)| *st);
-    assert_eq!(baseline, Some(404), "random sentinel paths must be a real 404 baseline");
+    assert_eq!(
+        baseline,
+        Some(404),
+        "random sentinel paths must be a real 404 baseline"
+    );
 
     let distinct: HashSet<String> = rows
         .iter()
-        .filter(|(p, st)| {
-            !sentinel_set.contains(p.as_str()) && *st != 404 && baseline != Some(*st)
-        })
+        .filter(|(p, st)| !sentinel_set.contains(p.as_str()) && *st != 404 && baseline != Some(*st))
         .map(|(p, _)| p.clone())
         .collect();
 

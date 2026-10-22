@@ -199,7 +199,9 @@ impl InterceptManager {
 
     pub async fn get_held(&self, id: u64) -> Option<InterceptedMessageSummary> {
         let q = self.queue.lock().await;
-        q.iter().find(|h| h.summary.id == id).map(|h| h.summary.clone())
+        q.iter()
+            .find(|h| h.summary.id == id)
+            .map(|h| h.summary.clone())
     }
 
     /// Submit a request to be held for user decision. Returns a oneshot receiver for the decision.
@@ -257,12 +259,14 @@ impl InterceptManager {
         });
 
         let _ = self.events.send(InterceptEvent::MessageHeld(summary));
-        let _ = self.events.send(InterceptEvent::StateChanged(InterceptStatus {
-            enabled: self.enabled.load(Ordering::SeqCst),
-            intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
-            intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
-            queue_len: q.len(),
-        }));
+        let _ = self
+            .events
+            .send(InterceptEvent::StateChanged(InterceptStatus {
+                enabled: self.enabled.load(Ordering::SeqCst),
+                intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
+                intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
+                queue_len: q.len(),
+            }));
 
         Ok((id, rx))
     }
@@ -322,12 +326,14 @@ impl InterceptManager {
         });
 
         let _ = self.events.send(InterceptEvent::MessageHeld(summary));
-        let _ = self.events.send(InterceptEvent::StateChanged(InterceptStatus {
-            enabled: self.enabled.load(Ordering::SeqCst),
-            intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
-            intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
-            queue_len: q.len(),
-        }));
+        let _ = self
+            .events
+            .send(InterceptEvent::StateChanged(InterceptStatus {
+                enabled: self.enabled.load(Ordering::SeqCst),
+                intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
+                intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
+                queue_len: q.len(),
+            }));
 
         Ok((id, rx))
     }
@@ -352,12 +358,14 @@ impl InterceptManager {
                 id,
                 action: action_str.to_string(),
             });
-            let _ = self.events.send(InterceptEvent::StateChanged(InterceptStatus {
-                enabled: self.enabled.load(Ordering::SeqCst),
-                intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
-                intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
-                queue_len: q.len(),
-            }));
+            let _ = self
+                .events
+                .send(InterceptEvent::StateChanged(InterceptStatus {
+                    enabled: self.enabled.load(Ordering::SeqCst),
+                    intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
+                    intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
+                    queue_len: q.len(),
+                }));
             true
         } else {
             false
@@ -373,12 +381,14 @@ impl InterceptManager {
                 id,
                 action: "evicted".to_string(),
             });
-            let _ = self.events.send(InterceptEvent::StateChanged(InterceptStatus {
-                enabled: self.enabled.load(Ordering::SeqCst),
-                intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
-                intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
-                queue_len: q.len(),
-            }));
+            let _ = self
+                .events
+                .send(InterceptEvent::StateChanged(InterceptStatus {
+                    enabled: self.enabled.load(Ordering::SeqCst),
+                    intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
+                    intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
+                    queue_len: q.len(),
+                }));
             true
         } else {
             false
@@ -391,12 +401,14 @@ impl InterceptManager {
         while let Some(held) = q.pop_front() {
             let _ = held.sender.send(action.clone());
         }
-        let _ = self.events.send(InterceptEvent::StateChanged(InterceptStatus {
-            enabled: self.enabled.load(Ordering::SeqCst),
-            intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
-            intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
-            queue_len: 0,
-        }));
+        let _ = self
+            .events
+            .send(InterceptEvent::StateChanged(InterceptStatus {
+                enabled: self.enabled.load(Ordering::SeqCst),
+                intercept_requests: self.intercept_requests.load(Ordering::SeqCst),
+                intercept_responses: self.intercept_responses.load(Ordering::SeqCst),
+                queue_len: 0,
+            }));
     }
 }
 

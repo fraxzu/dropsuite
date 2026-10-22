@@ -12,13 +12,9 @@ use tracing::{error, info, warn};
 
 use crate::allowlist::{normalize_host, InterceptAllowlist};
 use crate::ca::{CaError, CaStatus};
-use crate::http1::{
-    self, BodyFraming, Capture, Captured, CopyError, FrameError, HeadInfo, Reader,
-};
+use crate::http1::{self, BodyFraming, Capture, Captured, CopyError, FrameError, HeadInfo, Reader};
 use crate::https::{HttpsInterceptConfig, HttpsInterception, TlsError};
-use crate::interception::{
-    HoldError, InterceptAction, InterceptManager, MAX_INTERCEPT_BODY_SIZE,
-};
+use crate::interception::{HoldError, InterceptAction, InterceptManager, MAX_INTERCEPT_BODY_SIZE};
 use crate::match_replace::MatchReplaceEngine;
 use crate::models::{ProxyStatus, TransactionRecord};
 use crate::sanitize::{omission_record, sanitize_record};
@@ -244,7 +240,10 @@ impl ProxyEngine {
     }
 
     pub fn is_minted_leaf(&self, fp: &str) -> bool {
-        self.https.as_ref().map(|h| h.is_minted_leaf(fp)).unwrap_or(false)
+        self.https
+            .as_ref()
+            .map(|h| h.is_minted_leaf(fp))
+            .unwrap_or(false)
     }
 
     pub fn minted_leaf_host(&self, fp: &str) -> Option<String> {
@@ -460,16 +459,13 @@ impl ProxyEngine {
         match tunnel {
             Some((up_in, up_out)) => {
                 let (client_read, rest) = client_in.into_parts();
-                let client_in =
-                    Reader::from_parts(Box::new(client_read) as BoxedRead, rest);
+                let client_in = Reader::from_parts(Box::new(client_read) as BoxedRead, rest);
                 let client_out: BoxedWrite = Box::new(client_out);
                 relay_tunnel(client_in, client_out, up_in, up_out).await;
             }
             None => {
                 let _ = client_out.shutdown().await;
-                client_in
-                    .discard(1024 * 1024, Duration::from_secs(2))
-                    .await;
+                client_in.discard(1024 * 1024, Duration::from_secs(2)).await;
             }
         }
         tracing::debug!("Connection from {client_addr} closed");
@@ -565,24 +561,21 @@ impl ProxyEngine {
                 bad_gateway(&mut client_out).await;
                 return;
             }
-            let upstream = match tokio::time::timeout(
-                CONNECT_TIMEOUT,
-                TcpStream::connect(&targets[..]),
-            )
-            .await
-            {
-                Ok(Ok(s)) => s,
-                Ok(Err(e)) => {
-                    warn!("Could not connect to {target_host}:{target_port}: {e}");
-                    bad_gateway(&mut client_out).await;
-                    return;
-                }
-                Err(_) => {
-                    warn!("Connecting to {target_host}:{target_port} timed out");
-                    bad_gateway(&mut client_out).await;
-                    return;
-                }
-            };
+            let upstream =
+                match tokio::time::timeout(CONNECT_TIMEOUT, TcpStream::connect(&targets[..])).await
+                {
+                    Ok(Ok(s)) => s,
+                    Ok(Err(e)) => {
+                        warn!("Could not connect to {target_host}:{target_port}: {e}");
+                        bad_gateway(&mut client_out).await;
+                        return;
+                    }
+                    Err(_) => {
+                        warn!("Connecting to {target_host}:{target_port} timed out");
+                        bad_gateway(&mut client_out).await;
+                        return;
+                    }
+                };
 
             if let Err(e) = write_timed(
                 &mut client_out,
@@ -657,7 +650,9 @@ impl ProxyEngine {
         {
             Ok(Ok(tls)) => tls,
             Ok(Err(e)) => {
-                info!("TLS handshake for {authority} failed (client may not trust the local CA): {e}");
+                info!(
+                    "TLS handshake for {authority} failed (client may not trust the local CA): {e}"
+                );
                 return;
             }
             Err(_) => {
@@ -837,11 +832,16 @@ impl ProxyEngine {
                 // Prevent history spoofing / request confusion: if an absolute URI is sent inside the TLS tunnel,
                 // its authority must match the session authority.
                 if absolute_http || absolute_https {
-                    let rest = if absolute_http { &target[7..] } else { &target[8..] };
+                    let rest = if absolute_http {
+                        &target[7..]
+                    } else {
+                        &target[8..]
+                    };
                     let auth = &rest[..rest.find(['/', '?', '#']).unwrap_or(rest.len())];
                     let auth = auth.rsplit_once('@').map_or(auth, |(_, a)| a);
                     if let Some((target_h, target_p)) = http1::split_authority(auth, 443) {
-                        if normalize_host(&target_h).as_deref() != Some(session.host.to_ascii_lowercase().as_str())
+                        if normalize_host(&target_h).as_deref()
+                            != Some(session.host.to_ascii_lowercase().as_str())
                             || target_p != session.port
                         {
                             reply(
@@ -853,10 +853,17 @@ impl ProxyEngine {
                             return Next::Close;
                         }
                     } else {
-                        reply(client_out, "400 Bad Request", "invalid absolute target in TLS session.").await;
+                        reply(
+                            client_out,
+                            "400 Bad Request",
+                            "invalid absolute target in TLS session.",
+                        )
+                        .await;
                         return Next::Close;
                     }
-                } else if !target.starts_with('/') && !(method.eq_ignore_ascii_case("OPTIONS") && target == "*") {
+                } else if !target.starts_with('/')
+                    && !(method.eq_ignore_ascii_case("OPTIONS") && target == "*")
+                {
                     reply(
                         client_out,
                         "400 Bad Request",
@@ -877,10 +884,8 @@ impl ProxyEngine {
             Scheme::Http => {
                 if absolute_https {
                     let rest = &target[8..];
-                    let authority =
-                        &rest[..rest.find(['/', '?', '#']).unwrap_or(rest.len())];
-                    let authority =
-                        authority.rsplit_once('@').map_or(authority, |(_, a)| a);
+                    let authority = &rest[..rest.find(['/', '?', '#']).unwrap_or(rest.len())];
+                    let authority = authority.rsplit_once('@').map_or(authority, |(_, a)| a);
                     let Some((host, port)) = http1::split_authority(authority, 443) else {
                         reply(
                             client_out,
@@ -920,8 +925,7 @@ impl ProxyEngine {
                     let absolute = absolute_http;
                     let authority = if absolute {
                         let rest = &target[7..];
-                        let authority =
-                            &rest[..rest.find(['/', '?', '#']).unwrap_or(rest.len())];
+                        let authority = &rest[..rest.find(['/', '?', '#']).unwrap_or(rest.len())];
                         authority
                             .rsplit_once('@')
                             .map_or(authority, |(_, a)| a)
@@ -942,13 +946,7 @@ impl ProxyEngine {
                         .await;
                         return Next::Close;
                     };
-                    (
-                        Scheme::Http,
-                        authority,
-                        target.to_string(),
-                        host,
-                        port,
-                    )
+                    (Scheme::Http, authority, target.to_string(), host, port)
                 }
             }
         };
@@ -1026,22 +1024,41 @@ impl ProxyEngine {
 
         let upstream_head = shared.match_replace.apply_request_head(&upstream_head);
 
-        let (upstream_head, intercepted_body, method, url, authority, url_path, target_host, target_port, request_headers) =
-            if shared.intercept.is_intercept_requests_enabled() {
-                let mut body_buf = Vec::new();
-                let mut cap = Capture::new();
-                if request_framing != BodyFraming::None {
-                    match client_in.copy_body(request_framing, &mut body_buf, &mut cap).await {
-                        Ok(_) => {},
-                        Err(e) => {
-                            warn!("Client body read error during intercept: {e}");
-                            reply(client_out, "400 Bad Request", "could not read request body.").await;
-                            return Next::Close;
-                        }
+        let (
+            upstream_head,
+            intercepted_body,
+            method,
+            url,
+            authority,
+            url_path,
+            target_host,
+            target_port,
+            request_headers,
+        ) = if shared.intercept.is_intercept_requests_enabled() {
+            let mut body_buf = Vec::new();
+            let mut cap = Capture::new();
+            if request_framing != BodyFraming::None {
+                match client_in
+                    .copy_body(request_framing, &mut body_buf, &mut cap)
+                    .await
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        warn!("Client body read error during intercept: {e}");
+                        reply(
+                            client_out,
+                            "400 Bad Request",
+                            "could not read request body.",
+                        )
+                        .await;
+                        return Next::Close;
                     }
                 }
+            }
 
-                let hold_res = shared.intercept.hold_request(
+            let hold_res = shared
+                .intercept
+                .hold_request(
                     method.clone(),
                     url.clone(),
                     target_host.clone(),
@@ -1049,76 +1066,107 @@ impl ProxyEngine {
                     request_headers.clone(),
                     head.to_vec(),
                     body_buf.clone(),
-                ).await;
+                )
+                .await;
 
-                let (held_id, rx) = match hold_res {
-                    Ok(pair) => pair,
-                    Err(HoldError::QueueFull) => {
-                        reply(client_out, "503 Service Unavailable", "intercept queue capacity reached.").await;
-                        return Next::Close;
-                    }
-                    Err(HoldError::BodyTooLarge(sz)) => {
-                        reply(client_out, "413 Payload Too Large", &format!("request body too large for interactive interception ({sz} bytes, limit {MAX_INTERCEPT_BODY_SIZE} bytes).")).await;
-                        return Next::Close;
-                    }
-                    Err(_) => {
-                        (0, tokio::sync::oneshot::channel().1)
-                    }
-                };
+            let (held_id, rx) = match hold_res {
+                Ok(pair) => pair,
+                Err(HoldError::QueueFull) => {
+                    reply(
+                        client_out,
+                        "503 Service Unavailable",
+                        "intercept queue capacity reached.",
+                    )
+                    .await;
+                    return Next::Close;
+                }
+                Err(HoldError::BodyTooLarge(sz)) => {
+                    reply(client_out, "413 Payload Too Large", &format!("request body too large for interactive interception ({sz} bytes, limit {MAX_INTERCEPT_BODY_SIZE} bytes).")).await;
+                    return Next::Close;
+                }
+                Err(_) => (0, tokio::sync::oneshot::channel().1),
+            };
 
-                let decision = if held_id > 0 {
-                    tokio::select! {
-                        d = rx => match d {
-                            Ok(act) => act,
-                            Err(_) => InterceptAction::Drop,
-                        },
-                        _ = tokio::time::sleep(shared.intercept.timeout()) => {
-                            shared.intercept.remove_held(held_id).await;
-                            reply(client_out, "504 Gateway Timeout", "intercepted request timed out waiting for decision.").await;
-                            return Next::Close;
-                        }
-                    }
-                } else {
-                    InterceptAction::Forward { modified_wire: None }
-                };
-
-                match decision {
-                    InterceptAction::Drop => {
+            let decision = if held_id > 0 {
+                tokio::select! {
+                    d = rx => match d {
+                        Ok(act) => act,
+                        Err(_) => InterceptAction::Drop,
+                    },
+                    _ = tokio::time::sleep(shared.intercept.timeout()) => {
+                        shared.intercept.remove_held(held_id).await;
+                        reply(client_out, "504 Gateway Timeout", "intercepted request timed out waiting for decision.").await;
                         return Next::Close;
-                    }
-                    InterceptAction::Forward { modified_wire: None } => {
-                        (upstream_head, Some((body_buf, cap)), method, url, authority, url_path, target_host, target_port, request_headers)
-                    }
-                    InterceptAction::Forward { modified_wire: Some(wire) } => {
-                        match parse_edited_request(&wire, scheme, ctx.session) {
-                            Ok(edited) => {
-                                let mut new_cap = Capture::new();
-                                if !edited.body.is_empty() {
-                                    new_cap.feed(&edited.body);
-                                }
-                                (
-                                    edited.upstream_head,
-                                    Some((edited.body, new_cap)),
-                                    edited.method,
-                                    edited.url,
-                                    edited.authority,
-                                    edited.url_path,
-                                    edited.target_host,
-                                    edited.target_port,
-                                    edited.headers,
-                                )
-                            }
-                            Err(e) => {
-                                warn!("Invalid edited request: {e}");
-                                reply(client_out, "400 Bad Request", &format!("edited request error: {e}")).await;
-                                return Next::Close;
-                            }
-                        }
                     }
                 }
             } else {
-                (upstream_head, None, method, url, authority, url_path, target_host, target_port, request_headers)
+                InterceptAction::Forward {
+                    modified_wire: None,
+                }
             };
+
+            match decision {
+                InterceptAction::Drop => {
+                    return Next::Close;
+                }
+                InterceptAction::Forward {
+                    modified_wire: None,
+                } => (
+                    upstream_head,
+                    Some((body_buf, cap)),
+                    method,
+                    url,
+                    authority,
+                    url_path,
+                    target_host,
+                    target_port,
+                    request_headers,
+                ),
+                InterceptAction::Forward {
+                    modified_wire: Some(wire),
+                } => match parse_edited_request(&wire, scheme, ctx.session) {
+                    Ok(edited) => {
+                        let mut new_cap = Capture::new();
+                        if !edited.body.is_empty() {
+                            new_cap.feed(&edited.body);
+                        }
+                        (
+                            edited.upstream_head,
+                            Some((edited.body, new_cap)),
+                            edited.method,
+                            edited.url,
+                            edited.authority,
+                            edited.url_path,
+                            edited.target_host,
+                            edited.target_port,
+                            edited.headers,
+                        )
+                    }
+                    Err(e) => {
+                        warn!("Invalid edited request: {e}");
+                        reply(
+                            client_out,
+                            "400 Bad Request",
+                            &format!("edited request error: {e}"),
+                        )
+                        .await;
+                        return Next::Close;
+                    }
+                },
+            }
+        } else {
+            (
+                upstream_head,
+                None,
+                method,
+                url,
+                authority,
+                url_path,
+                target_host,
+                target_port,
+                request_headers,
+            )
+        };
 
         // Re-validate scope against the (possibly edited) target. Interception can rewrite the
         // request line / Host to a new host or path, so the initial check above is not enough: an
@@ -1192,7 +1240,8 @@ impl ProxyEngine {
         }
         let mut response_capture = Capture::new();
         let final_sent = AtomicBool::new(false);
-        let request_done = AtomicBool::new(request_framing == BodyFraming::None || intercepted_body.is_some());
+        let request_done =
+            AtomicBool::new(request_framing == BodyFraming::None || intercepted_body.is_some());
         let exchange = ResponseContext {
             is_head: method.eq_ignore_ascii_case("HEAD"),
             upgrade,
@@ -1228,18 +1277,17 @@ impl ProxyEngine {
         } else {
             let request_fut =
                 client_in.copy_body(request_framing, &mut up_out, &mut request_capture);
-            let response_fut =
-                relay_response(
-                    &mut up_in,
-                    client_out,
-                    &exchange,
-                    &mut response_capture,
-                    shared,
-                    &method,
-                    &url,
-                    &target_host,
-                    &url_path,
-                );
+            let response_fut = relay_response(
+                &mut up_in,
+                client_out,
+                &exchange,
+                &mut response_capture,
+                shared,
+                &method,
+                &url,
+                &target_host,
+                &url_path,
+            );
             tokio::pin!(request_fut, response_fut);
             let mut request_result = None;
             let response = loop {
@@ -1357,7 +1405,11 @@ fn parse_connect_authority(head: &[u8]) -> Result<String, String> {
         .map_err(|_| "invalid UTF-8 in request line".to_string())?;
     let mut parts = line.splitn(3, ' ');
     let _method = parts.next().ok_or("missing method")?;
-    let authority = parts.next().ok_or("missing CONNECT authority")?.trim().to_string();
+    let authority = parts
+        .next()
+        .ok_or("missing CONNECT authority")?
+        .trim()
+        .to_string();
     if authority.is_empty() || authority.len() > 253 {
         return Err("invalid CONNECT authority".into());
     }
@@ -1375,7 +1427,10 @@ pub(crate) async fn resolve(
     resolver: Option<&ResolverOverride>,
 ) -> std::io::Result<Vec<SocketAddr>> {
     if let Some(ips) = resolver.and_then(|r| r(host)) {
-        return Ok(ips.into_iter().map(|ip| SocketAddr::new(ip, port)).collect());
+        return Ok(ips
+            .into_iter()
+            .map(|ip| SocketAddr::new(ip, port))
+            .collect());
     }
     Ok(lookup_host((host, port)).await?.collect())
 }
@@ -1507,11 +1562,10 @@ async fn connect_upstream(
     begin_outbound_connect(shared, targets)?;
     let (reader, writer): (BoxedRead, BoxedWrite) = match scheme {
         Scheme::Http => {
-            let stream =
-                tokio::time::timeout(CONNECT_TIMEOUT, TcpStream::connect(targets))
-                    .await
-                    .map_err(|_| format!("connect to {host} timed out"))?
-                    .map_err(|e| format!("connect to {host}: {e}"))?;
+            let stream = tokio::time::timeout(CONNECT_TIMEOUT, TcpStream::connect(targets))
+                .await
+                .map_err(|_| format!("connect to {host} timed out"))?
+                .map_err(|e| format!("connect to {host}: {e}"))?;
             let (r, w) = stream.into_split();
             (Box::new(r), Box::new(w))
         }
@@ -1596,8 +1650,7 @@ async fn relay_response<W: AsyncWrite + Unpin>(
             client_close,
             head,
         };
-        let to_client =
-            http1::client_response_head(&response_head.head, status, client_close);
+        let to_client = http1::client_response_head(&response_head.head, status, client_close);
 
         if shared.intercept.is_intercept_responses_enabled()
             && framing != BodyFraming::UntilClose
@@ -1605,7 +1658,9 @@ async fn relay_response<W: AsyncWrite + Unpin>(
         {
             let mut resp_body = Vec::new();
             let mut body_capture = Capture::new();
-            let body_res = up_in.copy_body(framing, &mut resp_body, &mut body_capture).await;
+            let body_res = up_in
+                .copy_body(framing, &mut resp_body, &mut body_capture)
+                .await;
             if let Ok(bytes_copied) = body_res {
                 capture.feed(&resp_body);
                 let hold_res = shared
@@ -1639,7 +1694,9 @@ async fn relay_response<W: AsyncWrite + Unpin>(
                             ctx.final_sent.store(true, Ordering::SeqCst);
                             return (None, Err("response dropped by user in intercept".into()));
                         }
-                        InterceptAction::Forward { modified_wire: None } => {
+                        InterceptAction::Forward {
+                            modified_wire: None,
+                        } => {
                             if let Err(e) = write_timed(client_out, &to_client).await {
                                 return (None, Err(format!("client: {e}")));
                             }

@@ -160,15 +160,11 @@ pub async fn spawn_embedded_browser(
         data_dir.display()
     );
     let blank_url: url::Url = "about:blank".parse().unwrap();
-    let builder = WebviewWindowBuilder::new(
-        app,
-        &window_label,
-        WebviewUrl::External(blank_url),
-    )
-    .title(mode.title())
-    .inner_size(1200.0, 800.0)
-    .proxy_url(proxy_url)
-    .data_directory(data_dir.clone());
+    let builder = WebviewWindowBuilder::new(app, &window_label, WebviewUrl::External(blank_url))
+        .title(mode.title())
+        .inner_size(1200.0, 800.0)
+        .proxy_url(proxy_url)
+        .data_directory(data_dir.clone());
 
     let _ = std::fs::create_dir_all(&data_dir);
 
@@ -187,8 +183,8 @@ pub async fn spawn_embedded_browser(
         std::env::remove_var("WEBVIEW2_USER_DATA_FOLDER");
     }
 
-    let window = window_res
-        .map_err(|e| format!("Failed to create embedded browser window: {e}"))?;
+    let window =
+        window_res.map_err(|e| format!("Failed to create embedded browser window: {e}"))?;
 
     // 5. Non-blocking oneshot channel: Tokio worker thread does not block
     let (tx, rx) = tokio::sync::oneshot::channel();
@@ -345,8 +341,14 @@ pub fn cert_decision(
     };
 
     // 3. Match request host with the host DropSuite minted this leaf for
-    let clean_req_host = request_host.trim().trim_end_matches('.').to_ascii_lowercase();
-    let clean_minted_host = minted_host.trim().trim_end_matches('.').to_ascii_lowercase();
+    let clean_req_host = request_host
+        .trim()
+        .trim_end_matches('.')
+        .to_ascii_lowercase();
+    let clean_minted_host = minted_host
+        .trim()
+        .trim_end_matches('.')
+        .to_ascii_lowercase();
 
     if clean_req_host.is_empty() || clean_req_host != clean_minted_host {
         tracing::warn!(
@@ -422,12 +424,15 @@ impl Drop for CoTaskMemPWSTR {
     }
 }
 
-
 #[cfg(windows)]
-#[windows_core::implement(webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2GetCookiesCompletedHandler)]
+#[windows_core::implement(
+    webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2GetCookiesCompletedHandler
+)]
 struct GetCookiesHandler {
     tx: std::sync::Arc<
-        std::sync::Mutex<Option<tokio::sync::oneshot::Sender<Result<Vec<HarvestedCookie>, String>>>>,
+        std::sync::Mutex<
+            Option<tokio::sync::oneshot::Sender<Result<Vec<HarvestedCookie>, String>>>,
+        >,
     >,
 }
 
@@ -441,14 +446,16 @@ impl GetCookiesHandler {
 }
 
 #[cfg(windows)]
-impl webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2GetCookiesCompletedHandler_Impl for GetCookiesHandler_Impl {
+impl webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2GetCookiesCompletedHandler_Impl
+    for GetCookiesHandler_Impl
+{
     fn Invoke(
         &self,
         errorcode: windows_core::HRESULT,
-        result: windows_core::Ref<webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2CookieList>,
+        result: windows_core::Ref<
+            webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2CookieList,
+        >,
     ) -> windows_core::Result<()> {
-        use webview2_com::Microsoft::Web::WebView2::Win32::*;
-
         let mut out: Result<Vec<HarvestedCookie>, String> = Ok(Vec::new());
         if errorcode.is_err() {
             out = Err(format!("CookieManager returned 0x{:08x}", errorcode.0));
@@ -458,7 +465,9 @@ impl webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2GetCookiesCompl
                 if list.Count(&mut count).is_ok() {
                     let mut cookies = Vec::new();
                     for i in 0..count {
-                        let Ok(cookie) = list.GetValueAtIndex(i) else { continue };
+                        let Ok(cookie) = list.GetValueAtIndex(i) else {
+                            continue;
+                        };
                         if let Some(raw) = set_cookie_from(&cookie) {
                             cookies.push(HarvestedCookie { raw });
                         }
@@ -479,8 +488,6 @@ impl webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2GetCookiesCompl
 fn set_cookie_from(
     cookie: &webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Cookie,
 ) -> Option<String> {
-    use webview2_com::Microsoft::Web::WebView2::Win32::*;
-
     let mut raw = String::new();
     unsafe {
         let mut name = CoTaskMemPWSTR::null();
@@ -729,9 +736,9 @@ mod tests {
     use std::sync::RwLock;
 
     const UNTRUSTED_ROOT_STATUS: i32 = 5; // COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_IS_INVALID
-    const CN_MISMATCH_STATUS: i32 = 1;     // COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_COMMON_NAME_IS_INCORRECT
-    const EXPIRED_STATUS: i32 = 2;         // COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_EXPIRED
-    const REVOKED_STATUS: i32 = 4;         // COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_REVOKED
+    const CN_MISMATCH_STATUS: i32 = 1; // COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_COMMON_NAME_IS_INCORRECT
+    const EXPIRED_STATUS: i32 = 2; // COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_EXPIRED
+    const REVOKED_STATUS: i32 = 4; // COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_REVOKED
 
     #[test]
     fn test_extract_host_from_uri_various_cases() {
@@ -778,12 +785,7 @@ mod tests {
         let mut minted = HashMap::new();
         minted.insert(fp, "example.com".to_string());
 
-        let decision = cert_decision(
-            fake_leaf_der,
-            "example.com",
-            UNTRUSTED_ROOT_STATUS,
-            &minted,
-        );
+        let decision = cert_decision(fake_leaf_der, "example.com", UNTRUSTED_ROOT_STATUS, &minted);
         assert_eq!(decision, CertDecision::Allow);
     }
 
@@ -876,12 +878,7 @@ mod tests {
         cache.clear();
 
         let lock = RwLock::new(cache);
-        let decision = evaluate_leaf(
-            fake_leaf_der,
-            "example.com",
-            UNTRUSTED_ROOT_STATUS,
-            &lock,
-        );
+        let decision = evaluate_leaf(fake_leaf_der, "example.com", UNTRUSTED_ROOT_STATUS, &lock);
         assert_eq!(decision, CertDecision::Cancel);
     }
 
@@ -905,10 +902,17 @@ mod tests {
     #[test]
     fn test_harvested_cookie_needs_a_pair() {
         assert_eq!(
-            harvested_to_set_cookie(&HarvestedCookie { raw: "a=1; Path=/".into() }),
+            harvested_to_set_cookie(&HarvestedCookie {
+                raw: "a=1; Path=/".into()
+            }),
             Some("a=1; Path=/".to_string())
         );
-        assert_eq!(harvested_to_set_cookie(&HarvestedCookie { raw: "broken".into() }), None);
+        assert_eq!(
+            harvested_to_set_cookie(&HarvestedCookie {
+                raw: "broken".into()
+            }),
+            None
+        );
     }
 
     #[tokio::test]
@@ -921,10 +925,9 @@ mod tests {
                 .as_nanos()
         ));
         let ca_dir = tmp.join("ca");
-        let allowlist = dropsuite_core::InterceptAllowlist::from_user_entries(&[
-            "lumens.my.id".to_string()
-        ])
-        .unwrap();
+        let allowlist =
+            dropsuite_core::InterceptAllowlist::from_user_entries(&["lumens.my.id".to_string()])
+                .unwrap();
 
         let https = dropsuite_core::HttpsInterception::new(dropsuite_core::HttpsInterceptConfig {
             ca_dir,
@@ -951,21 +954,29 @@ mod tests {
         };
 
         // 4. Verify evaluate_leaf on this exact cache instance returns Allow
-        let decision = evaluate_leaf(&cert_der, "lumens.my.id", UNTRUSTED_ROOT_STATUS, &leaf_cache);
+        let decision = evaluate_leaf(
+            &cert_der,
+            "lumens.my.id",
+            UNTRUSTED_ROOT_STATUS,
+            &leaf_cache,
+        );
         assert_eq!(decision, CertDecision::Allow);
 
         // 5. Cross-host replay attempt with the same cert must be Rejected (Cancel)
-        let cross_host_decision = evaluate_leaf(&cert_der, "evil.com", UNTRUSTED_ROOT_STATUS, &leaf_cache);
+        let cross_host_decision =
+            evaluate_leaf(&cert_der, "evil.com", UNTRUSTED_ROOT_STATUS, &leaf_cache);
         assert_eq!(cross_host_decision, CertDecision::Cancel);
 
         // 6. CA removal wipes LeafCache atomically -> subsequently evaluated leaf must be Cancel
         https.remove_ca().await.unwrap();
-        let after_removal_decision = evaluate_leaf(&cert_der, "lumens.my.id", UNTRUSTED_ROOT_STATUS, &leaf_cache);
+        let after_removal_decision = evaluate_leaf(
+            &cert_der,
+            "lumens.my.id",
+            UNTRUSTED_ROOT_STATUS,
+            &leaf_cache,
+        );
         assert_eq!(after_removal_decision, CertDecision::Cancel);
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
 }
-
-
-

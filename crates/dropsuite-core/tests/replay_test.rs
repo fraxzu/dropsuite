@@ -436,7 +436,12 @@ async fn request_snapshots_are_sanitized_and_capped() {
 fn seams(table: &[(&str, &[&str])]) -> (NetworkSeams, Arc<AtomicUsize>) {
     let map: HashMap<String, Vec<IpAddr>> = table
         .iter()
-        .map(|(h, ips)| (h.to_string(), ips.iter().map(|ip| ip.parse().unwrap()).collect()))
+        .map(|(h, ips)| {
+            (
+                h.to_string(),
+                ips.iter().map(|ip| ip.parse().unwrap()).collect(),
+            )
+        })
         .collect();
     let calls = Arc::new(AtomicUsize::new(0));
     let counted = calls.clone();
@@ -490,7 +495,11 @@ async fn restricted_destinations_are_refused_before_the_connector() {
             .unwrap_err();
         assert_eq!(e.kind, "blocked", "{url}: {}", e.message);
         assert!(e.message.contains("prohibited"), "{url}: {}", e.message);
-        assert_eq!(calls.load(Ordering::SeqCst), 0, "{url}: connector never invoked");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            0,
+            "{url}: connector never invoked"
+        );
     }
 }
 
@@ -509,21 +518,35 @@ async fn mixed_dns_answer_is_refused_without_trying_the_permitted_address() {
         assert_eq!(e.kind, "blocked", "{host}: {}", e.message);
     }
     assert_eq!(calls.load(Ordering::SeqCst), 0, "connector never invoked");
-    assert_eq!(log.lock().unwrap().connections, 0, "the permitted address was not tried either");
+    assert_eq!(
+        log.lock().unwrap().connections,
+        0,
+        "the permitted address was not tried either"
+    );
 }
 
 #[tokio::test]
 async fn loopback_and_private_destinations_stay_permitted() {
     // Loopback API by name: the resolved address is used, the name stays in Host.
     let (port, log) = fixture().await;
-    let (net, calls) = seams(&[("api.test", &["127.0.0.1"]), ("private.test", &["10.1.2.3"])]);
-    let r = send_with(&req("GET", format!("http://api.test:{port}/echo"), &[], ""), &opts(), &net)
-        .await
-        .unwrap();
+    let (net, calls) = seams(&[
+        ("api.test", &["127.0.0.1"]),
+        ("private.test", &["10.1.2.3"]),
+    ]);
+    let r = send_with(
+        &req("GET", format!("http://api.test:{port}/echo"), &[], ""),
+        &opts(),
+        &net,
+    )
+    .await
+    .unwrap();
     assert_eq!(r.status, 200);
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     let sent = String::from_utf8_lossy(&log.lock().unwrap().requests[0]).to_string();
-    assert!(sent.contains(&format!("\r\nHost: api.test:{port}\r\n")), "{sent}");
+    assert!(
+        sent.contains(&format!("\r\nHost: api.test:{port}\r\n")),
+        "{sent}"
+    );
 
     // Private-network and other permitted addresses pass the policy and reach the connector;
     // the gate then refuses the non-loopback socket, so nothing leaves this machine.
@@ -544,6 +567,10 @@ async fn loopback_and_private_destinations_stay_permitted() {
             .unwrap_err();
         assert_eq!(e.kind, "connect", "{url}: {}", e.message);
         assert!(e.message.contains("connect gate"), "{url}: {}", e.message);
-        assert_eq!(calls.load(Ordering::SeqCst), i + 2, "{url}: policy permitted it");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            i + 2,
+            "{url}: policy permitted it"
+        );
     }
 }

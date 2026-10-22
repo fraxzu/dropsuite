@@ -58,13 +58,16 @@ async fn start_recording_mock_server() -> (
                         Ok(n) => {
                             total_read += n;
                             if body_start.is_none() {
-                                if let Some(idx) = buf[..total_read].windows(4).position(|w| w == b"\r\n\r\n") {
+                                if let Some(idx) =
+                                    buf[..total_read].windows(4).position(|w| w == b"\r\n\r\n")
+                                {
                                     body_start = Some(idx + 4);
                                     let head_str = String::from_utf8_lossy(&buf[..idx]);
                                     for line in head_str.lines() {
                                         if let Some((k, v)) = line.split_once(':') {
                                             if k.trim().eq_ignore_ascii_case("content-length") {
-                                                content_len = v.trim().parse::<usize>().unwrap_or(0);
+                                                content_len =
+                                                    v.trim().parse::<usize>().unwrap_or(0);
                                             }
                                         }
                                     }
@@ -216,7 +219,12 @@ async fn intercept_forward_unmodified_reaches_origin() {
 
     let resolved = proxy
         .intercept()
-        .resolve(held_id, InterceptAction::Forward { modified_wire: None })
+        .resolve(
+            held_id,
+            InterceptAction::Forward {
+                modified_wire: None,
+            },
+        )
         .await;
     assert!(resolved);
     assert_eq!(proxy.intercept().queue_len().await, 0);
@@ -265,7 +273,12 @@ async fn intercept_forward_post_with_body() {
 
     let resolved = proxy
         .intercept()
-        .resolve(held_id, InterceptAction::Forward { modified_wire: None })
+        .resolve(
+            held_id,
+            InterceptAction::Forward {
+                modified_wire: None,
+            },
+        )
         .await;
     assert!(resolved);
 
@@ -314,7 +327,12 @@ async fn intercept_forward_response_unmodified() {
     // Forward unmodified response
     let resolved = proxy
         .intercept()
-        .resolve(held_id, InterceptAction::Forward { modified_wire: None })
+        .resolve(
+            held_id,
+            InterceptAction::Forward {
+                modified_wire: None,
+            },
+        )
         .await;
     assert!(resolved);
 
@@ -356,7 +374,9 @@ async fn intercept_forward_all_held_requests() {
     // Forward all with resolve_all
     proxy
         .intercept()
-        .resolve_all(InterceptAction::Forward { modified_wire: None })
+        .resolve_all(InterceptAction::Forward {
+            modified_wire: None,
+        })
         .await;
     assert_eq!(proxy.intercept().queue_len().await, 0);
 
@@ -439,12 +459,18 @@ async fn intercept_drop_request_terminates_connection_without_forwarding() {
     }
     assert!(held_id > 0);
 
-    let resolved = proxy.intercept().resolve(held_id, InterceptAction::Drop).await;
+    let resolved = proxy
+        .intercept()
+        .resolve(held_id, InterceptAction::Drop)
+        .await;
     assert!(resolved);
     assert_eq!(proxy.intercept().queue_len().await, 0);
 
     let bytes_read = client_task.await.unwrap();
-    assert_eq!(bytes_read, 0, "Dropped request should close connection to client with 0 bytes");
+    assert_eq!(
+        bytes_read, 0,
+        "Dropped request should close connection to client with 0 bytes"
+    );
     assert_eq!(records.lock().await.len(), 0);
 }
 
@@ -479,12 +505,22 @@ async fn intercept_drop_response_terminates_client_connection() {
     assert!(held_id > 0);
 
     // Drop the held response
-    let resolved = proxy.intercept().resolve(held_id, InterceptAction::Drop).await;
+    let resolved = proxy
+        .intercept()
+        .resolve(held_id, InterceptAction::Drop)
+        .await;
     assert!(resolved);
 
     let bytes_read = client_task.await.unwrap();
-    assert_eq!(bytes_read, 0, "Dropping response terminates connection to client");
-    assert_eq!(records.lock().await.len(), 1, "Origin received request, but response was dropped");
+    assert_eq!(
+        bytes_read, 0,
+        "Dropping response terminates connection to client"
+    );
+    assert_eq!(
+        records.lock().await.len(),
+        1,
+        "Origin received request, but response was dropped"
+    );
 }
 
 #[tokio::test]
@@ -799,7 +835,11 @@ async fn intercept_cancel_held_request_via_remove_held() {
 
     let bytes_read = client_task.await.unwrap();
     assert_eq!(bytes_read, 0, "Cancelled request closes client connection");
-    assert_eq!(records.lock().await.len(), 0, "Origin never sees cancelled request");
+    assert_eq!(
+        records.lock().await.len(),
+        0,
+        "Origin never sees cancelled request"
+    );
 }
 
 #[tokio::test]
@@ -831,7 +871,12 @@ async fn intercept_client_disconnect_cancellation_handled_gracefully() {
     // Proxy handles forward on dead client socket gracefully without panic or hang
     let resolved = proxy
         .intercept()
-        .resolve(held_id, InterceptAction::Forward { modified_wire: None })
+        .resolve(
+            held_id,
+            InterceptAction::Forward {
+                modified_wire: None,
+            },
+        )
         .await;
     assert!(resolved);
     assert_eq!(proxy.intercept().queue_len().await, 0);
@@ -855,11 +900,21 @@ async fn duplicate_resolve_is_noop() {
         .await
         .unwrap();
 
-    let first = mgr.resolve(id, InterceptAction::Forward { modified_wire: None }).await;
+    let first = mgr
+        .resolve(
+            id,
+            InterceptAction::Forward {
+                modified_wire: None,
+            },
+        )
+        .await;
     assert!(first, "First resolve should succeed");
 
     let second = mgr.resolve(id, InterceptAction::Drop).await;
-    assert!(!second, "Duplicate resolve must return false (cannot resolve twice)");
+    assert!(
+        !second,
+        "Duplicate resolve must return false (cannot resolve twice)"
+    );
 }
 
 // ============================================================================
@@ -893,8 +948,16 @@ async fn intercept_request_timeout_returns_504() {
         "Timed-out request should yield 504 Gateway Timeout, got: {client_resp}"
     );
     assert!(client_resp.contains("intercepted request timed out"));
-    assert_eq!(proxy.intercept().queue_len().await, 0, "Evicted from queue on timeout");
-    assert_eq!(records.lock().await.len(), 0, "Origin never contacted on timeout");
+    assert_eq!(
+        proxy.intercept().queue_len().await,
+        0,
+        "Evicted from queue on timeout"
+    );
+    assert_eq!(
+        records.lock().await.len(),
+        0,
+        "Origin never contacted on timeout"
+    );
 }
 
 #[tokio::test]
@@ -954,7 +1017,10 @@ async fn intercept_queue_capacity_limit_returns_503() {
         assert!(id > 0);
         receivers.push(rx);
     }
-    assert_eq!(proxy.intercept().queue_len().await, MAX_INTERCEPT_QUEUE_SIZE);
+    assert_eq!(
+        proxy.intercept().queue_len().await,
+        MAX_INTERCEPT_QUEUE_SIZE
+    );
 
     // 101st request through proxy gets rejected with 503 Service Unavailable
     let mut client = TcpStream::connect(("127.0.0.1", proxy_port)).await.unwrap();
@@ -1000,7 +1066,10 @@ async fn intercept_queue_recovery_after_drain() {
             .await
             .unwrap();
     }
-    assert_eq!(proxy.intercept().queue_len().await, MAX_INTERCEPT_QUEUE_SIZE);
+    assert_eq!(
+        proxy.intercept().queue_len().await,
+        MAX_INTERCEPT_QUEUE_SIZE
+    );
 
     // Drain queue completely
     proxy.intercept().resolve_all(InterceptAction::Drop).await;
@@ -1030,7 +1099,12 @@ async fn intercept_queue_recovery_after_drain() {
 
     let resolved = proxy
         .intercept()
-        .resolve(held_id, InterceptAction::Forward { modified_wire: None })
+        .resolve(
+            held_id,
+            InterceptAction::Forward {
+                modified_wire: None,
+            },
+        )
         .await;
     assert!(resolved);
 
@@ -1131,7 +1205,10 @@ async fn scope_recheck_blocks_request_edited_out_of_scope() {
         }
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
-    assert!(held_id > 0, "the in-scope request should have been held for interception");
+    assert!(
+        held_id > 0,
+        "the in-scope request should have been held for interception"
+    );
 
     // Edit it to target the OUT-OF-SCOPE origin, then forward.
     let edited = format!(
@@ -1139,7 +1216,12 @@ async fn scope_recheck_blocks_request_edited_out_of_scope() {
     );
     proxy
         .intercept()
-        .resolve(held_id, InterceptAction::Forward { modified_wire: Some(edited) })
+        .resolve(
+            held_id,
+            InterceptAction::Forward {
+                modified_wire: Some(edited),
+            },
+        )
         .await;
 
     let client_resp = client_task.await.unwrap();
@@ -1149,8 +1231,16 @@ async fn scope_recheck_blocks_request_edited_out_of_scope() {
     );
     // The decisive proof: the out-of-scope origin got NO TCP connection at all (not merely "no
     // recorded request"), and the original in-scope origin was not hit either.
-    assert_eq!(out_accepts.load(Ordering::Relaxed), 0, "out-of-scope origin must receive no TCP connection");
-    assert_eq!(in_records.lock().await.len(), 0, "the original in-scope origin must not be hit either");
+    assert_eq!(
+        out_accepts.load(Ordering::Relaxed),
+        0,
+        "out-of-scope origin must receive no TCP connection"
+    );
+    assert_eq!(
+        in_records.lock().await.len(),
+        0,
+        "the original in-scope origin must not be hit either"
+    );
 }
 
 // ============================================================================
@@ -1240,7 +1330,15 @@ async fn intercept_status_reports_defaults_and_tracks_changes() {
     // The master switch overrides the request sub-toggle.
     assert!(!mgr.is_intercept_requests_enabled());
     let res = mgr
-        .hold_request("GET".into(), "u".into(), "h".into(), "/".into(), vec![], vec![], vec![])
+        .hold_request(
+            "GET".into(),
+            "u".into(),
+            "h".into(),
+            "/".into(),
+            vec![],
+            vec![],
+            vec![],
+        )
         .await;
     assert!(matches!(res, Err(HoldError::Disabled)));
 
@@ -1257,13 +1355,30 @@ async fn intercept_status_reports_defaults_and_tracks_changes() {
     assert!(!st.intercept_requests && st.intercept_responses);
     assert_eq!(st.queue_len, 1);
     let res = mgr
-        .hold_request("GET".into(), "u".into(), "h".into(), "/".into(), vec![], vec![], vec![])
+        .hold_request(
+            "GET".into(),
+            "u".into(),
+            "h".into(),
+            "/".into(),
+            vec![],
+            vec![],
+            vec![],
+        )
         .await;
     assert!(matches!(res, Err(HoldError::Disabled)));
 
     // Responses can still be held on their own.
     let (_resp_id, _resp_rx) = mgr
-        .hold_response("GET".into(), "u".into(), 200, "h".into(), "/r".into(), vec![], vec![], vec![])
+        .hold_response(
+            "GET".into(),
+            "u".into(),
+            200,
+            "h".into(),
+            "/r".into(),
+            vec![],
+            vec![],
+            vec![],
+        )
         .await
         .unwrap();
     assert_eq!(mgr.status().await.queue_len, 2);
@@ -1272,7 +1387,12 @@ async fn intercept_status_reports_defaults_and_tracks_changes() {
     let st = mgr.set_enabled(false).await;
     assert!(!st.enabled);
     assert_eq!(st.queue_len, 0);
-    assert_eq!(req_rx.await.unwrap(), InterceptAction::Forward { modified_wire: None });
+    assert_eq!(
+        req_rx.await.unwrap(),
+        InterceptAction::Forward {
+            modified_wire: None
+        }
+    );
 
     // A zero timeout is clamped to 1ms instead of disabling the wait.
     mgr.set_timeout(Duration::ZERO);
@@ -1289,8 +1409,13 @@ async fn intercept_request_and_response_toggles_are_independent() {
     mgr.set_enabled(true).await;
     mgr.set_intercept_requests(false).await;
     mgr.set_intercept_responses(false).await;
-    let resp = spawn_get(proxy_port, server_port, "/both-off".into()).await.unwrap();
-    assert!(resp.contains("200 OK") && resp.contains("/both-off"), "got: {resp}");
+    let resp = spawn_get(proxy_port, server_port, "/both-off".into())
+        .await
+        .unwrap();
+    assert!(
+        resp.contains("200 OK") && resp.contains("/both-off"),
+        "got: {resp}"
+    );
     assert_eq!(mgr.queue_len().await, 0);
     assert_eq!(records.lock().await.len(), 1);
 
@@ -1300,17 +1425,44 @@ async fn intercept_request_and_response_toggles_are_independent() {
     let client = spawn_get(proxy_port, server_port, "/both-on".into());
 
     let req_id = wait_for_held(&mgr, "request", "/both-on").await;
-    assert_eq!(records.lock().await.len(), 1, "origin must not be hit while the request is held");
-    assert!(mgr.resolve(req_id, InterceptAction::Forward { modified_wire: None }).await);
+    assert_eq!(
+        records.lock().await.len(),
+        1,
+        "origin must not be hit while the request is held"
+    );
+    assert!(
+        mgr.resolve(
+            req_id,
+            InterceptAction::Forward {
+                modified_wire: None
+            }
+        )
+        .await
+    );
 
     let resp_id = wait_for_held(&mgr, "response", "/both-on").await;
     assert_ne!(resp_id, req_id);
-    assert_eq!(records.lock().await.len(), 2, "origin is hit once the request is forwarded");
+    assert_eq!(
+        records.lock().await.len(),
+        2,
+        "origin is hit once the request is forwarded"
+    );
     assert_eq!(mgr.get_held(resp_id).await.unwrap().status_code, Some(200));
-    assert!(mgr.resolve(resp_id, InterceptAction::Forward { modified_wire: None }).await);
+    assert!(
+        mgr.resolve(
+            resp_id,
+            InterceptAction::Forward {
+                modified_wire: None
+            }
+        )
+        .await
+    );
 
     let resp = client.await.unwrap();
-    assert!(resp.contains("200 OK") && resp.contains("/both-on"), "got: {resp}");
+    assert!(
+        resp.contains("200 OK") && resp.contains("/both-on"),
+        "got: {resp}"
+    );
     assert_eq!(mgr.queue_len().await, 0);
 }
 
@@ -1331,18 +1483,35 @@ async fn intercept_timeout_evicts_only_the_unanswered_request() {
 
     let answered_id = wait_for_held(&mgr, "request", "/answered").await;
     let ignored_id = wait_for_held(&mgr, "request", "/ignored").await;
-    assert!(mgr.resolve(answered_id, InterceptAction::Forward { modified_wire: None }).await);
+    assert!(
+        mgr.resolve(
+            answered_id,
+            InterceptAction::Forward {
+                modified_wire: None
+            }
+        )
+        .await
+    );
 
     // The custom timeout is honoured: the ignored request is not evicted early.
     tokio::time::sleep(Duration::from_millis(100)).await;
-    assert!(started.elapsed() < timeout, "test setup took longer than the timeout");
-    assert!(mgr.get_held(ignored_id).await.is_some(), "evicted before its timeout");
+    assert!(
+        started.elapsed() < timeout,
+        "test setup took longer than the timeout"
+    );
+    assert!(
+        mgr.get_held(ignored_id).await.is_some(),
+        "evicted before its timeout"
+    );
 
     let answered_resp = answered.await.unwrap();
     assert!(answered_resp.contains("200 OK") && answered_resp.contains("/answered"));
 
     let ignored_resp = ignored.await.unwrap();
-    assert!(ignored_resp.contains("504 Gateway Timeout"), "got: {ignored_resp}");
+    assert!(
+        ignored_resp.contains("504 Gateway Timeout"),
+        "got: {ignored_resp}"
+    );
     assert!(started.elapsed() >= timeout - Duration::from_millis(50));
 
     assert_eq!(mgr.queue_len().await, 0);
@@ -1365,9 +1534,18 @@ async fn intercept_queue_full_then_drop_one_resumes_normal_operation() {
     assert_eq!(mgr.queue_len().await, MAX_INTERCEPT_QUEUE_SIZE);
 
     // Full: the next real request is refused and never queued or sent.
-    let overflow = spawn_get(proxy_port, server_port, "/overflow".into()).await.unwrap();
-    assert!(overflow.contains("503 Service Unavailable"), "got: {overflow}");
-    assert!(!mgr.list_held().await.iter().any(|i| i.url.ends_with("/overflow")));
+    let overflow = spawn_get(proxy_port, server_port, "/overflow".into())
+        .await
+        .unwrap();
+    assert!(
+        overflow.contains("503 Service Unavailable"),
+        "got: {overflow}"
+    );
+    assert!(!mgr
+        .list_held()
+        .await
+        .iter()
+        .any(|i| i.url.ends_with("/overflow")));
 
     // Drop a single held item to free one slot.
     let (first_id, first_rx) = held.remove(0);
@@ -1379,10 +1557,21 @@ async fn intercept_queue_full_then_drop_one_resumes_normal_operation() {
     let client = spawn_get(proxy_port, server_port, "/after-free".into());
     let id = wait_for_held(&mgr, "request", "/after-free").await;
     assert_eq!(mgr.queue_len().await, MAX_INTERCEPT_QUEUE_SIZE);
-    assert!(mgr.resolve(id, InterceptAction::Forward { modified_wire: None }).await);
+    assert!(
+        mgr.resolve(
+            id,
+            InterceptAction::Forward {
+                modified_wire: None
+            }
+        )
+        .await
+    );
 
     let resp = client.await.unwrap();
-    assert!(resp.contains("200 OK") && resp.contains("/after-free"), "got: {resp}");
+    assert!(
+        resp.contains("200 OK") && resp.contains("/after-free"),
+        "got: {resp}"
+    );
     {
         let recs = records.lock().await;
         assert_eq!(recs.len(), 1);
@@ -1421,7 +1610,13 @@ async fn intercept_ten_concurrent_requests_resolved_individually() {
         .map(|id| {
             let mgr = mgr.clone();
             tokio::spawn(async move {
-                mgr.resolve(id, InterceptAction::Forward { modified_wire: None }).await
+                mgr.resolve(
+                    id,
+                    InterceptAction::Forward {
+                        modified_wire: None,
+                    },
+                )
+                .await
             })
         })
         .collect();
@@ -1440,7 +1635,12 @@ async fn intercept_ten_concurrent_requests_resolved_individually() {
     }
     assert_eq!(mgr.queue_len().await, 0);
 
-    let mut seen: Vec<String> = records.lock().await.iter().map(|r| r.path.clone()).collect();
+    let mut seen: Vec<String> = records
+        .lock()
+        .await
+        .iter()
+        .map(|r| r.path.clone())
+        .collect();
     seen.sort();
     assert_eq!(seen, paths);
 }
@@ -1491,14 +1691,25 @@ async fn intercept_mixed_resolve_actions_concurrently() {
                 resp.contains("200 OK") && resp.contains(&format!("\"{p}-edited\"")),
                 "{p}: {resp}"
             ),
-            _ => assert!(resp.is_empty(), "dropped {p} must get no bytes, got: {resp}"),
+            _ => assert!(
+                resp.is_empty(),
+                "dropped {p} must get no bytes, got: {resp}"
+            ),
         }
     }
     assert_eq!(mgr.queue_len().await, 0);
 
-    let mut seen: Vec<String> = records.lock().await.iter().map(|r| r.path.clone()).collect();
+    let mut seen: Vec<String> = records
+        .lock()
+        .await
+        .iter()
+        .map(|r| r.path.clone())
+        .collect();
     seen.sort();
-    assert_eq!(seen, vec!["/mix-0", "/mix-1", "/mix-2-edited", "/mix-3-edited"]);
+    assert_eq!(
+        seen,
+        vec!["/mix-0", "/mix-1", "/mix-2-edited", "/mix-3-edited"]
+    );
 }
 
 #[tokio::test]
@@ -1512,7 +1723,9 @@ async fn intercept_events_report_hold_and_resolution() {
     assert!(
         mgr.resolve(
             edited_id,
-            InterceptAction::Forward { modified_wire: Some("GET / HTTP/1.1\r\n\r\n".into()) }
+            InterceptAction::Forward {
+                modified_wire: Some("GET / HTTP/1.1\r\n\r\n".into())
+            }
         )
         .await
     );
@@ -1536,5 +1749,9 @@ async fn intercept_events_report_hold_and_resolution() {
             (evicted_id, "evicted".to_string())
         ]
     );
-    assert_eq!(last_queue_len, Some(0), "the UI's last state update must show an empty queue");
+    assert_eq!(
+        last_queue_len,
+        Some(0),
+        "the UI's last state update must show an empty queue"
+    );
 }

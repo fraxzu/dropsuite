@@ -30,6 +30,7 @@ use crate::http1::{self, BodyFraming, Capture, CopyError, FrameError, Reader};
 use crate::challenge::{self, ChallengeSignal};
 use crate::cookies::{self, StoredCookie};
 use crate::header_preset::{self, BrowserPreset};
+use crate::http2;
 
 type BoxedRead = Box<dyn AsyncRead + Send + Unpin>;
 type BoxedWrite = Box<dyn AsyncWrite + Send + Unpin>;
@@ -377,6 +378,89 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
     })
 }
 
+/// Finish a request whose TLS handshake selected h2. Mirrors the tail of [`send_with`] so the
+/// response is captured, sanitized and challenge-checked the same way.
+async fn send_negotiated_h2<S>(
+    io: S,
+    prepared: &Prepared,
+    req: &ReplayRequest,
+    opts: &ReplayOptions,
+    destination: String,
+    started: std::time::Instant,
+) -> Result<ReplayResponse, ReplayError>
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
+    let head_len = prepared.wire.len() - prepared.body_len;
+    let mut capture = Capture::with_limit(RESPONSE_CAPTURE_LIMIT);
+    let head = http2::exchange(
+        io,
+        &prepared.wire[..head_len],
+        &prepared.wire[head_len..],
+        &mut capture,
+        opts.response_timeout,
+    )
+    .await
+    .map_err(|e| {
+        ReplayError::new(
+            "malformed",
+            format!("HTTP/2 response from {destination}: {e}."),
+        )
+    })?;
+
+    let body_bytes = capture.len();
+    let total_bytes = head
+        .headers
+        .iter()
+        .map(|(n, v)| n.len() + v.len() + 4)
+        .sum::<usize>() as u64
+        + body_bytes
+        + 16;
+    let display_head = display_head(&head);
+    let content_type = head
+        .headers
+        .iter()
+        .find(|(n, _)| n.eq_ignore_ascii_case("content-type"))
+        .map(|(_, v)| v.clone());
+    let raw = captured_message(
+        display_head.as_bytes(),
+        BodyFraming::Length(body_bytes),
+        capture,
+        true,
+        content_type.as_deref(),
+    );
+
+    let (request_headers, request_message) = prepared.snapshot();
+    let challenge = challenge::detect(head.status, &head.headers, &raw);
+    Ok(ReplayResponse {
+        status: head.status,
+        reason: head.reason.clone(),
+        headers: sanitize_header_pairs(&head.headers),
+        message: sanitize_raw_message(&raw),
+        content_type,
+        total_bytes,
+        sent_bytes: prepared.wire.len() as u64,
+        duration_ms: started.elapsed().as_millis() as u64,
+        destination,
+        request_target: sanitize_target(req.url.trim()),
+        request_headers,
+        request_message,
+        dropped_headers: prepared.dropped_headers.clone(),
+        challenge,
+    })
+}
+
+/// Status line and fields shaped like an HTTP/1.1 head, so the message pane can reuse the same
+/// rendering and captured-message helper.
+fn display_head(head: &http2::H2Head) -> String {
+    let mut out = format!("HTTP/2 {} {}\r\n", head.status, head.reason);
+    for (name, value) in &head.headers {
+        out.push_str(&format!("{name}: {value}\r\n"));
+    }
+    out.push_str("\r\n");
+    out
+}
+
 /// Send the request once and read the whole response. Never follows redirects, never retries.
 pub async fn send(
     req: &ReplayRequest,
@@ -486,9 +570,12 @@ pub async fn send_with(
                 let _ = root_store.add(root.clone());
             }
         }
-        let client_config = ClientConfig::builder()
+        let mut client_config = ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_no_client_auth();
+        // Offer h2 first: bot protection notices a bare h1-only client. The branch below only
+        // speaks h2 when the destination selects it, so a h1-only server is unaffected.
+        client_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
         let connector = tokio_rustls::TlsConnector::from(Arc::new(client_config));
         let server_name: ServerName<'static> = match prepared.host.clone().try_into() {
             Ok(name) => name,
@@ -519,6 +606,10 @@ pub async fn send_with(
                 ))
             }
         };
+        if tls_stream.get_ref().1.alpn_protocol() == Some(b"h2") {
+            return send_negotiated_h2(tls_stream, &prepared, req, opts, destination, started)
+                .await;
+        }
         let (r, w) = tokio::io::split(tls_stream);
         (Box::new(r), Box::new(w))
     } else {
