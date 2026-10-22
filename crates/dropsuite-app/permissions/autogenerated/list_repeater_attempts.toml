@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-repeater-attempts"
+description = "Enables the list_repeater_attempts command without any pre-configured scope."
+commands.allow = ["list_repeater_attempts"]
+
+[[permission]]
+identifier = "deny-list-repeater-attempts"
+description = "Denies the list_repeater_attempts command without any pre-configured scope."
+commands.deny = ["list_repeater_attempts"]

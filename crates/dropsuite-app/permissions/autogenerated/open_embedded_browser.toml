@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-embedded-browser"
+description = "Enables the open_embedded_browser command without any pre-configured scope."
+commands.allow = ["open_embedded_browser"]
+
+[[permission]]
+identifier = "deny-open-embedded-browser"
+description = "Denies the open_embedded_browser command without any pre-configured scope."
+commands.deny = ["open_embedded_browser"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-listener-port"
+description = "Enables the set_listener_port command without any pre-configured scope."
+commands.allow = ["set_listener_port"]
+
+[[permission]]
+identifier = "deny-set-listener-port"
+description = "Denies the set_listener_port command without any pre-configured scope."
+commands.deny = ["set_listener_port"]

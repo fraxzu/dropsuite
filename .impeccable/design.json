@@ -1,0 +1,714 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T02:20:21+00:00",
+  "title": "Design System: DropSuite",
+  "extensions": {
+    "colorMeta": {
+      "chrome": {
+        "role": "neutral",
+        "displayName": "Chrome",
+        "canonical": "#131417",
+        "tonalRamp": [
+          "#131417",
+          "#18191c",
+          "#1c1d21",
+          "#222328",
+          "#26282d",
+          "#2a2c31",
+          "#383a41",
+          "#4a4d55"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Ground",
+        "canonical": "#18191c",
+        "tonalRamp": [
+          "#131417",
+          "#18191c",
+          "#1c1d21",
+          "#222328",
+          "#26282d",
+          "#2a2c31",
+          "#383a41",
+          "#4a4d55"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "canonical": "#1c1d21",
+        "tonalRamp": [
+          "#131417",
+          "#18191c",
+          "#1c1d21",
+          "#222328",
+          "#26282d",
+          "#2a2c31",
+          "#383a41",
+          "#4a4d55"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised",
+        "canonical": "#222328",
+        "tonalRamp": [
+          "#131417",
+          "#18191c",
+          "#1c1d21",
+          "#222328",
+          "#26282d",
+          "#2a2c31",
+          "#383a41",
+          "#4a4d55"
+        ]
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Hover",
+        "canonical": "#26282d",
+        "tonalRamp": [
+          "#131417",
+          "#18191c",
+          "#1c1d21",
+          "#222328",
+          "#26282d",
+          "#2a2c31",
+          "#383a41",
+          "#4a4d55"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#2a2c31",
+        "tonalRamp": [
+          "#131417",
+          "#18191c",
+          "#1c1d21",
+          "#222328",
+          "#26282d",
+          "#2a2c31",
+          "#383a41",
+          "#4a4d55"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Line",
+        "canonical": "#383a41",
+        "tonalRamp": [
+          "#131417",
+          "#18191c",
+          "#1c1d21",
+          "#222328",
+          "#26282d",
+          "#2a2c31",
+          "#383a41",
+          "#4a4d55"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Primary Text",
+        "canonical": "#e6e7ea",
+        "tonalRamp": [
+          "#5c5f66",
+          "#878a92",
+          "#a8abb2",
+          "#c4c6cb",
+          "#e6e7ea",
+          "#eff0f2",
+          "#f6f7f8",
+          "#ffffff"
+        ]
+      },
+      "text-2": {
+        "role": "neutral",
+        "displayName": "Secondary Text",
+        "canonical": "#a8abb2",
+        "tonalRamp": [
+          "#5c5f66",
+          "#878a92",
+          "#a8abb2",
+          "#c4c6cb",
+          "#e6e7ea",
+          "#eff0f2",
+          "#f6f7f8",
+          "#ffffff"
+        ]
+      },
+      "text-3": {
+        "role": "neutral",
+        "displayName": "Meta Text",
+        "canonical": "#878a92",
+        "tonalRamp": [
+          "#5c5f66",
+          "#878a92",
+          "#a8abb2",
+          "#c4c6cb",
+          "#e6e7ea",
+          "#eff0f2",
+          "#f6f7f8",
+          "#ffffff"
+        ]
+      },
+      "text-disabled": {
+        "role": "neutral",
+        "displayName": "Disabled Text",
+        "canonical": "#5c5f66",
+        "tonalRamp": [
+          "#5c5f66",
+          "#878a92",
+          "#a8abb2",
+          "#c4c6cb",
+          "#e6e7ea",
+          "#eff0f2",
+          "#f6f7f8",
+          "#ffffff"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Electric Blue",
+        "canonical": "#3d8bff",
+        "tonalRamp": [
+          "#042049",
+          "#063579",
+          "#094aaa",
+          "#0b5fda",
+          "#3481f4",
+          "#6ea5f7",
+          "#a8c9fa",
+          "#ddeafd"
+        ]
+      },
+      "accent-strong": {
+        "role": "primary",
+        "displayName": "Pressed Blue",
+        "canonical": "#2a6fe0",
+        "tonalRamp": [
+          "#042049",
+          "#063579",
+          "#094aaa",
+          "#0b5fda",
+          "#3481f4",
+          "#6ea5f7",
+          "#a8c9fa",
+          "#ddeafd"
+        ]
+      },
+      "accent-text": {
+        "role": "primary",
+        "displayName": "Link Blue",
+        "canonical": "#79acff",
+        "tonalRamp": [
+          "#042049",
+          "#063579",
+          "#094aaa",
+          "#0b5fda",
+          "#3481f4",
+          "#6ea5f7",
+          "#a8c9fa",
+          "#ddeafd"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus Blue",
+        "canonical": "#4c94ff",
+        "tonalRamp": [
+          "#042049",
+          "#063579",
+          "#094aaa",
+          "#0b5fda",
+          "#3481f4",
+          "#6ea5f7",
+          "#a8c9fa",
+          "#ddeafd"
+        ]
+      },
+      "sel": {
+        "role": "primary",
+        "displayName": "Selection Navy",
+        "canonical": "#1f3c6b",
+        "tonalRamp": [
+          "#042049",
+          "#063579",
+          "#094aaa",
+          "#0b5fda",
+          "#3481f4",
+          "#6ea5f7",
+          "#a8c9fa",
+          "#ddeafd"
+        ]
+      },
+      "sel-idle": {
+        "role": "primary",
+        "displayName": "Idle Selection Navy",
+        "canonical": "#1e2a3e",
+        "tonalRamp": [
+          "#042049",
+          "#063579",
+          "#094aaa",
+          "#0b5fda",
+          "#3481f4",
+          "#6ea5f7",
+          "#a8c9fa",
+          "#ddeafd"
+        ]
+      },
+      "status-1xx": {
+        "role": "secondary",
+        "displayName": "Status 1xx Grey",
+        "canonical": "#a8abb2",
+        "tonalRamp": [
+          "#5c5f66",
+          "#878a92",
+          "#a8abb2",
+          "#c4c6cb",
+          "#e6e7ea",
+          "#eff0f2",
+          "#f6f7f8",
+          "#ffffff"
+        ]
+      },
+      "status-2xx": {
+        "role": "secondary",
+        "displayName": "Live Green",
+        "canonical": "#4cc38a",
+        "tonalRamp": [
+          "#153727",
+          "#235c41",
+          "#31815b",
+          "#3fa675",
+          "#64c496",
+          "#90d5b4",
+          "#bde6d2",
+          "#e5f5ed"
+        ]
+      },
+      "status-3xx": {
+        "role": "secondary",
+        "displayName": "Redirect Teal",
+        "canonical": "#4fbfd4",
+        "tonalRamp": [
+          "#11353b",
+          "#1d5863",
+          "#287b8a",
+          "#349eb1",
+          "#59bcce",
+          "#89cfdc",
+          "#b8e2ea",
+          "#e3f4f7"
+        ]
+      },
+      "status-4xx": {
+        "role": "secondary",
+        "displayName": "Client-Error Amber",
+        "canonical": "#e8a43c",
+        "tonalRamp": [
+          "#412c0b",
+          "#6d4912",
+          "#99671a",
+          "#c48421",
+          "#e0a448",
+          "#e9be7c",
+          "#f2d8b1",
+          "#faf0e0"
+        ]
+      },
+      "status-5xx": {
+        "role": "secondary",
+        "displayName": "Server-Error Red",
+        "canonical": "#f06a5f",
+        "tonalRamp": [
+          "#430e0a",
+          "#6f1710",
+          "#9c2117",
+          "#c82a1d",
+          "#e45044",
+          "#ec8279",
+          "#f3b4af",
+          "#fae2e0"
+        ]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Danger Red",
+        "canonical": "#f06a5f",
+        "tonalRamp": [
+          "#430e0a",
+          "#6f1710",
+          "#9c2117",
+          "#c82a1d",
+          "#e45044",
+          "#ec8279",
+          "#f3b4af",
+          "#fae2e0"
+        ]
+      },
+      "redacted": {
+        "role": "secondary",
+        "displayName": "Redaction Amber",
+        "canonical": "#e8a43c",
+        "tonalRamp": [
+          "#412c0b",
+          "#6d4912",
+          "#99671a",
+          "#c48421",
+          "#e0a448",
+          "#e9be7c",
+          "#f2d8b1",
+          "#faf0e0"
+        ]
+      },
+      "syn-key": {
+        "role": "tertiary",
+        "displayName": "Header-Name Blue",
+        "canonical": "#9fc1ff",
+        "tonalRamp": [
+          "#042049",
+          "#063579",
+          "#094aaa",
+          "#0b5fda",
+          "#3481f4",
+          "#6ea5f7",
+          "#a8c9fa",
+          "#ddeafd"
+        ]
+      },
+      "syn-str": {
+        "role": "tertiary",
+        "displayName": "Parchment String",
+        "canonical": "#d4c18e",
+        "tonalRamp": [
+          "#362d17",
+          "#594c26",
+          "#7d6a35",
+          "#a18844",
+          "#bfa869",
+          "#d1c194",
+          "#e4dabf",
+          "#f4f0e6"
+        ]
+      },
+      "syn-num": {
+        "role": "tertiary",
+        "displayName": "Sea-Glass Number",
+        "canonical": "#7fd1c4",
+        "tonalRamp": [
+          "#11353b",
+          "#1d5863",
+          "#287b8a",
+          "#349eb1",
+          "#59bcce",
+          "#89cfdc",
+          "#b8e2ea",
+          "#e3f4f7"
+        ]
+      },
+      "syn-lit": {
+        "role": "tertiary",
+        "displayName": "Clay Literal",
+        "canonical": "#e3a07a",
+        "tonalRamp": [
+          "#412c0b",
+          "#6d4912",
+          "#99671a",
+          "#c48421",
+          "#e0a448",
+          "#e9be7c",
+          "#f2d8b1",
+          "#faf0e0"
+        ]
+      },
+      "syn-punct": {
+        "role": "tertiary",
+        "displayName": "Punctuation Grey",
+        "canonical": "#878a92",
+        "tonalRamp": [
+          "#5c5f66",
+          "#878a92",
+          "#a8abb2",
+          "#c4c6cb",
+          "#e6e7ea",
+          "#eff0f2",
+          "#f6f7f8",
+          "#ffffff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Empty- and error-state headings only."
+      },
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "The DropSuite wordmark."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default UI text, workspace tabs, state copy."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Buttons, pane titles, Request/Response titles."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Grid and key/value column headers; sentence case."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Counts, notes, status bar, inspector facts; tabular figures."
+      },
+      "wire": {
+        "displayName": "Wire",
+        "purpose": "All wire data: hosts, paths, raw messages, headers, bodies, hex, addresses, search input value."
+      },
+      "wire-strong": {
+        "displayName": "Wire Strong",
+        "purpose": "Method and status-code cells."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay-tooltip",
+        "value": "0 6px 16px rgba(0, 0, 0, 0.45)",
+        "purpose": "Capture-timeline hover tip."
+      },
+      {
+        "name": "overlay-toast",
+        "value": "0 8px 24px rgba(0, 0, 0, 0.5)",
+        "purpose": "Transient toast above the status bar."
+      },
+      {
+        "name": "segment-indicator",
+        "value": "inset 0 -2px 0 var(--seg-color, var(--accent))",
+        "purpose": "Pressed-segment underline in its own colour; a line, not a lift."
+      },
+      {
+        "name": "focus-inset",
+        "value": "inset 0 0 0 1px var(--focus)",
+        "purpose": "Focused scroll regions (grid body, tree)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Row arrival flash and toast entrance."
+      },
+      {
+        "name": "state-change",
+        "value": "120ms ease",
+        "purpose": "Hover/press colour, background and border transitions on controls, tabs and splitters."
+      },
+      {
+        "name": "splitter-reveal-delay",
+        "value": "80ms",
+        "purpose": "Delay before the 3px blue splitter line appears on hover."
+      },
+      {
+        "name": "row-arrival",
+        "value": "1.6s ease-out from rgba(61, 139, 255, 0.2)",
+        "purpose": "New captured rows flash a faint blue wash and fade to ground."
+      },
+      {
+        "name": "toast-in",
+        "value": "180ms ease-out, 6px rise and fade",
+        "purpose": "Toast entrance."
+      },
+      {
+        "name": "skeleton-shimmer",
+        "value": "1.4s linear infinite",
+        "purpose": "Loading rows."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "1ms durations, single iteration",
+        "purpose": "prefers-reduced-motion collapses all animation and transition."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "window-min",
+        "value": "960px"
+      },
+      {
+        "name": "grid-compact",
+        "value": "860px",
+        "purpose": "Container query on the history grid; hides Type and Time columns."
+      }
+    ],
+    "layout": {
+      "chromeBar": "36px",
+      "toolbar": "32px",
+      "timeline": "34px",
+      "gridHeader": "26px",
+      "row": "24px",
+      "treeRow": "22px",
+      "inspectorHead": "30px",
+      "statusBar": "22px",
+      "windowMin": "960x560",
+      "timelineGapCollapseMs": 45000
+    }
+  },
+  "components": [
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default neutral action button, 24px.",
+      "html": "<button class=\"ds-btn\">Copy as cURL</button>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-btn{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--radius);font:500 12px var(--font-ui);color:var(--text);background:var(--raised);border:1px solid var(--line-strong);cursor:pointer;transition:background-color 120ms ease,border-color 120ms ease}.ds-btn:hover{background:var(--hover);border-color:#464951}.ds-btn:active{background:#2c2e34}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}.ds-btn:disabled{color:var(--text-disabled);background:var(--panel);border-color:var(--line)}"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action (Start).",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M6 4l14 8-14 8z\"/></svg>Start</button>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-btn-primary{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--radius);font:500 12px var(--font-ui);color:#fff;background:var(--accent-strong);border:1px solid var(--accent-strong);cursor:pointer;transition:background-color 120ms ease}.ds-btn-primary:hover{background:#3478ea;border-color:#3478ea}.ds-btn-primary:active{background:#2563cc}.ds-btn-primary:focus-visible{outline:2px solid var(--focus);outline-offset:1px}"
+    },
+    {
+      "name": "Stop Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Neutral button with a danger-red square glyph; the button itself is never red.",
+      "html": "<button class=\"ds-btn-stop\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" rx=\"1.5\" fill=\"#f06a5f\"/></svg>Stop</button>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-btn-stop{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--radius);font:500 12px var(--font-ui);color:var(--text);background:var(--raised);border:1px solid var(--line-strong);cursor:pointer;transition:background-color 120ms ease}.ds-btn-stop:hover{background:var(--hover);border-color:#464951}.ds-btn-stop:focus-visible{outline:2px solid var(--focus);outline-offset:1px}"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Mono query field with UI-face placeholder and / keycap.",
+      "html": "<label class=\"ds-search\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"M20 20l-3.5-3.5\"/></svg><input placeholder=\"Filter by host, path or status\"><kbd>/</kbd></label>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-search{position:relative;display:flex;align-items:center;width:380px}.ds-search svg{position:absolute;left:8px;color:var(--text-3)}.ds-search input{width:100%;height:24px;padding:0 30px 0 28px;background:var(--ground);border:1px solid var(--line-strong);border-radius:var(--radius);font:12px var(--font-mono);color:var(--text);transition:border-color 120ms ease}.ds-search input::placeholder{color:var(--text-3);font-family:var(--font-ui)}.ds-search input:hover{border-color:#464951}.ds-search input:focus{outline:none;border-color:var(--focus)}.ds-search kbd{position:absolute;right:6px;font:10.5px/1 var(--font-mono);color:var(--text-2);padding:2px 4px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:3px;background:var(--raised)}"
+    },
+    {
+      "name": "Status Segmented Filter",
+      "kind": "chip",
+      "refersTo": "select",
+      "description": "Status-class toggles; a pressed segment gets a 2px underline in its own status hue.",
+      "html": "<div class=\"ds-seg\"><button aria-pressed=\"true\" style=\"--seg-color:#4cc38a\">2xx</button><button>3xx</button><button aria-pressed=\"true\" style=\"--seg-color:#e8a43c\">4xx</button><button>5xx</button></div>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-seg{display:inline-flex;height:24px;border:1px solid var(--line-strong);border-radius:var(--radius);overflow:hidden}.ds-seg button{min-width:34px;padding:0 7px;font:11px var(--font-mono);color:var(--text-2);background:none;border:none;border-right:1px solid var(--line-strong);cursor:pointer;transition:background-color 120ms ease,color 120ms ease}.ds-seg button:last-child{border-right:none}.ds-seg button:hover{background:var(--hover);color:var(--text)}.ds-seg button[aria-pressed=true]{background:var(--raised);color:var(--text);box-shadow:inset 0 -2px 0 var(--seg-color,var(--accent))}.ds-seg button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}"
+    },
+    {
+      "name": "Scope Chip",
+      "kind": "chip",
+      "refersTo": "chip-scope",
+      "description": "Active time-window scope with inline clear.",
+      "html": "<span class=\"ds-chip\">08:52:21 – 08:52:32<button aria-label=\"Clear\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\" stroke=\"currentColor\" stroke-width=\"1.4\"><path d=\"M2 2l6 6M8 2l-6 6\"/></svg></button></span>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 4px 0 8px;border-radius:var(--radius);background:var(--sel);color:var(--text);font:11px var(--font-ui)}.ds-chip button{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:none;border:none;color:var(--text-2);cursor:pointer}.ds-chip button:hover{background:var(--hover);color:var(--text)}.ds-chip button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}"
+    },
+    {
+      "name": "Workspace Tabs",
+      "kind": "nav",
+      "refersTo": "workspace-tab",
+      "description": "Chrome-bar workspace tabs with blue current underline and disabled planned tabs.",
+      "html": "<nav class=\"ds-ws\"><button class=\"ds-ws-tab\" aria-current=\"page\">Proxy</button><button class=\"ds-ws-tab\">Target</button><span class=\"ds-ws-div\"></span><button class=\"ds-ws-tab\" disabled>Replay <span class=\"ds-planned\">planned</span></button><button class=\"ds-ws-tab\" disabled>Fuzzer <span class=\"ds-planned\">planned</span></button><button class=\"ds-ws-tab\" disabled>Scanner <span class=\"ds-planned\">planned</span></button></nav>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-ws{display:flex;align-items:stretch;gap:2px;height:36px;background:var(--chrome);border-bottom:1px solid var(--line);padding:0 8px}.ds-ws-tab{position:relative;display:flex;align-items:center;gap:6px;padding:0 12px;font:13px var(--font-ui);color:var(--text-2);background:none;border:none;cursor:pointer;transition:color 120ms ease,background-color 120ms ease}.ds-ws-tab:hover:not(:disabled){color:var(--text);background:var(--panel)}.ds-ws-tab[aria-current=page]{color:var(--text)}.ds-ws-tab[aria-current=page]::after{content:\"\";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:2px 2px 0 0;background:var(--accent)}.ds-ws-tab:disabled{color:var(--text-disabled);cursor:default}.ds-ws-tab:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}.ds-planned{font-size:10px;line-height:14px;padding:0 4px;border:1px solid var(--line-strong);border-radius:3px;color:var(--text-disabled)}.ds-ws-div{width:1px;margin:10px 6px;background:var(--line-strong)}"
+    },
+    {
+      "name": "History Grid Rows",
+      "kind": "custom",
+      "refersTo": "grid-row",
+      "description": "24px rows; mono method/host/path/status; write methods brighten (DELETE included, never red); status as coloured text; navy selection.",
+      "html": "<div class=\"ds-grid\"><div class=\"ds-row\"><span class=\"ds-id\">21</span><span class=\"ds-m\">GET</span><span class=\"ds-h\">httpbin.org</span><span class=\"ds-p\">/status/403</span><span class=\"ds-st\" style=\"color:#e8a43c\">403</span></div><div class=\"ds-row\" aria-selected=\"true\"><span class=\"ds-id\">22</span><span class=\"ds-m ds-w\">DELETE</span><span class=\"ds-h\">httpbin.org</span><span class=\"ds-p\">/anything<span class=\"ds-q\">?id=7</span></span><span class=\"ds-st\" style=\"color:#4cc38a\">200</span></div></div>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-grid{background:var(--ground);width:560px}.ds-row{display:grid;grid-template-columns:44px 64px 120px 1fr 52px;align-items:center;height:24px;font:12px var(--font-ui);border-bottom:1px solid rgba(42,44,49,.55)}.ds-row:hover{background:var(--hover)}.ds-row[aria-selected=true]{background:var(--sel)}.ds-row span{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-id{color:var(--text-3);font-variant-numeric:tabular-nums;text-align:right}.ds-m{font:600 11px var(--font-mono);color:var(--text-2)}.ds-w{color:var(--text)}.ds-h{font-family:var(--font-mono);color:var(--text-2)}.ds-p{font-family:var(--font-mono);color:var(--text)}.ds-q{color:var(--text-3)}.ds-st{font:600 12px var(--font-mono)}"
+    },
+    {
+      "name": "Capture Timeline",
+      "kind": "custom",
+      "refersTo": "toolbar",
+      "description": "Signature: 2px status-coloured ticks (4xx/5xx 3px taller), idle gaps over 45 s collapsed to break marks, blue scope window, selection triangle.",
+      "html": "<div class=\"ds-tl\"><svg viewBox=\"0 0 560 34\" width=\"560\" height=\"34\"><text x=\"8\" y=\"25\" class=\"ds-ax\">08:06:14</text><line x1=\"64\" x2=\"500\" y1=\"28.5\" y2=\"28.5\" stroke=\"#383a41\"/><rect x=\"80\" y=\"14\" width=\"2\" height=\"14\" fill=\"#4cc38a\"/><rect x=\"92\" y=\"14\" width=\"2\" height=\"14\" fill=\"#4cc38a\"/><rect x=\"104\" y=\"11\" width=\"2\" height=\"17\" fill=\"#e8a43c\"/><rect x=\"166\" y=\"24\" width=\"10\" height=\"9\" fill=\"#18191c\"/><path d=\"M167.5 32l3-8M172.5 32l3-8\" stroke=\"#878a92\"/><rect x=\"240\" y=\"4\" width=\"110\" height=\"25\" rx=\"2\" fill=\"rgba(61,139,255,.14)\" stroke=\"rgba(61,139,255,.55)\"/><rect x=\"260\" y=\"14\" width=\"2\" height=\"14\" fill=\"#4cc38a\"/><rect x=\"290\" y=\"11\" width=\"2\" height=\"17\" fill=\"#f06a5f\"/><rect x=\"320\" y=\"14\" width=\"2\" height=\"14\" fill=\"#4fbfd4\"/><path d=\"M287 1h8l-4 5z\" fill=\"#e6e7ea\"/><rect x=\"420\" y=\"14\" width=\"2\" height=\"14\" fill=\"#4cc38a\" opacity=\".22\"/><text x=\"552\" y=\"25\" text-anchor=\"end\" class=\"ds-ax\">08:52:50</text></svg></div>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-tl{height:34px;background:var(--ground);border-bottom:1px solid var(--line);cursor:crosshair}.ds-tl svg{display:block}.ds-tl rect{shape-rendering:crispEdges}.ds-ax{font:10px var(--font-mono);fill:var(--text-3)}"
+    },
+    {
+      "name": "Redacted Raw View",
+      "kind": "custom",
+      "refersTo": "overlay",
+      "description": "Raw view rebuilt from the redacted parsed header list; amber markers and a labelled count.",
+      "html": "<div class=\"ds-code\"><div class=\"ds-note\">2 redacted</div><div class=\"ds-ln\" data-n=\"1\"><span><b>GET /api/me HTTP/1.1</b></span></div><div class=\"ds-ln\" data-n=\"2\"><span><i>Authorization</i><u>: </u><em>[REDACTED]</em></span></div><div class=\"ds-ln\" data-n=\"3\"><span><i>Cookie</i><u>: </u><em>[REDACTED]</em></span></div></div>",
+      "css": ":root{--chrome:#131417;--ground:#18191c;--panel:#1c1d21;--raised:#222328;--hover:#26282d;--line:#2a2c31;--line-strong:#383a41;--text:#e6e7ea;--text-2:#a8abb2;--text-3:#878a92;--text-disabled:#5c5f66;--accent:#3d8bff;--accent-strong:#2a6fe0;--accent-text:#79acff;--sel:#1f3c6b;--sel-idle:#1e2a3e;--focus:#4c94ff;--s2:#4cc38a;--s4:#e8a43c;--s5:#f06a5f;--redacted:#e8a43c;--syn-key:#9fc1ff;--syn-punct:#878a92;--font-ui:'Segoe UI Variable Text','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--font-mono:'Cascadia Mono','Cascadia Code',Consolas,ui-monospace,monospace;--radius:4px}.ds-code{background:var(--ground);font:12px/18px var(--font-mono);color:var(--text);padding:6px 0 12px;width:420px}.ds-note{font:11px var(--font-ui);color:var(--redacted);padding:0 12px 6px}.ds-ln{display:grid;grid-template-columns:44px 1fr}.ds-ln::before{content:attr(data-n);padding-right:12px;text-align:right;color:var(--text-disabled)}.ds-ln b{font-weight:600}.ds-ln i{font-style:normal;color:var(--syn-key)}.ds-ln u{text-decoration:none;color:var(--syn-punct)}.ds-ln em{font-style:normal;color:var(--redacted);background:rgba(232,164,60,.12);border-radius:2px;padding:0 2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Wire Desk",
+    "overview": "DropSuite is a desktop instrument for reading HTTP exactly as it crossed the wire. Traffic is one continuous capture surface: a dense history grid flowing into a split request/response inspector, read top to bottom like an editor. It is never a dashboard: there is no metric-card grid, no sidebar of big icons, no slide-in drawer, no coloured method pills.\n\nThe world is neutral charcoal in close tonal steps, divided by 1px graphite lines, lit by exactly one electric blue that means \"you are here, this is focused, this is the action\". Everything else that carries colour is information, not decoration: status hues are small text and few-pixel marks, redaction amber flags what the tool changed, syntax tints separate header names from values. Density is IDE density: 24px rows, 32px toolbars, 11 to 13px type, a 36px chrome bar and a 22px status bar framing the work.\n\nThe faces are the machine's own. Segoe UI Variable carries the interface and Cascadia Mono carries the wire; nothing is fetched from the network, because the product promises zero remote calls and the type stack is part of keeping that promise.",
+    "keyCharacteristics": [
+      "Four-step charcoal ladder (chrome, ground, panel, raised) plus a hover step; depth by tone, not shadow.",
+      "One electric blue, reserved for selection, focus and the primary action.",
+      "Status hues as text and marks only; never fills, pills or row tints.",
+      "Interface sans for chrome, monospace strictly for wire data and numbers in code views.",
+      "The capture timeline as the signature: session rhythm drawn as status-coloured ticks.",
+      "Evidence first: redactions and transforms are labelled; captured HTML is never rendered."
+    ],
+    "rules": [
+      {
+        "name": "The One Blue Rule",
+        "body": "Electric blue means selection, focus or the primary action. It never decorates, never marks a category, never tints a status.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status-Is-Ink Rule",
+        "body": "Status hues appear as text and as marks a few pixels across (timeline ticks, 5px squares, a 2px underline, a 7px dot). Never as a pill, a badge fill, a row tint or a background.",
+        "section": "colors"
+      },
+      {
+        "name": "The Amber Means Changed Rule",
+        "body": "Redaction amber marks only what the tool altered (redacted values and the redaction count). Because it shares its value with status-4xx, it always appears as a marker or note, never as a bare status-like number.",
+        "section": "colors"
+      },
+      {
+        "name": "The Whose-Words Rule",
+        "body": "Cascadia Mono is for wire data and numbers inside code views (methods, hosts, paths, headers, bodies, hex, addresses, status codes, timeline axis). Interface language is always Segoe UI Variable. Search placeholders switch back to the UI face; typed queries are mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The Local Faces Rule",
+        "body": "Fonts are local system faces only. No webfont, no font CDN, no `@font-face` pointing off the machine. This is a product requirement (zero remote calls), not a style preference.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Numbers Rule",
+        "body": "IDs, lengths, durations, times and counts use tabular figures so columns of numbers align.",
+        "section": "typography"
+      },
+      {
+        "name": "The Overlays-Only Shadow Rule",
+        "body": "A surface casts a shadow only if it floats over other content (tooltip, toast). Panes, rows, buttons and headers are flat.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do build every surface from the charcoal ladder (chrome, ground, panel, raised, hover) and separate regions with 1px lines.",
+      "Do keep electric blue for selection, focus and the primary action; use the navy pair for selected rows (sel when focused, sel-idle when not).",
+      "Do show status as coloured mono text, ticks, or marks a few pixels across.",
+      "Do set every byte from the wire (methods, hosts, paths, headers, bodies, hex, addresses, status codes) in Cascadia Mono, and every word of interface language in Segoe UI Variable.",
+      "Do use local system faces only; the type stack ships no webfont and makes no remote request.",
+      "Do label every change the tool makes to evidence: amber for redactions, a plain note for decoding or prettifying.",
+      "Do rebuild the Raw view from the redacted parsed header list.",
+      "Do show unshipped workspaces as disabled tabs with a \"planned\" badge.",
+      "Do hold the density: 24px rows and controls, 32px toolbars, 11 to 13px type, tabular figures for numbers."
+    ],
+    "donts": [
+      "Don't build a dashboard: no metric cards, no icon sidebar, no slide-in detail drawer.",
+      "Don't put method names in coloured pills, and don't colour DELETE red; write methods differ by brightness only.",
+      "Don't use status hues as fills, badges, row tints or backgrounds.",
+      "Don't use blue as decoration or as a category colour.",
+      "Don't add shadows to panes, rows, buttons or headers; shadows belong to floating overlays only.",
+      "Don't put a halo or glow on the listener dot.",
+      "Don't render the daemon's stored raw head; it contains clear-text secrets.",
+      "Don't render captured HTML or run captured scripts; preview raster images only.",
+      "Don't load fonts, icons or any asset from the network.",
+      "Don't borrow Burp Suite or PortSwigger trade dress, layout, colour scheme or iconography."
+    ]
+  }
+}

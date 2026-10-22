@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-dropai-complete"
+description = "Enables the dropai_complete command without any pre-configured scope."
+commands.allow = ["dropai_complete"]
+
+[[permission]]
+identifier = "deny-dropai-complete"
+description = "Denies the dropai_complete command without any pre-configured scope."
+commands.deny = ["dropai_complete"]

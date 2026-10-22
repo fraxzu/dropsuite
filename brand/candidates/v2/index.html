@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DropSuite Identity Round 2</title>
+<link rel="stylesheet" href="../../../frontend/src/index.css" />
+<style>
+  html, body { height: auto; }
+  body { overflow: auto; user-select: text; background: var(--chrome); padding: 0 0 64px; }
+  :root { --mark: #ececee; }
+  .sheet { max-width: 1392px; margin: 0 auto; padding: 0 24px; }
+  .sheet-head { padding: 28px 0 20px; border-bottom: 1px solid var(--line); }
+  .sheet-head h1 { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .sheet-head p { color: var(--text-3); font-size: 12px; max-width: 900px; line-height: 1.5; }
+  .label { font-size: 11px; color: var(--text-3); margin-bottom: 8px; }
+  .cand { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .cand-title { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  .cand-title .letter { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--text-3); }
+  .cand-title h2 { font-family: var(--font-display); font-size: 17px; font-weight: 600; }
+  .cand-concept { color: var(--text-2); font-size: 13px; max-width: 780px; line-height: 1.5; margin-bottom: 20px; }
+  .top { display: grid; grid-template-columns: 296px 1fr; gap: 24px; margin-bottom: 20px; }
+  .master { height: 296px; background: var(--ground); border: 1px solid var(--line); display: grid; place-items: center; position: relative; }
+  .master .grid { position: absolute; inset: 20px; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 32px 32px; opacity: .5; }
+  .master svg { position: relative; }
+  .lockups { display: grid; grid-template-rows: 1fr 1fr; gap: 12px; }
+  .lockup-panel { display: flex; align-items: center; justify-content: space-around; gap: 24px; border: 1px solid var(--line); padding: 0 28px; }
+  .lockup-panel.dark { background: var(--ground); }
+  .lockup-panel.light { background: #f4f4f5; border-color: #e4e4e7; }
+  .lockup { display: flex; align-items: center; }
+  .wm { font-family: var(--font-display); font-weight: 600; white-space: nowrap; line-height: 1; }
+  .wm.title { letter-spacing: -0.02em; }
+  .wm.caps { letter-spacing: 0.2em; margin-right: -0.2em; font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+  .panel { background: var(--ground); border: 1px solid var(--line); padding: 14px 16px; }
+  .panel.light { background: #f4f4f5; border-color: #e4e4e7; }
+  .panel.light .label { color: #52525b; }
+  .chrome.preview { height: 36px; border: 1px solid var(--line); }
+  .chrome.preview .brand { gap: 10px; }
+  .ladder { display: flex; align-items: flex-end; gap: 24px; }
+  .ladder figure { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ladder figcaption, .zoom figcaption { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); }
+  .panel.light figcaption { color: #71717a; }
+  .zooms { display: flex; gap: 20px; margin-top: 14px; }
+  .zoom { display: flex; flex-direction: column; gap: 6px; }
+  .zoom canvas { image-rendering: pixelated; border: 1px solid var(--line); }
+  .win { display: grid; grid-template-columns: 150px 1fr; gap: 12px; }
+  .desktop { background: #2f3a4c; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 132px; font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  .taskbars { display: flex; flex-direction: column; gap: 8px; }
+  .taskbar { height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .taskbar.dark { background: #1f1f1f; } .taskbar.light { background: #eeeeee; }
+  .tb-slot { width: 40px; height: 40px; border-radius: 4px; display: grid; place-items: center; position: relative; }
+  .tb-slot.active { background: rgba(255,255,255,.08); }
+  .taskbar.light .tb-slot.active { background: rgba(0,0,0,.06); }
+  .tb-slot.active::after { content: ''; position: absolute; bottom: 2px; width: 16px; height: 3px; border-radius: 2px; background: #3d8bff; }
+  .tb-other { width: 24px; height: 24px; border-radius: 5px; background: #6b7280; opacity: .55; }
+  .plate { display: grid; place-items: center; border-radius: 22%; background: #18191c; box-shadow: inset 0 0 0 1px #383a41; }
+  .plate.lightplate { background: #f4f4f5; box-shadow: inset 0 0 0 1px #d4d4d8; }
+  .monos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .mono-tile { height: 84px; display: grid; place-items: center; border: 1px solid var(--line); }
+  .tabbar { display: flex; align-items: flex-end; padding: 6px 8px 0; }
+  .tab { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 8px 8px 0 0; font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 12px; width: 220px; }
+  .tabbar.dark { background: #202124; } .tabbar.dark .tab { background: #35363a; color: #e8eaed; }
+  .tabbar.light { background: #dee1e6; } .tabbar.light .tab { background: #fff; color: #202124; }
+  .eval { padding: 28px 0; }
+  .eval h2 { font-family: var(--font-display); font-size: 17px; font-weight: 600; margin-bottom: 14px; }
+  table.score { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.score th, table.score td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.score th { font-size: 11px; font-weight: 600; color: var(--text-3); }
+  table.score td.n { font-family: var(--font-mono); font-weight: 700; white-space: nowrap; }
+  table.score td.note { color: var(--text-2); line-height: 1.5; }
+  .rec { margin-top: 20px; padding: 16px 18px; background: var(--ground); border: 1px solid var(--line-strong); max-width: 980px; }
+  .rec h3 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+  .rec p { color: var(--text-2); font-size: 13px; line-height: 1.55; }
+  .rec p + p { margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="sheet-head">
+    <h1>DropSuite identity, round 2</h1>
+    <p>Three new single-colour symbols on a 64-unit grid, with two wordmark treatments set in the product's own face (Segoe UI Variable Display). Everything below is the real SVG rendered by the browser. Production assets are unchanged.</p>
+  </header>
+  <div id="cands"></div>
+  <section class="eval" id="eval"></section>
+</div>
+<script src="candidates.js"></script>
+<script>
+const W = '#ececee', K = '#111214';
+const s = (c, n, fill = W) => ds2Svg(c, n, fill);
+
+// Optical lockup: the symbol is sized to 1.55x the wordmark's cap height and centred on it.
+function lockup(c, px, kind, color) {
+  const sym = Math.round(px * 1.55 * (kind === 'caps' ? 0.92 : 1));
+  const gap = Math.round(sym * 0.42);
+  const text = kind === 'caps' ? 'DROPSUITE' : 'DropSuite';
+  const size = kind === 'caps' ? Math.round(px * 0.82) : px;
+  return `<div class="lockup" style="gap:${gap}px">${ds2Svg(c, sym, color)}<span class="wm ${kind}" style="font-size:${size}px;color:${color}">${text}</span></div>`;
+}
+
+function header(c, kind) {
+  const wm = kind === 'caps'
+    ? `<span class="wm caps" style="font-size:11.5px;color:var(--text)">DROPSUITE</span>`
+    : `<span class="wm title" style="font-size:14px;color:var(--text)">DropSuite</span>`;
+  return `<header class="chrome preview">
+    <div class="brand">${s(c, 18)}${wm}<span class="brand-version" style="margin-left:2px">0.1.0</span></div>
+    <nav class="workspaces"><button class="ws-tab" aria-current="page">Proxy</button><button class="ws-tab">Target</button><span class="ws-divider"></span>
+    <button class="ws-tab" disabled>Replay <span class="planned">planned</span></button></nav>
+    <div class="chrome-spacer"></div>
+    <div class="listener"><span class="listener-state"><span class="dot live"></span>Listening on <span class="addr">127.0.0.1:8080</span></span><button class="btn btn-stop"><svg width="11" height="11" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="currentColor"/></svg>Stop</button></div>
+  </header>`;
+}
+
+const host = document.getElementById('cands');
+for (const c of DS2_CANDIDATES) {
+  const sizes = [16, 20, 24, 32];
+  const plate = (n, inner, light) => `<div class="plate${light ? ' lightplate' : ''}" style="width:${n}px;height:${n}px">${s(c, inner, light ? K : W)}</div>`;
+  const sec = document.createElement('section');
+  sec.className = 'cand';
+  sec.id = `cand-${c.id}`;
+  sec.innerHTML = `
+    <div class="cand-title"><span class="letter">${c.letter}</span><h2>${c.name}</h2></div>
+    <p class="cand-concept">${c.concept}</p>
+    <div class="top">
+      <div>
+        <div class="label">Master on the 64-unit grid</div>
+        <div class="master"><div class="grid"></div>${s(c, 256)}</div>
+      </div>
+      <div>
+        <div class="label">Symbol + wordmark: title case and uppercase, dark and light</div>
+        <div class="lockups" style="height:296px">
+          <div class="lockup-panel dark">${lockup(c, 34, 'title', W)}${lockup(c, 34, 'caps', W)}</div>
+          <div class="lockup-panel light">${lockup(c, 34, 'title', K)}${lockup(c, 34, 'caps', K)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div style="grid-column: 1 / -1; display:grid; grid-template-columns:1fr 1fr; gap:12px">
+        <div><div class="label">Application header, title case (18 px symbol, 14 px wordmark)</div>${header(c, 'title')}</div>
+        <div><div class="label">Application header, uppercase (18 px symbol, 11.5 px tracked caps)</div>${header(c, 'caps')}</div>
+      </div>
+      <div class="panel">
+        <div class="label">16 / 20 / 24 / 32 px on dark, with the 16 and 20 px rasters enlarged ×6</div>
+        <div class="ladder">${sizes.map((n) => `<figure>${s(c, n)}<figcaption>${n}</figcaption></figure>`).join('')}</div>
+        <div class="zooms">
+          <div class="zoom"><canvas data-cand="${c.id}" data-px="16" width="96" height="96"></canvas><figcaption>16 px raster ×6</figcaption></div>
+          <div class="zoom"><canvas data-cand="${c.id}" data-px="20" width="120" height="120"></canvas><figcaption>20 px raster ×6</figcaption></div>
+        </div>
+      </div>
+      <div class="panel light">
+        <div class="label">16 / 20 / 24 / 32 px on light</div>
+        <div class="ladder">${sizes.map((n) => `<figure>${s(c, n, K)}<figcaption>${n}</figcaption></figure>`).join('')}</div>
+        <div class="label" style="margin-top:16px">Favicon in light and dark tab strips</div>
+        <div class="tabbar light"><div class="tab">${s(c, 16, K)}DropSuite</div></div>
+        <div class="tabbar dark" style="margin-top:8px"><div class="tab">${s(c, 16, '#e8eaed')}DropSuite</div></div>
+      </div>
+      <div class="panel">
+        <div class="label">Windows app icon: desktop 48 px, taskbar 24 px on dark and light</div>
+        <div class="win">
+          <div class="desktop">${plate(48, 30)}<span>DropSuite</span></div>
+          <div class="taskbars">
+            <div class="taskbar dark"><div class="tb-slot"><div class="tb-other"></div></div><div class="tb-slot active">${plate(24, 15)}</div><div class="tb-slot"><div class="tb-other"></div></div></div>
+            <div class="taskbar light"><div class="tb-slot"><div class="tb-other"></div></div><div class="tb-slot active">${plate(24, 15)}</div><div class="tb-slot"><div class="tb-other"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="label">Monochrome: white, black, charcoal on off-white, white on electric blue</div>
+        <div class="monos">
+          <div class="mono-tile" style="background:#18191c">${s(c, 44, '#ffffff')}</div>
+          <div class="mono-tile" style="background:#ffffff">${s(c, 44, '#000000')}</div>
+          <div class="mono-tile" style="background:#ececee">${s(c, 44, '#18191c')}</div>
+          <div class="mono-tile" style="background:#2a6fe0">${s(c, 44, '#ffffff')}</div>
+        </div>
+      </div>
+    </div>`;
+  host.appendChild(sec);
+}
+
+for (const cv of document.querySelectorAll('canvas[data-cand]')) {
+  const c = DS2_CANDIDATES.find((x) => x.id === cv.dataset.cand);
+  const px = +cv.dataset.px;
+  const small = document.createElement('canvas');
+  small.width = small.height = px;
+  const img = new Image();
+  img.onload = () => {
+    const g0 = small.getContext('2d');
+    g0.fillStyle = '#18191c';
+    g0.fillRect(0, 0, px, px);
+    g0.drawImage(img, 0, 0, px, px);
+    const g = cv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.drawImage(small, 0, 0, cv.width, cv.height);
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ds2Svg(c, px, W));
+}
+</script>
+<script src="evaluation.js"></script>
+</body>
+</html>

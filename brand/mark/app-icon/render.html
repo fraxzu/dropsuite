@@ -1,0 +1,20 @@
+<!doctype html><html><body><script>
+// Charcoal plate (Windows 11-style rounded square, 1px inner line) with the white mark at 70% height.
+const MARK = '<path d="M30 3.76L52 16.46L52 49.76L44 45.14L44 25.84L30 17.76Z"/><path d="M12 16.37L36 30.22L36 60.22L12 46.37Z"/>';
+const iconSvg = (n) => `<svg xmlns="http://www.w3.org/2000/svg" width="${n}" height="${n}" viewBox="0 0 80 80">
+  <rect x="0.5" y="0.5" width="79" height="79" rx="17.6" fill="#18191c" stroke="#383a41" stroke-width="${Math.max(1, 80 / n)}"/>
+  <g transform="translate(8 8)" fill="#ececee">${MARK}</g></svg>`;
+window.render = async (sizes) => {
+  const out = {};
+  for (const n of sizes) {
+    const img = new Image();
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconSvg(n));
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = c.height = n;
+    c.getContext('2d').drawImage(img, 0, 0, n, n);
+    out[n] = c.toDataURL('image/png').split(',')[1];
+  }
+  return JSON.stringify(out);
+};
+</script></body></html>

@@ -1,0 +1,181 @@
+# DropSuite P2 handoff
+
+For the next agent continuing DropSuite P2 release work. Last updated 2026-10-20.
+
+## 1. Where things stand
+
+P2 security hardening is done and tested. A new **release candidate (RC) has been built but not yet verified**: the next job is to extract the app from the new installer and run the desktop acceptance checks on it (section 8).
+
+| Item | State |
+|---|---|
+| `cargo test --workspace` | 125 passed, 0 failed, 0 ignored (latest run, current source) |
+| `npm run build` (frontend) | exit 0, current source |
+| Desktop acceptance (`accept.mjs`) | 31/31 on the standalone exe `632eae00…`, **before** the CA-contract change. Not yet run on the RC. |
+| RC build | Done, exit 0, isolated at `C:\Users\Fraxzu\Downloads\dropsuite-rc\p2-rc1\` |
+| Old installer `91df0797…` | **Obsolete, must not ship** (predates the P2 fixes). Unchanged, backed up. |
+
+Decisions are made by the user, in English briefs with numbered sections and a required final decision line (for example `READY FOR …` / `BLOCKED — …`). Work in bounded passes: do what the brief asks, report exact commands, exit codes and test counts, and never claim a check that was not run.
+
+## 2. Project map
+
+- Root: `C:\Users\Fraxzu\Downloads\rea_software`. **Not a Git repository**: there is no `git diff`. Before editing, copy files you will touch to your scratchpad so you can diff and restore byte-for-byte (`cmp`).
+- `crates/dropsuite-core`: the engine (proxy, HTTPS interception, CA, Replay, sanitization, storage).
+- `crates/dropsuite-app`: the Tauri desktop app (IPC commands in `src/commands.rs`, engine setup in `src/engine.rs`).
+- `crates/dropsuite-desktop`: headless dev daemon with an HTTP bridge (`127.0.0.1:8081`) for UI work in a browser.
+- `crates/dropsuite-cli`: CLI tools, including `mock_upstream`.
+- `frontend/`: React + Vite UI. `npm run build` runs `tsc && vite build` into `frontend/dist`, which Tauri embeds.
+- `docs/ARCHITECTURE.md`, `docs/SECURITY.md`: the documented contracts. Keep them in step with any behavior change.
+
+## 3. Security model (what the code guarantees, and where)
+
+### Destination policy (`crates/dropsuite-core/src/proxy.rs`)
+- One rule set, `is_restricted_destination(SocketAddr)`, used by ordinary HTTP forwarding, CONNECT (blind tunnel and interception), every request inside an intercepted TLS session, and Replay.
+- **Refused:** unspecified, multicast, IPv4 link-local `169.254.0.0/16` (includes `169.254.169.254`), IPv6 link-local `fe80::/10`, and exactly `100.100.100.200` (Alibaba) and `fd00:ec2::254` (AWS IPv6 IMDS).
+- **Equivalent forms are judged as their IPv4 address:** IPv4-mapped (`::ffff:a.b.c.d`), legacy IPv4-compatible (`::a.b.c.d`), and the well-known NAT64 prefix `64:ff9b::/96`. Network-specific NAT64 prefixes are deliberately not decoded.
+- **Allowed:** loopback and private networks (RFC 1918, `100.64.0.0/10`, IPv6 ULA) except the exact endpoints above.
+- **How:** the host is resolved once (`resolve()`); every address is checked; one bad answer refuses the request; the connection goes only to those checked addresses (no second DNS lookup).
+- **Proxy only:** port 25 is refused for CONNECT and plain HTTP. Requests to the proxy's own listener get `508` (`is_own_listener`, all loopback spellings).
+- `canonical_ip` keeps `::1` and `::` as IPv6 (an earlier bug turned `::1` into `0.0.0.1`).
+- The HTTPS **interception allowlist never permits a refused destination**; it only decides decrypt versus blind tunnel. Replay does not use it.
+
+### Replay (`crates/dropsuite-core/src/replay.rs`)
+- Sends one request directly (never through the listener), no redirects, no retries.
+- Applies the destination policy; a refusal is error kind `blocked`, shown as "Not sent: restricted address" (`frontend/src/workspaces/ReplayWorkspace.tsx`).
+- Has no port 25 rule (an open product decision, section 9).
+- `https://` verifies against Mozilla roots (`webpki-roots`); `ReplayOptions::tls_roots` is for tests only, the app always passes none.
+
+### CA contract (decided by the user on 2026-10-20: explicit only)
+- A root CA exists **only after the user clicks Generate Root CA**. `HttpsInterception::ca_material()` loads from disk via `CaManager::load()` and never generates.
+- Without a CA (fresh install or after Remove), an allowlisted CONNECT fails closed: `502` with "HTTPS interception needs a root CA…", and no CA is created.
+- Remove deletes the CA files and drops the CA and cached leaves from memory; interception stays off until Generate.
+- The key is stored DPAPI-protected (`root-ca.key.dpapi`); export returns the public PEM only. The app never installs trust anywhere.
+
+### Allowlist parsing (`crates/dropsuite-core/src/allowlist.rs`)
+A bare IPv6 entry (`::1`, as the panel displays the default list) is accepted as a host with no port. Before this fix, saving the default list failed with "Invalid host in: ::1" and saved lists were reset on restart.
+
+### Test seams (production defaults are off)
+- `ProxyEngine::set_resolver_override` (`ResolverOverride`): deterministic name resolution.
+- `ProxyEngine::set_connect_gate` (`ConnectGate`): deny-only check after the policy and before any socket opens.
+- `ProxyEngine::outbound_connect_attempts()`: counts connect attempts.
+- `replay::send_with(req, opts, &NetworkSeams { resolver, connect_gate })`; `replay::send` uses none.
+
+## 4. Safety rules (non-negotiable)
+
+- **Never contact a real metadata endpoint** or arbitrary external hosts. Policy tests use the resolver override plus the loopback-only connect gate, so even a regression cannot open a non-loopback socket.
+- **Never disable a security check to test it.** To show a test catches a bug, run it against unfixed code with the gate in place, or restore the old line temporarily on loopback-only tests, then restore and `cmp`.
+- **Never touch Windows or browser trust stores.** In tests, trust the CA per connection only (Node `ca:` option, rustls root store).
+- **Never use real app data** (`%APPDATA%\com.dropsuite.desktop`, `%LOCALAPPDATA%\com.dropsuite.desktop`). Always run the app with `DROPSUITE_DATA_DIR` set to a scratch folder.
+- **Do not write the clipboard:** the "Export Public CA" button copies to it. Call the `export_ca_certificate` IPC command instead.
+- **Preserve artifacts:** never overwrite an installer or exe without first making a hash-verified copy. No commit, push, sign, publish or deploy.
+- The app is single-instance: the harnesses abort if DropSuite is already running. Do not kill the user's own instance.
+
+## 5. Everyday commands
+
+Run from the project root in Git Bash.
+
+```sh
+# Frontend (needed before any Tauri build; tauri.conf has no beforeBuildCommand)
+(cd frontend && npm run build)
+
+# Tests
+cargo test --workspace
+cargo test -p dropsuite-core --test destination_policy_test --test https_interception_test --test replay_test --test proxy_loop_test
+
+# Release exe only, into target/release (overwrites target/release/dropsuite.exe: back it up first)
+node frontend/node_modules/@tauri-apps/cli/tauri.js build --no-bundle
+```
+
+**Windows file lock:** cargo sometimes fails with `os error 32` because the editor's Rust analyzer is building at the same time. Retry; do not clean the target directory.
+
+**Escaping gotcha:** when writing Rust test strings through a Bash heredoc or Python, `\r\n` can turn into real line breaks. Prefer the Edit/Write tools for files containing escapes, and check with `grep -c $'\r'`.
+
+## 6. Building a release candidate in isolation
+
+Tauri puts output under Cargo's target directory (`<target>/release/bundle/nsis/`), and there is no `.cargo` config, so `CARGO_TARGET_DIR` isolates the whole build.
+
+```sh
+# 1. Prove the override is honoured (must print the isolated path)
+CARGO_TARGET_DIR='C:\Users\Fraxzu\Downloads\dropsuite-rc\<name>\target' cargo metadata --format-version 1 --no-deps | python -c "import sys,json;print(json.load(sys.stdin)['target_directory'])"
+
+# 2. Back up the existing installer (verify the hash of the copy), then mark it read-only during the build
+#    (PowerShell: Set-ItemProperty <path> -Name IsReadOnly -Value $true; clear it afterwards)
+
+# 3. Build exe + NSIS installer
+CARGO_TARGET_DIR='C:\Users\Fraxzu\Downloads\dropsuite-rc\<name>\target' node frontend/node_modules/@tauri-apps/cli/tauri.js build
+```
+
+A cold build takes several minutes; run it in the background.
+
+## 7. Verifying the packaged app
+
+Tools are in `C:\Users\Fraxzu\Downloads\dropsuite-rc\p2-rc1\tools\` (copies; the originals are in a temporary Claude scratchpad that may be cleaned).
+
+### `extract_packaged.py`: get the exe out of the installer without running it
+```sh
+python -I extract_packaged.py <installer.exe> <built dropsuite.exe> <out.exe>
+```
+It decodes the NSIS solid LZMA stream, writes the block whose size equals the built exe, and reports the differing bytes. Expected and previously observed: the packaged exe differs from the built one **only** in the `__TAURI_BUNDLE_TYPE_VAR_` marker (`UNK` in the built exe, `NSS` in the packaged one; Tauri patches it when bundling). The script checks that restoring the marker reproduces the built exe exactly. Any other difference must be investigated. Do not run the installer itself: a silent install adds per-user registry entries and shortcuts.
+
+### `accept.mjs`: desktop acceptance over CDP
+```sh
+EXE='C:/path/to/extracted/dropsuite.exe' \
+GUARDED='C:/Users/Fraxzu/Downloads/rea_software/target/release/bundle/nsis/DropSuite_0.1.0_x64-setup.exe;C:/Users/Fraxzu/Downloads/dropsuite-rc/p2-rc1/target/release/bundle/nsis/DropSuite_0.1.0_x64-setup.exe' \
+node accept.mjs
+```
+- Launches `EXE` with an isolated data folder (`./data`), listener port 18790, WebView2 DevTools on port 9256. Local fixtures only (HTTP, TCP echo, and a self-signed `localhost` TLS origin).
+- Drives the real UI (Listener settings panel, Start/Stop, Generate/Remove CA, allowlist field) and the same IPC commands the UI uses (`window.__TAURI_INTERNALS__.invoke`).
+- 34 checks: V1 (version), C0/C0b (no CA on a fresh profile; allowlisted CONNECT gets 502 and creates none), H8/H9 (allowlist with `::1` saves), L1–L5 (loopback-only listener, LAN refused, own-listener 508), H1–H7 (HTTP History, sanitization in records, SQLite and logs, restricted 403, blind tunnel), C1–C8 (generate, export, no trust install, remove sticks, regenerate), I1–I4 (interception with per-connection trust, upstream fails closed, untrusted client fails), Z1–Z4 (real app data, guarded file hashes, trust stores unchanged, no process left).
+- **This version has not run yet.** It includes the new CA contract (C0b, C5) and the `EXE`/`GUARDED`/`EXPECT_VERSION` variables.
+- `origin-cert.pem` was created with 2-day validity on 2026-10-20. If it has expired, recreate it with:
+  `MSYS_NO_PATHCONV=1 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -keyout origin-key.pem -out origin-cert.pem -days 2 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost"`
+- **Panel race:** the settings panel loads HTTPS settings asynchronously; always wait for it to match the engine (the harness's `openSynced()`) before typing or clicking, or the load overwrites your input.
+
+### `replay_blocked.mjs`: Replay success and refusal UX
+`EXE=<exe> node replay_blocked.mjs`. 10 checks: success 200, refused, TLS failure, and `blocked` for `0.0.0.0` and `224.0.0.1` (both fail locally even if the check were missing, so nothing leaves the PC), plus real data and process cleanup.
+
+HTTPS capture **success** cannot be shown in the app with local fixtures, because the upstream check correctly rejects a self-signed origin. It is covered by `successful_tls_interception_and_capture` and the rest of `https_interception_test`.
+
+## 8. Next steps (RC p2-rc1)
+
+1. Extract: `python -I tools/extract_packaged.py target/release/bundle/nsis/DropSuite_0.1.0_x64-setup.exe target/release/dropsuite.exe <out>`, run from `dropsuite-rc/p2-rc1`. Record the path and SHA-256, and confirm the only difference is the bundle-type marker.
+2. Run `accept.mjs` (34 checks) and `replay_blocked.mjs` (10 checks) with `EXE` set to the extracted exe and `GUARDED` covering both installers.
+3. Re-hash every artifact in section 10; confirm the old installer is still `91df0797…`, no DropSuite process is left, and the trust stores and real app data are unchanged.
+4. Report with the brief's sections A–F and one decision line. Do not copy the RC over the old installer or call it approved.
+
+## 9. Open decisions and accepted limitations
+
+- **Port 25 in Replay:** the proxy refuses it; Replay does not. If they should match, the fix is one guard in `replay::send_with` plus a test. This is a product decision; do not change it unasked.
+- **Link-local devices in Replay:** `169.254.x` is refused with no override. Adding an exception would be a product decision.
+- **TLS failure title in Replay:** shows the generic "✕ Failed" / "Not sent"; the cause is in the message.
+- **App listener is IPv4 only:** `BIND_IP = "127.0.0.1"` is hard-coded in `crates/dropsuite-app/src/engine.rs`. `::1` works at engine level (tests) but is not offered in the app.
+- **Exact metadata list:** other providers' non-link-local metadata addresses, if any, are not covered.
+- No production security certification has been done or claimed.
+
+## 10. Artifact manifest (SHA-256)
+
+| Artifact | Path | SHA-256 |
+|---|---|---|
+| RC installer (new, unverified) | `C:\Users\Fraxzu\Downloads\dropsuite-rc\p2-rc1\target\release\bundle\nsis\DropSuite_0.1.0_x64-setup.exe` | `e94694b39ee24414b11d48d0db9dbca90d3368fb4235c80d0412befe5cf1bcd6` |
+| RC built exe (installer input) | `C:\Users\Fraxzu\Downloads\dropsuite-rc\p2-rc1\target\release\dropsuite.exe` | `aaec723b9994bc2d1e546612be33187074d44ac4469a67405c08b9abf8095cf5` |
+| Old installer (obsolete, do not ship) | `C:\Users\Fraxzu\Downloads\rea_software\target\release\bundle\nsis\DropSuite_0.1.0_x64-setup.exe` | `91df079730082afee3a3ecbd3fdaad7a29648b23f5717089af41bf1f0ef08f0b` |
+| Old installer backup | `C:\Users\Fraxzu\Downloads\dropsuite-rc\p2-rc1\guard\OLD-OBSOLETE-DropSuite_0.1.0_x64-setup.exe.91df0797` | same as above |
+| Repo standalone exe (pre-CA-fix, 31/31 acceptance) | `C:\Users\Fraxzu\Downloads\rea_software\target\release\dropsuite.exe` | `632eae00dd01b25984598bebfdf90edcc0e7a13003147d13d573b561cee9b73f` |
+
+Older exe backups in the 2026-10-20 session scratchpad (`c--Users-Fraxzu-Downloads-rea-software\52dcf540-…\scratchpad\`): `acc\dropsuite.exe.879958b2` (`879958b2…`) and `ui\dropsuite.exe.before` (`fd64a658…`).
+
+The RC build log is `dropsuite-rc\p2-rc1\logs\tauri-build.log` (exit 0, no warnings; the "333m" duration includes time the PC was asleep). The test log for the RC source is `logs\cargo-test.log` (125 passed); the frontend log is `logs\frontend-build.log`.
+
+## 11. What changed in P2 (for review)
+
+| File | Change |
+|---|---|
+| `crates/dropsuite-core/src/proxy.rs` | Shared `resolve()`; test seams; port 25 on plain HTTP; `canonical_ip` keeps `::1`/`::`; exact metadata endpoints; NAT64 decoding; 502 with a hint when no CA exists |
+| `crates/dropsuite-core/src/replay.rs` | Destination policy before connect; `blocked` error kind; `send_with` / `NetworkSeams` |
+| `crates/dropsuite-core/src/ca.rs` | `CaError::NotGenerated`; load-only `CaManager::load()` |
+| `crates/dropsuite-core/src/https.rs` | `ca_material()` never generates |
+| `crates/dropsuite-core/src/allowlist.rs` | Bare IPv6 entries parse; `bare_ipv6_entries_round_trip` test |
+| `crates/dropsuite-core/tests/destination_policy_test.rs` | New, 15 tests |
+| `crates/dropsuite-core/tests/https_interception_test.rs` | Connect gate on all proxies, explicit CA generation in setup, rebinding, Replay HTTPS, CA-contract tests (24 total) |
+| `crates/dropsuite-core/tests/replay_test.rs` | Replay destination-policy tests (9 total) |
+| `frontend/src/workspaces/ReplayWorkspace.tsx` | `blocked: 'Not sent: restricted address'` |
+| `docs/ARCHITECTURE.md`, `docs/SECURITY.md` | HTTPS Replay, test roots, destination policy (§6), CA generation and removal contract |

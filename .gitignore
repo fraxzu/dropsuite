@@ -1,0 +1,39 @@
+# Build artifacts
+/target
+**/target/
+dist/
+frontend/dist/
+
+# Dependencies
+node_modules/
+
+# Runtime capture data / databases — NEVER commit (may contain URLs, headers, bodies)
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Local app data / secrets / logs
+*.log
+*.key
+*.key.dpapi
+**/root-ca.*
+
+# Packaged binaries
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

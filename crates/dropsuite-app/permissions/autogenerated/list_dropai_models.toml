@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-dropai-models"
+description = "Enables the list_dropai_models command without any pre-configured scope."
+commands.allow = ["list_dropai_models"]
+
+[[permission]]
+identifier = "deny-list-dropai-models"
+description = "Denies the list_dropai_models command without any pre-configured scope."
+commands.deny = ["list_dropai_models"]

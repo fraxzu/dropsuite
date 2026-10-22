@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-drop-intercepted-message"
+description = "Enables the drop_intercepted_message command without any pre-configured scope."
+commands.allow = ["drop_intercepted_message"]
+
+[[permission]]
+identifier = "deny-drop-intercepted-message"
+description = "Denies the drop_intercepted_message command without any pre-configured scope."
+commands.deny = ["drop_intercepted_message"]

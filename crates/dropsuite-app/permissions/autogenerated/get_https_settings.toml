@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-https-settings"
+description = "Enables the get_https_settings command without any pre-configured scope."
+commands.allow = ["get_https_settings"]
+
+[[permission]]
+identifier = "deny-get-https-settings"
+description = "Denies the get_https_settings command without any pre-configured scope."
+commands.deny = ["get_https_settings"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-start-intruder"
+description = "Enables the start_intruder command without any pre-configured scope."
+commands.allow = ["start_intruder"]
+
+[[permission]]
+identifier = "deny-start-intruder"
+description = "Denies the start_intruder command without any pre-configured scope."
+commands.deny = ["start_intruder"]

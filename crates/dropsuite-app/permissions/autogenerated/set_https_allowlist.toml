@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-https-allowlist"
+description = "Enables the set_https_allowlist command without any pre-configured scope."
+commands.allow = ["set_https_allowlist"]
+
+[[permission]]
+identifier = "deny-set-https-allowlist"
+description = "Denies the set_https_allowlist command without any pre-configured scope."
+commands.deny = ["set_https_allowlist"]
