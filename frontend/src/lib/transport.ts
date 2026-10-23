@@ -1,5 +1,6 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import {
+  AppInfo,
   AttemptRow,
   DropAiConfig,
   DropAiStatus,
@@ -265,6 +266,18 @@ export const engine = {
     call(
       () => invoke<number>('clear_history'),
       () => http<{ removed: number }>('/api/history/clear', { method: 'POST' }).then((r) => r.removed),
+    ),
+
+  appInfo: () =>
+    call(
+      () => invoke<AppInfo>('get_app_info'),
+      () => Promise.reject(new Error('Desktop only')),
+    ),
+
+  openAppFolder: (which: 'data' | 'logs') =>
+    call(
+      () => invoke<void>('open_app_folder', { which }),
+      () => Promise.reject(new Error('Desktop only')),
     ),
 };
 

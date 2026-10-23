@@ -107,6 +107,27 @@ impl BrowserPreset {
 /// Names the preset never supplies, because the caller owns them.
 const CALLER_OWNED: &[&str] = &["host", "cookie", "content-length", "content-type"];
 
+/// Every field a preset may emit. A forced preset lets these be replaced wholesale.
+pub const MANAGED: &[&str] = &[
+    "user-agent",
+    "accept",
+    "accept-language",
+    "accept-encoding",
+    "sec-ch-ua",
+    "sec-ch-ua-mobile",
+    "sec-ch-ua-platform",
+    "sec-fetch-site",
+    "sec-fetch-mode",
+    "sec-fetch-user",
+    "sec-fetch-dest",
+    "upgrade-insecure-requests",
+];
+
+/// Whether a preset owns this field, so a forced preset should drop the request's copy.
+pub fn is_managed(name: &str) -> bool {
+    MANAGED.iter().any(|m| name.eq_ignore_ascii_case(m))
+}
+
 /// The preset's fields, in the order a browser emits them.
 fn fields(preset: BrowserPreset) -> Vec<(&'static str, &'static str)> {
     if preset == BrowserPreset::Off {

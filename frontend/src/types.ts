@@ -1,3 +1,11 @@
+export interface AppInfo {
+  version: string;
+  os: string;
+  arch: string;
+  data_dir: string;
+  logs_dir: string;
+}
+
 export interface TransactionSummary {
   id: number;
   timestamp: number;
@@ -69,6 +77,8 @@ export interface ApplySettings {
 export interface ImportOutcome {
   imported: string[];
   has_clearance: boolean;
+  /** Whether the window's User-Agent was recorded and will be reused automatically. */
+  pinned: boolean;
 }
 
 export interface CookieRow {

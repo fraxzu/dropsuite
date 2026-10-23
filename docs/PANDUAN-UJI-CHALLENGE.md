@@ -125,3 +125,13 @@ nilai cookie-nya.
 2. Nilai `jar: N` pada respons.
 3. Nama cookie yang muncul di notifikasi import.
 4. Preset yang dipakai dan skema URL.
+
+## Fingerprint otomatis
+
+Saat `cf_clearance` berhasil diimpor, User-Agent jendela challenge ikut dicatat untuk host itu
+("fingerprint pinned", berlaku satu jam). Replay lalu memakai User-Agent dan client hints yang
+sama, bukan `User-Agent: DropSuite/0.1` dari editor, dan menandai header profilnya sebagai
+paksa-ganti. Tanpa ini `cf_clearance` hampir pasti ditolak karena terikat UA.
+
+Kalau `cf_clearance` hilang dari jar, pin tetap ada sampai kedaluwarsa; impor ulang untuk
+memperbarui keduanya.

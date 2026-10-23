@@ -139,6 +139,11 @@ pub struct ApplyConfig {
     pub cookies: Vec<StoredCookie>,
     /// Attach a `Cookie` header from `cookies` unless the request already has one.
     pub attach_cookies: bool,
+    /// Replace the request's browser-looking headers with the preset instead of filling gaps.
+    /// Used when a recorded fingerprint must match the window that solved a challenge.
+    pub force_preset: bool,
+    /// Exact User-Agent of that window, which Cloudflare binds the clearance cookie to.
+    pub pin_user_agent: Option<String>,
 }
 
 /// Test seams for [`send_with`]. The default (what [`send`] uses) is system DNS and no gate.
@@ -276,10 +281,19 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
         ));
     }
 
+    // A forced preset stands in for a recorded fingerprint, so its fields replace the request's
+    // copies rather than only filling gaps.
+    let forced = apply.force_preset && apply.preset != BrowserPreset::Off;
+    let headers: Vec<&(String, String)> = req
+        .headers
+        .iter()
+        .filter(|(n, _)| !(forced && header_preset::is_managed(n.trim())))
+        .collect();
+
     let mut lines = String::new();
     let mut dropped = Vec::new();
     let mut existing_cookie: Option<String> = None;
-    for (name, value) in &req.headers {
+    for (name, value) in headers.iter().copied() {
         let name = name.trim();
         if !is_token(name) {
             return Err(invalid(format!(
@@ -331,7 +345,11 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
 
     // A preset only fills what the request left out. The jar is different: a captured Cookie
     // header is usually older than the jar, so jar names replace it and its other names survive.
-    let preset_names = header_preset::fill(apply.preset, &req.headers);
+    let present: Vec<(String, String)> = headers
+        .iter()
+        .map(|(n, v)| (n.clone(), v.clone()))
+        .collect();
+    let preset_names = header_preset::fill(apply.preset, &present);
     let preset_fields = preset_names.len();
     let path = origin.split('?').next().unwrap_or("/");
     let jar_pairs = if apply.attach_cookies {
@@ -355,9 +373,30 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
         })
     };
 
+    let pin_ua = apply.pin_user_agent.as_deref().filter(|ua| !ua.is_empty());
     let mut added = String::new();
     for (name, value) in preset_names {
+        // The pinned User-Agent and its client-hint version must agree with each other and with
+        // the window that earned the cookie, so both come from the recording.
+        if pin_ua.is_some() && (name == "user-agent" || name == "sec-ch-ua") {
+            continue;
+        }
         added.push_str(&format!("{name}: {value}\r\n"));
+    }
+    if let Some(ua) = pin_ua {
+        added.push_str(&format!("user-agent: {ua}\r\n"));
+        if apply.preset == BrowserPreset::Edge {
+            if let Some(major) = ua
+                .split("Edg/")
+                .nth(1)
+                .and_then(|v| v.split('.').next())
+                .filter(|v| !v.is_empty())
+            {
+                added.push_str(&format!(
+                    "sec-ch-ua: \"Microsoft Edge\";v=\"{major}\", \"Chromium\";v=\"{major}\", \"Not_A Brand\";v=\"24\"\r\n"
+                ));
+            }
+        }
     }
     if let Some(value) = cookie_header {
         added.push_str(&format!("Cookie: {value}\r\n"));

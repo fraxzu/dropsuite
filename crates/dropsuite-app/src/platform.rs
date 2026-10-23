@@ -723,6 +723,46 @@ pub async fn harvest_cookies(
     Err("Cookie harvesting needs the Windows WebView2 runtime.".into())
 }
 
+/// Read the User-Agent the challenge window actually sends. It is what the clearance cookie is
+/// bound to, so it must be reused verbatim.
+#[cfg(windows)]
+pub async fn window_user_agent(window: &tauri::WebviewWindow) -> Result<String, String> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    window
+        .with_webview(move |wv| unsafe {
+            use webview2_com::Microsoft::Web::WebView2::Win32::*;
+            use windows_core::Interface;
+            let read = || -> Result<String, String> {
+                let core = wv.controller().CoreWebView2().map_err(|e| e.to_string())?;
+                let settings = core.Settings().map_err(|e| e.to_string())?;
+                let settings = settings
+                    .cast::<ICoreWebView2Settings2>()
+                    .map_err(|e| e.to_string())?;
+                let mut ua = CoTaskMemPWSTR::null();
+                settings
+                    .UserAgent(ua.as_mut_ptr())
+                    .map_err(|e| e.to_string())?;
+                if ua.is_null() {
+                    return Err("the window reports an empty User-Agent".into());
+                }
+                ua.to_string()
+                    .map_err(|_| "the User-Agent was not valid text".to_string())
+            };
+            let _ = tx.send(read());
+        })
+        .map_err(|e| format!("Failed to reach the challenge window: {e}"))?;
+    match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
+        Ok(Ok(result)) => result,
+        Ok(Err(_)) => Err("The challenge window closed before the User-Agent was read.".into()),
+        Err(_) => Err("Reading the User-Agent timed out.".into()),
+    }
+}
+
+#[cfg(not(windows))]
+pub async fn window_user_agent(_window: &tauri::WebviewWindow) -> Result<String, String> {
+    Err("The User-Agent can only be read on Windows with WebView2.".into())
+}
+
 /// Convert harvested cookies into `Set-Cookie` text for the jar parser. Cookies with no name,
 /// or that are already expired, are dropped.
 pub fn harvested_to_set_cookie(cookie: &HarvestedCookie) -> Option<String> {

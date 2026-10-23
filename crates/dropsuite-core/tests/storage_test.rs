@@ -291,3 +291,28 @@ fn expired_cookies_are_purged_only() {
         .collect();
     assert_eq!(names, vec!["fresh".to_string(), "session".to_string()]);
 }
+
+#[test]
+fn challenge_pin_round_trips_and_expires() {
+    let storage = StorageManager::new_in_memory().unwrap();
+    let pin = dropsuite_core::storage::ChallengePin {
+        host: "a.test".into(),
+        user_agent: "UA/1".into(),
+        preset: "edge".into(),
+        expires_at: 2_000,
+    };
+    storage.upsert_challenge_pin(&pin).unwrap();
+    assert_eq!(
+        storage.challenge_pin("a.test", 1_000).unwrap(),
+        Some(pin.clone())
+    );
+    assert_eq!(
+        storage.challenge_pin("a.test", 2_000).unwrap(),
+        None,
+        "expired pins are dropped"
+    );
+
+    storage.upsert_challenge_pin(&pin).unwrap();
+    storage.clear_challenge_pin("a.test").unwrap();
+    assert_eq!(storage.challenge_pin("a.test", 1_000).unwrap(), None);
+}

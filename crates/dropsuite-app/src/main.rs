@@ -102,6 +102,8 @@ fn main() {
             commands::clear_repeater_attempts,
             commands::export_history_har,
             commands::clear_history,
+            commands::get_app_info,
+            commands::open_app_folder,
             commands::get_scope_config,
             commands::set_scope_config,
             commands::get_match_replace_config,

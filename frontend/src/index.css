@@ -2969,6 +2969,33 @@ span.ab.b {
 }
 .guide-section strong { color: var(--text); font-weight: 600; }
 
+/* Settings & about panel */
+.about-modal { width: min(560px, 94vw); }
+.about-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.about-section h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+.about-section p {
+  margin: 0 0 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.about-path {
+  color: var(--text-3);
+  word-break: break-all;
+  background: var(--sunken, rgba(0, 0, 0, 0.18));
+  padding: 5px 8px;
+  border-radius: var(--radius);
+}
+
 /* Drop AI max-tokens presets */
 .maxtok-presets-row {
   display: flex;

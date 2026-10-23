@@ -173,13 +173,32 @@ fn now_secs() -> i64 {
         .unwrap_or(0)
 }
 
+/// Host of an absolute URL, for pin lookups.
+fn host_of(url: &str) -> Option<String> {
+    let rest = url.split_once("://")?.1;
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let host = authority
+        .rsplit_once('@')
+        .map(|(_, h)| h)
+        .unwrap_or(authority);
+    let host = host.split(':').next()?.trim_end_matches('.');
+    (!host.is_empty()).then(|| host.to_ascii_lowercase())
+}
+
 /// Browser preset and jar cookies for one outbound request, from the current settings. The jar
 /// is filtered per host later by the replay/prepare layer.
-fn apply_config(engine: &crate::engine::Engine) -> dropsuite_core::replay::ApplyConfig {
+///
+/// A host with a live challenge pin overrides the chosen preset: the pinned User-Agent is the
+/// one the clearance cookie is bound to, so reusing it is what makes Replay pass.
+fn apply_config(
+    engine: &crate::engine::Engine,
+    host: Option<&str>,
+) -> dropsuite_core::replay::ApplyConfig {
     let (preset, attach) = {
         let settings = engine.settings.lock().unwrap_or_else(|e| e.into_inner());
         (settings.header_preset, settings.cookie_jar)
     };
+    let pin = host.and_then(|h| engine.storage.challenge_pin(h, now_secs()).ok().flatten());
     let cookies = if attach {
         let _ = engine.storage.purge_expired_cookies(now_secs());
         engine.storage.list_cookies().unwrap_or_default()
@@ -187,9 +206,15 @@ fn apply_config(engine: &crate::engine::Engine) -> dropsuite_core::replay::Apply
         Vec::new()
     };
     dropsuite_core::replay::ApplyConfig {
-        preset,
+        preset: if pin.is_some() {
+            dropsuite_core::BrowserPreset::Edge
+        } else {
+            preset
+        },
         cookies,
         attach_cookies: attach,
+        force_preset: pin.is_some(),
+        pin_user_agent: pin.map(|p| p.user_agent),
     }
 }
 
@@ -225,7 +250,7 @@ pub async fn send_replay(
         response_timeout: REPLAY_RESPONSE_TIMEOUT,
         own_listener,
         tls_roots: Vec::new(),
-        apply: apply_config(engine),
+        apply: apply_config(engine, host_of(request.url.trim()).as_deref()),
     };
     let result = tokio::select! {
         r = replay::send(&request, &options) => r,
@@ -837,6 +862,8 @@ pub struct ImportOutcome {
     pub imported: Vec<String>,
     /// Whether `cf_clearance` was among them; without it the challenge is usually still up.
     pub has_clearance: bool,
+    /// Whether the window's User-Agent was recorded, so Replay can reproduce it.
+    pub pinned: bool,
 }
 
 /// Copy the cookies of the open challenge window into the jar for `host`. The cookies come from
@@ -883,9 +910,26 @@ pub async fn import_challenge_cookies(
     let has_clearance = imported
         .iter()
         .any(|n| n.eq_ignore_ascii_case("cf_clearance"));
+    // The clearance is bound to the solving window User-Agent. Record it so Replay sends the
+    // same value instead of the editor placeholder UA.
+    let mut pinned = false;
+    if has_clearance {
+        if let Ok(ua) = crate::platform::window_user_agent(&window).await {
+            if !ua.trim().is_empty() {
+                let pin = dropsuite_core::storage::ChallengePin {
+                    host: host.clone(),
+                    user_agent: ua,
+                    preset: "edge".to_string(),
+                    expires_at: now + 3600,
+                };
+                pinned = engine.storage.upsert_challenge_pin(&pin).is_ok();
+            }
+        }
+    }
     Ok(ImportOutcome {
         imported,
         has_clearance,
+        pinned,
     })
 }
 
@@ -1063,7 +1107,7 @@ pub async fn start_intruder(
         response_timeout: REPLAY_RESPONSE_TIMEOUT,
         own_listener,
         tls_roots: Vec::new(),
-        apply: apply_config(engine),
+        apply: apply_config(engine, host_of(request.url.trim()).as_deref()),
     };
     let guards = Guards {
         max_concurrency,
@@ -1244,4 +1288,55 @@ pub async fn list_dropai_models(
 ) -> Result<Vec<String>, String> {
     let engine = state.engine()?;
     crate::dropai::list_models(&config, &engine.data_dir).await
+}
+
+#[derive(Serialize)]
+pub struct AppInfo {
+    pub version: String,
+    pub os: String,
+    pub arch: String,
+    pub data_dir: String,
+    pub logs_dir: String,
+}
+
+/// Version, platform and the app's own local folders, for the About panel.
+#[tauri::command]
+pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
+    let data_dir = crate::engine::data_dir(&app)?;
+    let logs_dir = data_dir.join("logs");
+    Ok(AppInfo {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        os: std::env::consts::OS.to_string(),
+        arch: std::env::consts::ARCH.to_string(),
+        data_dir: data_dir.display().to_string(),
+        logs_dir: logs_dir.display().to_string(),
+    })
+}
+
+/// Open one of the app's own folders in the system file manager. The UI names the folder by role
+/// ("data" or "logs") and the path is resolved here, so the frontend can never open an arbitrary
+/// location.
+#[tauri::command]
+pub fn open_app_folder(app: tauri::AppHandle, which: String) -> Result<(), String> {
+    let data_dir = crate::engine::data_dir(&app)?;
+    let path = match which.as_str() {
+        "data" => data_dir,
+        "logs" => data_dir.join("logs"),
+        other => return Err(format!("unknown folder: {other}")),
+    };
+    std::fs::create_dir_all(&path)
+        .map_err(|e| format!("could not create {}: {e}", path.display()))?;
+    #[cfg(windows)]
+    {
+        std::process::Command::new("explorer")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("could not open the folder: {e}"))?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = path;
+        Err("opening a folder is only supported on Windows.".into())
+    }
 }

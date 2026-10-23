@@ -34,6 +34,8 @@ fn main() {
             "clear_repeater_attempts",
             "export_history_har",
             "clear_history",
+            "get_app_info",
+            "open_app_folder",
             "get_scope_config",
             "set_scope_config",
             "get_match_replace_config",

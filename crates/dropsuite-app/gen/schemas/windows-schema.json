@@ -273,6 +273,12 @@
           "markdownDescription": "Enables the generate_ca_certificate command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_app_info command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-app-info",
+          "markdownDescription": "Enables the get_app_info command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_apply_settings command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-apply-settings",
@@ -391,6 +397,12 @@
           "type": "string",
           "const": "allow-list-repeater-attempts",
           "markdownDescription": "Enables the list_repeater_attempts command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_app_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-app-folder",
+          "markdownDescription": "Enables the open_app_folder command without any pre-configured scope."
         },
         {
           "description": "Enables the open_challenge_browser command without any pre-configured scope.",
@@ -615,6 +627,12 @@
           "markdownDescription": "Denies the generate_ca_certificate command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_app_info command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-app-info",
+          "markdownDescription": "Denies the get_app_info command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_apply_settings command without any pre-configured scope.",
           "type": "string",
           "const": "deny-get-apply-settings",
@@ -733,6 +751,12 @@
           "type": "string",
           "const": "deny-list-repeater-attempts",
           "markdownDescription": "Denies the list_repeater_attempts command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_app_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-app-folder",
+          "markdownDescription": "Denies the open_app_folder command without any pre-configured scope."
         },
         {
           "description": "Denies the open_challenge_browser command without any pre-configured scope.",

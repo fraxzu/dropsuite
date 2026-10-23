@@ -4,6 +4,17 @@ use std::sync::{Arc, Mutex};
 use tracing::{debug, info};
 
 use crate::cookies::StoredCookie;
+
+/// A browser fingerprint recorded for a host that solved a challenge. Cloudflare binds the
+/// clearance cookie to it, so Replay must reuse the exact value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChallengePin {
+    pub host: String,
+    pub user_agent: String,
+    /// Preset name (`edge`, `chrome`, ...) that produced the header set.
+    pub preset: String,
+    pub expires_at: i64,
+}
 use crate::models::{
     HistoryFilter, RepeaterAttemptRecord, RepeaterTabRecord, TransactionRecord, TransactionSummary,
 };
@@ -174,6 +185,13 @@ impl StorageManager {
             );
 
             CREATE INDEX IF NOT EXISTS idx_cookies_host ON cookies(host);
+
+            CREATE TABLE IF NOT EXISTS challenge_pins (
+                host TEXT PRIMARY KEY,
+                user_agent TEXT NOT NULL,
+                preset TEXT NOT NULL,
+                expires_at INTEGER NOT NULL
+            );
         ",
         )?;
         Ok(())
@@ -831,6 +849,48 @@ impl StorageManager {
     pub fn clear_cookies(&self) -> Result<usize> {
         let conn = self.conn.lock().unwrap();
         conn.execute("DELETE FROM cookies", [])
+    }
+
+    pub fn upsert_challenge_pin(&self, pin: &ChallengePin) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO challenge_pins (host, user_agent, preset, expires_at)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(host) DO UPDATE SET
+                user_agent = excluded.user_agent,
+                preset = excluded.preset,
+                expires_at = excluded.expires_at",
+            params![pin.host, pin.user_agent, pin.preset, pin.expires_at],
+        )?;
+        Ok(())
+    }
+
+    /// The live pin for a host. Expired rows are purged on the way out.
+    pub fn challenge_pin(&self, host: &str, now: i64) -> Result<Option<ChallengePin>> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "DELETE FROM challenge_pins WHERE expires_at <= ?1",
+            params![now],
+        )?;
+        let mut stmt = conn.prepare(
+            "SELECT host, user_agent, preset, expires_at FROM challenge_pins WHERE host = ?1",
+        )?;
+        let mut rows = stmt.query(params![host])?;
+        match rows.next()? {
+            Some(row) => Ok(Some(ChallengePin {
+                host: row.get(0)?,
+                user_agent: row.get(1)?,
+                preset: row.get(2)?,
+                expires_at: row.get(3)?,
+            })),
+            None => Ok(None),
+        }
+    }
+
+    pub fn clear_challenge_pin(&self, host: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM challenge_pins WHERE host = ?1", params![host])?;
+        Ok(())
     }
 
     /// Drop cookies that have expired by `now`. Returns how many rows went.

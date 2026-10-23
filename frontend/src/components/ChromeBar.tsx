@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { Play, Square, Loader2, Settings2, Sparkles, CircleHelp } from 'lucide-react';
+import { Play, Square, Loader2, Settings2, Sparkles, CircleHelp, Settings } from 'lucide-react';
 import { ProxyStatus } from '../types';
 import { BrandMark } from './BrandMark';
 import { DESKTOP } from '../lib/transport';
 import { ListenerSettingsPanel } from './ListenerSettingsPanel';
 import { DropAiPanel } from './DropAiPanel';
 import { HelpGuide } from './HelpGuide';
+import { AboutPanel } from './AboutPanel';
 import { WindowControls } from './WindowControls';
 
 export type Workspace = 'proxy' | 'target' | 'replay' | 'fuzzer' | 'decoder' | 'comparer' | 'scanner';
@@ -27,6 +28,7 @@ export const ChromeBar: React.FC<ChromeBarProps> = ({ workspace, onWorkspace, st
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const closeAi = useCallback(() => setAiOpen(false), []);
   const addr = status ? `${status.bind_address}:${status.port}` : '127.0.0.1:8080';
@@ -106,6 +108,11 @@ export const ChromeBar: React.FC<ChromeBarProps> = ({ workspace, onWorkspace, st
         <button className="icon-btn" aria-label="Guide" title="How to use DropSuite" onClick={() => setGuideOpen(true)}>
           <CircleHelp size={15} aria-hidden="true" />
         </button>
+        {DESKTOP && (
+          <button className="icon-btn" aria-label="Settings and about" title="Settings & about: version, updates, logs" onClick={() => setAboutOpen(true)}>
+            <Settings size={15} aria-hidden="true" />
+          </button>
+        )}
         <button
           className={`btn ${running ? 'btn-stop' : 'btn-primary'}`}
           onClick={onToggleProxy}
@@ -173,6 +180,7 @@ export const ChromeBar: React.FC<ChromeBarProps> = ({ workspace, onWorkspace, st
       </div>
       {DESKTOP && <WindowControls />}
       {guideOpen && <HelpGuide onClose={() => setGuideOpen(false)} />}
+      {aboutOpen && <AboutPanel onClose={() => setAboutOpen(false)} onToast={onToast} />}
     </header>
   );
 };

@@ -50,8 +50,8 @@ const CHALLENGE_KIND: Record<string, string> = {
 };
 
 const CHALLENGE_HINT: Record<string, string> = {
-  js: 'A browser must run the check. Solve it in the embedded browser, then copy cf_clearance into the cookie jar.',
-  interactive: 'Solve it in the embedded browser, then copy cf_clearance into the cookie jar.',
+  js: 'A browser must run the check. Press Open browser, finish it there, then Import cookies.',
+  interactive: 'Press Open browser, finish it there, then Import cookies.',
   blocked: 'Try a browser preset; if it persists the address or session is refused.',
   rate_limited: 'Wait and retry, or lower Fuzzer concurrency.',
 };

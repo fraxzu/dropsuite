@@ -331,6 +331,7 @@ async fn preset_and_jar_are_transparent_to_the_snapshot() {
         preset: BrowserPreset::Chrome,
         attach_cookies: true,
         cookies: vec![cookie("cf_clearance", "abc", "/", false)],
+        ..Default::default()
     };
     let r = send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply))
         .await
@@ -361,4 +362,92 @@ async fn attached_cookie_count_is_reported() {
         .await
         .unwrap();
     assert_eq!(r.cookies_attached, 2);
+}
+
+#[tokio::test]
+async fn forced_preset_replaces_browser_fields_without_duplicates() {
+    let (port, seen) = fixture().await;
+    let apply = ApplyConfig {
+        preset: BrowserPreset::Edge,
+        force_preset: true,
+        ..Default::default()
+    };
+    send(
+        &req(
+            format!("http://127.0.0.1:{port}/"),
+            &[
+                ("User-Agent", "DropSuite/0.1"),
+                ("Accept", "*/*"),
+                ("X-Keep", "yes"),
+            ],
+        ),
+        &opts(apply),
+    )
+    .await
+    .unwrap();
+
+    let head = seen.lock().unwrap()[0].head.clone();
+    let ua = header_line(&head, "user-agent").unwrap();
+    assert!(
+        ua.contains("Edg/"),
+        "preset UA replaces the placeholder: {ua}"
+    );
+    assert!(!head.contains("DropSuite/0.1"));
+    assert!(header_line(&head, "accept").unwrap().contains("text/html"));
+    assert_eq!(
+        header_line(&head, "x-keep"),
+        Some("yes"),
+        "unrelated fields survive"
+    );
+    assert_eq!(
+        head.lines()
+            .filter(|l| l.to_ascii_lowercase().starts_with("user-agent:"))
+            .count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn pinned_user_agent_wins_and_hints_follow_it() {
+    let (port, seen) = fixture().await;
+    let ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0";
+    let apply = ApplyConfig {
+        preset: BrowserPreset::Edge,
+        force_preset: true,
+        pin_user_agent: Some(ua.to_string()),
+        ..Default::default()
+    };
+    send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply))
+        .await
+        .unwrap();
+
+    let head = seen.lock().unwrap()[0].head.clone();
+    assert_eq!(header_line(&head, "user-agent"), Some(ua));
+    let hints = header_line(&head, "sec-ch-ua").unwrap();
+    assert!(
+        hints.contains("Microsoft Edge\";v=\"141"),
+        "hint version follows the pinned UA: {hints}"
+    );
+}
+
+#[tokio::test]
+async fn without_force_the_request_headers_are_kept() {
+    let (port, seen) = fixture().await;
+    let apply = ApplyConfig {
+        preset: BrowserPreset::Edge,
+        ..Default::default()
+    };
+    send(
+        &req(
+            format!("http://127.0.0.1:{port}/"),
+            &[("User-Agent", "Mine/1")],
+        ),
+        &opts(apply),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        header_line(&seen.lock().unwrap()[0].head, "user-agent"),
+        Some("Mine/1")
+    );
 }
