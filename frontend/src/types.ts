@@ -6,6 +6,16 @@ export interface AppInfo {
   logs_dir: string;
 }
 
+export interface UpdateInfo {
+  current: string;
+  latest: string | null;
+  newer: boolean;
+  notes: string;
+  url: string;
+  checked: boolean;
+  message: string;
+}
+
 export interface TransactionSummary {
   id: number;
   timestamp: number;

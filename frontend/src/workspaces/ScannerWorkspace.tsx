@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react';
 import { engine, intruder } from '../lib/transport';
-import { analyzeResponse, Severity } from '../lib/findings';
+import { analyzeResponse, isInfrastructure, looksLikeChallenge, Severity } from '../lib/findings';
 import { bytesToText, extractParams, formatBytes, parseMessage, statusClass } from '../lib/http';
 import { ReplayDraft } from '../lib/replay';
 import { AiResultModal } from '../components/AiResultModal';
@@ -20,6 +20,8 @@ interface Agg {
   count: number;
   hosts: Set<string>;
   urls: string[];
+  /** URLs already counted, so one request contributes one count per finding. */
+  seen: Set<string>;
 }
 
 interface DiscRow {
@@ -46,6 +48,7 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
   const [rows, setRows] = useState<Agg[]>([]);
   const [scanned, setScanned] = useState(0);
   const [done, setDone] = useState(false);
+  const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [ai, setAi] = useState<{ title: string; system: string; prompt: string } | null>(null);
   const [host, setHost] = useState<string>('all');
@@ -78,22 +81,34 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
       const list = summaries.slice(0, MAX_SCAN).filter((s) => filterHost === 'all' || s.host === filterHost);
       const map = new Map<string, Agg>();
       let count = 0;
+      let skippedCount = 0;
       for (const s of list) {
         try {
           const rec = await engine.transaction(s.id);
           const paramValues = extractParams(rec.url, parseMessage(rec.request_body).body, rec.request_headers).map((p) => p.value);
           const bodyText = bytesToText(parseMessage(rec.response_body).body);
+          // Edge and challenge responses are reported as skipped rather than as site findings.
+          if (isInfrastructure(rec.url) || looksLikeChallenge(rec.response_headers, bodyText)) {
+            skippedCount++;
+            count++;
+            continue;
+          }
           const findings = analyzeResponse({ url: rec.url, status: rec.status_code, headers: rec.response_headers, body: bodyText, paramValues });
+          const line = `${rec.method} ${rec.url}`;
           for (const f of findings) {
             const key = `${f.severity}|${f.title}`;
             let a = map.get(key);
             if (!a) {
-              a = { severity: f.severity, title: f.title, detail: f.detail, count: 0, hosts: new Set(), urls: [] };
+              a = { severity: f.severity, title: f.title, detail: f.detail, count: 0, hosts: new Set(), urls: [], seen: new Set() };
               map.set(key, a);
             }
-            a.count++;
+            // One request counts once per finding type, however many headers triggered it.
+            if (!a.seen.has(line)) {
+              a.seen.add(line);
+              a.count++;
+              if (a.urls.length < 25) a.urls.push(line);
+            }
             a.hosts.add(rec.host);
-            if (a.urls.length < 25) a.urls.push(`${rec.method} ${rec.url}`);
           }
         } catch {
           /* skip a record that fails to load */
@@ -101,6 +116,7 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
         count++;
         if (count % 20 === 0) setScanned(count);
       }
+      setSkipped(skippedCount);
       setScanned(count);
       const agg = [...map.values()].sort((x, y) => SEV_RANK[x.severity] - SEV_RANK[y.severity] || y.count - x.count);
       // Group affected requests tidily (by method+URL) instead of raw capture order.
@@ -242,7 +258,10 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
                   <Loader2 size={12} className="spin" /> Scanningâ€¦ {scanned} request(s)
                 </>
               ) : done ? (
-                `${scanned} requests scanned Â· ${summaryText()}`
+                <>
+                  {scanned} requests scanned · {summaryText()}
+                  {skipped > 0 ? ` · ${skipped} edge/challenge skipped` : ""}
+                </>
               ) : (
                 'Reads captured HTTP history and flags security issues. No requests are sent.'
               )}

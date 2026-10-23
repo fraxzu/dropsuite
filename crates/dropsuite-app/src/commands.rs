@@ -1340,3 +1340,173 @@ pub fn open_app_folder(app: tauri::AppHandle, which: String) -> Result<(), Strin
         Err("opening a folder is only supported on Windows.".into())
     }
 }
+
+#[cfg(windows)]
+const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
+#[cfg(windows)]
+const RUN_VALUE: &str = "DropSuite";
+
+/// Whether DropSuite is set to launch when the user signs in (Windows per-user Run key).
+#[tauri::command]
+pub fn get_start_at_login() -> Result<bool, String> {
+    #[cfg(windows)]
+    {
+        let out = std::process::Command::new("reg")
+            .args(["query", RUN_KEY, "/v", RUN_VALUE])
+            .output()
+            .map_err(|e| format!("could not read startup setting: {e}"))?;
+        Ok(out.status.success())
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(false)
+    }
+}
+
+/// Turn "start at login" on or off by writing or removing the per-user Run entry. Points at the
+/// currently running executable, so it follows the installed location.
+#[tauri::command]
+pub fn set_start_at_login(enabled: bool) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        if enabled {
+            let exe = std::env::current_exe()
+                .map_err(|e| format!("could not find the app's path: {e}"))?;
+            let status = std::process::Command::new("reg")
+                .args(["add", RUN_KEY, "/v", RUN_VALUE, "/t", "REG_SZ", "/d"])
+                .arg(&exe)
+                .arg("/f")
+                .status()
+                .map_err(|e| format!("could not enable start at login: {e}"))?;
+            if !status.success() {
+                return Err("could not write the startup setting.".into());
+            }
+        } else {
+            // Deleting a value that is not there returns an error, which is fine: the end state is "off".
+            let _ = std::process::Command::new("reg")
+                .args(["delete", RUN_KEY, "/v", RUN_VALUE, "/f"])
+                .status();
+        }
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = enabled;
+        Err("start at login is only supported on Windows.".into())
+    }
+}
+
+/// The GitHub repository the update check looks at. Must match the repo you publish releases to.
+const UPDATE_REPO: &str = "Fraxzu/dropsuite";
+
+#[derive(Serialize)]
+pub struct UpdateInfo {
+    pub current: String,
+    pub latest: Option<String>,
+    pub newer: bool,
+    pub notes: String,
+    pub url: String,
+    /// Whether the check actually reached GitHub. False with a `message` on any network/no-release case.
+    pub checked: bool,
+    pub message: String,
+}
+
+fn parse_semver(tag: &str) -> Option<(u64, u64, u64)> {
+    let t = tag.trim().trim_start_matches(['v', 'V']);
+    let mut it = t.split(['.', '-', '+']);
+    let a = it.next()?.parse().ok()?;
+    let b = it.next().unwrap_or("0").parse().ok()?;
+    let c = it.next().unwrap_or("0").parse().ok()?;
+    Some((a, b, c))
+}
+
+/// Ask GitHub Releases whether a newer DropSuite is published. Read-only, goes only to GitHub's
+/// public API, and sends no user data. Network problems or "no releases yet" return `checked: false`
+/// with a short message instead of an error, so a check on launch never disrupts the app.
+#[tauri::command]
+pub async fn check_for_update() -> Result<UpdateInfo, String> {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    let releases_url = format!("https://github.com/{UPDATE_REPO}/releases");
+    let api = format!("https://api.github.com/repos/{UPDATE_REPO}/releases/latest");
+
+    let fallback = |message: &str| UpdateInfo {
+        current: current.clone(),
+        latest: None,
+        newer: false,
+        notes: String::new(),
+        url: releases_url.clone(),
+        checked: false,
+        message: message.to_string(),
+    };
+
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .user_agent(format!("DropSuite/{current}"))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => return Ok(fallback(&format!("Could not start the check: {e}"))),
+    };
+
+    let resp = match client
+        .get(&api)
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(_) => return Ok(fallback("Could not reach GitHub to check for updates.")),
+    };
+    if resp.status() == reqwest::StatusCode::NOT_FOUND {
+        return Ok(fallback("No releases are published on GitHub yet."));
+    }
+    if !resp.status().is_success() {
+        return Ok(fallback("GitHub did not return a release."));
+    }
+    let v: serde_json::Value = match resp.json().await {
+        Ok(v) => v,
+        Err(_) => return Ok(fallback("Could not read GitHub's response.")),
+    };
+    let tag = v.get("tag_name").and_then(|t| t.as_str()).unwrap_or("").to_string();
+    let notes = v.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
+    let html = v
+        .get("html_url")
+        .and_then(|u| u.as_str())
+        .unwrap_or(&releases_url)
+        .to_string();
+
+    let newer = match (parse_semver(&tag), parse_semver(&current)) {
+        (Some(l), Some(c)) => l > c,
+        _ => false,
+    };
+
+    Ok(UpdateInfo {
+        current,
+        latest: if tag.is_empty() { None } else { Some(tag) },
+        newer,
+        notes,
+        url: html,
+        checked: true,
+        message: String::new(),
+    })
+}
+
+/// Open the GitHub releases page ("What's new") in the default browser. The URL is fixed here, so
+/// the frontend can never ask to open an arbitrary address.
+#[tauri::command]
+pub fn open_release_page() -> Result<(), String> {
+    let url = format!("https://github.com/{UPDATE_REPO}/releases");
+    #[cfg(windows)]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", &url])
+            .spawn()
+            .map_err(|e| format!("could not open the browser: {e}"))?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = url;
+        Err("opening a link is only supported on Windows.".into())
+    }
+}

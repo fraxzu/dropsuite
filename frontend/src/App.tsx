@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ChromeBar, Workspace } from './components/ChromeBar';
 import { StatusBar } from './components/StatusBar';
+import { UpdatePopup } from './components/UpdatePopup';
 import { useDaemonStatus } from './lib/api';
 import { DESKTOP } from './lib/transport';
 import { useStoredState } from './lib/useStoredState';
@@ -152,6 +153,7 @@ export function App() {
           {toast}
         </div>
       )}
+      <UpdatePopup />
     </div>
   );
 }

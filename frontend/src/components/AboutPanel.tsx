@@ -1,25 +1,53 @@
 import React, { useEffect, useState } from 'react';
-import { X, FolderOpen, Loader2 } from 'lucide-react';
+import { X, FolderOpen, Loader2, RefreshCw, ExternalLink } from 'lucide-react';
 import { engine } from '../lib/transport';
-import { AppInfo } from '../types';
+import { AppInfo, UpdateInfo } from '../types';
 
 interface Props {
   onClose: () => void;
   onToast?: (msg: string) => void;
 }
 
-/** App settings and about: version, update status, log and data folders. Adapted for a local-first
- *  security tool — everything stays on this machine and nothing is sent anywhere. */
+const CHECK_ON_LAUNCH_KEY = 'updates.checkOnLaunch';
+
+/** Read the "check on launch" preference (defaults to on). */
+export function checkOnLaunchEnabled(): boolean {
+  try {
+    return localStorage.getItem(CHECK_ON_LAUNCH_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+/** A small on/off switch matching the app's dark theme. */
+const Toggle: React.FC<{ on: boolean; disabled?: boolean; onChange: (v: boolean) => void; label: string }> = ({ on, disabled, onChange, label }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={on}
+    aria-label={label}
+    className={`about-switch${on ? ' on' : ''}`}
+    disabled={disabled}
+    onClick={() => onChange(!on)}
+  >
+    <span className="about-switch-knob" />
+  </button>
+);
+
+/** App settings and about: version, updates, startup, and the local log and data folders.
+ *  Adapted for a local-first security tool — everything stays on this machine. */
 export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [startup, setStartup] = useState<boolean | null>(null);
+  const [checkOnLaunch, setCheckOnLaunch] = useState<boolean>(checkOnLaunchEnabled());
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     let live = true;
-    engine
-      .appInfo()
-      .then((i) => live && setInfo(i))
-      .catch((e) => live && setError(e instanceof Error ? e.message : String(e)));
+    engine.appInfo().then((i) => live && setInfo(i)).catch((e) => live && setError(e instanceof Error ? e.message : String(e)));
+    engine.getStartAtLogin().then((v) => live && setStartup(v)).catch(() => live && setStartup(false));
     return () => {
       live = false;
     };
@@ -30,6 +58,47 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
       await engine.openAppFolder(which);
     } catch (e) {
       onToast?.(`Could not open the ${which} folder: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const toggleStartup = async (v: boolean) => {
+    const prev = startup;
+    setStartup(v);
+    try {
+      await engine.setStartAtLogin(v);
+      onToast?.(v ? 'DropSuite will start when you sign in.' : 'DropSuite will no longer start at sign-in.');
+    } catch (e) {
+      setStartup(prev);
+      onToast?.(`Could not change the startup setting: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const toggleCheckOnLaunch = (v: boolean) => {
+    setCheckOnLaunch(v);
+    try {
+      localStorage.setItem(CHECK_ON_LAUNCH_KEY, v ? 'on' : 'off');
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const checkNow = async () => {
+    setChecking(true);
+    try {
+      const u = await engine.checkForUpdate();
+      setUpdate(u);
+    } catch (e) {
+      onToast?.(`Update check failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const whatsNew = async () => {
+    try {
+      await engine.openReleasePage();
+    } catch (e) {
+      onToast?.(`Could not open the releases page: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 
@@ -47,9 +116,7 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
           <section className="about-section">
             <h3>Version</h3>
             {info ? (
-              <p className="mono">
-                DropSuite {info.version} · {info.os} {info.arch} · installed with the setup
-              </p>
+              <p className="mono">DropSuite {info.version} · {info.os} {info.arch} · installed with the setup</p>
             ) : error ? (
               <p className="fz-issue">{error}</p>
             ) : (
@@ -59,10 +126,47 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
 
           <section className="about-section">
             <h3>Updates</h3>
+            <div className="about-row">
+              <div className="about-row-text">
+                <strong>Check when DropSuite starts</strong>
+                <span className="fz-hint">On launch, ask GitHub if a newer version is published. Only the version is checked — no data about you is sent.</span>
+              </div>
+              <Toggle on={checkOnLaunch} onChange={toggleCheckOnLaunch} label="Check for updates on launch" />
+            </div>
+
+            {update && (
+              <p className={update.newer ? 'fz-issue' : 'fz-hint'}>
+                {update.newer
+                  ? `A newer version is available: ${update.latest}. You have ${update.current}.`
+                  : update.checked
+                    ? `You are on the latest version (${update.current}).`
+                    : update.message}
+              </p>
+            )}
+
+            <div className="about-actions">
+              <button className="btn" onClick={checkNow} disabled={checking}>
+                {checking ? <Loader2 size={13} className="spin" /> : <RefreshCw size={13} />} Check for updates
+              </button>
+              <button className="btn" onClick={whatsNew}>
+                <ExternalLink size={13} /> What's new (GitHub)
+              </button>
+            </div>
             <p className="fz-hint">
-              This build was installed manually. Automatic update checks arrive once releases are
-              published on GitHub; until then, install a newer setup over this one.
+              A new version opens on GitHub to download. Fully automatic install arrives once signed
+              releases are set up.
             </p>
+          </section>
+
+          <section className="about-section">
+            <h3>Startup</h3>
+            <div className="about-row">
+              <div className="about-row-text">
+                <strong>Start DropSuite when I sign in</strong>
+                <span className="fz-hint">The app opens automatically after you log in to Windows.</span>
+              </div>
+              <Toggle on={!!startup} disabled={startup === null} onChange={toggleStartup} label="Start at login" />
+            </div>
           </section>
 
           <section className="about-section">

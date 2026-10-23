@@ -189,6 +189,12 @@
           "markdownDescription": "Enables the cancel_replay command without any pre-configured scope."
         },
         {
+          "description": "Enables the check_for_update command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-check-for-update",
+          "markdownDescription": "Enables the check_for_update command without any pre-configured scope."
+        },
+        {
           "description": "Enables the clear_cookies command without any pre-configured scope.",
           "type": "string",
           "const": "allow-clear-cookies",
@@ -339,6 +345,12 @@
           "markdownDescription": "Enables the get_sitemap command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_start_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-start-at-login",
+          "markdownDescription": "Enables the get_start_at_login command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_status command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-status",
@@ -415,6 +427,12 @@
           "type": "string",
           "const": "allow-open-embedded-browser",
           "markdownDescription": "Enables the open_embedded_browser command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_release_page command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-release-page",
+          "markdownDescription": "Enables the open_release_page command without any pre-configured scope."
         },
         {
           "description": "Enables the remove_ca_certificate command without any pre-configured scope.",
@@ -507,6 +525,12 @@
           "markdownDescription": "Enables the set_scope_config command without any pre-configured scope."
         },
         {
+          "description": "Enables the set_start_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-start-at-login",
+          "markdownDescription": "Enables the set_start_at_login command without any pre-configured scope."
+        },
+        {
           "description": "Enables the start_intruder command without any pre-configured scope.",
           "type": "string",
           "const": "allow-start-intruder",
@@ -541,6 +565,12 @@
           "type": "string",
           "const": "deny-cancel-replay",
           "markdownDescription": "Denies the cancel_replay command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the check_for_update command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-check-for-update",
+          "markdownDescription": "Denies the check_for_update command without any pre-configured scope."
         },
         {
           "description": "Denies the clear_cookies command without any pre-configured scope.",
@@ -693,6 +723,12 @@
           "markdownDescription": "Denies the get_sitemap command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_start_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-start-at-login",
+          "markdownDescription": "Denies the get_start_at_login command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_status command without any pre-configured scope.",
           "type": "string",
           "const": "deny-get-status",
@@ -769,6 +805,12 @@
           "type": "string",
           "const": "deny-open-embedded-browser",
           "markdownDescription": "Denies the open_embedded_browser command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_release_page command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-release-page",
+          "markdownDescription": "Denies the open_release_page command without any pre-configured scope."
         },
         {
           "description": "Denies the remove_ca_certificate command without any pre-configured scope.",
@@ -859,6 +901,12 @@
           "type": "string",
           "const": "deny-set-scope-config",
           "markdownDescription": "Denies the set_scope_config command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_start_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-start-at-login",
+          "markdownDescription": "Denies the set_start_at_login command without any pre-configured scope."
         },
         {
           "description": "Denies the start_intruder command without any pre-configured scope.",

@@ -1,6 +1,7 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import {
   AppInfo,
+  UpdateInfo,
   AttemptRow,
   DropAiConfig,
   DropAiStatus,
@@ -277,6 +278,30 @@ export const engine = {
   openAppFolder: (which: 'data' | 'logs') =>
     call(
       () => invoke<void>('open_app_folder', { which }),
+      () => Promise.reject(new Error('Desktop only')),
+    ),
+
+  getStartAtLogin: () =>
+    call(
+      () => invoke<boolean>('get_start_at_login'),
+      () => Promise.reject(new Error('Desktop only')),
+    ),
+
+  setStartAtLogin: (enabled: boolean) =>
+    call(
+      () => invoke<void>('set_start_at_login', { enabled }),
+      () => Promise.reject(new Error('Desktop only')),
+    ),
+
+  checkForUpdate: () =>
+    call(
+      () => invoke<UpdateInfo>('check_for_update'),
+      () => Promise.reject(new Error('Desktop only')),
+    ),
+
+  openReleasePage: () =>
+    call(
+      () => invoke<void>('open_release_page'),
       () => Promise.reject(new Error('Desktop only')),
     ),
 };
