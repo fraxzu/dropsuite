@@ -77,8 +77,19 @@ body {
   color: var(--text);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  user-select: none;
+  /* Text is selectable everywhere by default so any label can be copied.
+     The title bar opts back out below so the window stays draggable. */
+  user-select: text;
   caret-color: var(--accent);
+}
+
+/* The top chrome is the window's drag region: keep it unselectable so dragging
+   moves the window instead of highlighting text, and window buttons stay clean. */
+.chrome,
+.chrome *,
+[data-tauri-drag-region],
+[data-tauri-drag-region] * {
+  user-select: none;
 }
 
 ::selection {
