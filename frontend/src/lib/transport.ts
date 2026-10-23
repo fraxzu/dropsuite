@@ -7,6 +7,7 @@ import {
   ApplySettings,
   BrowserPreset,
   CookieRow,
+  ImportOutcome,
   IntruderAttack,
   IntruderStatus,
   InterceptStatus,
@@ -134,7 +135,7 @@ export const engine = {
 
   importChallengeCookies: (host: string) =>
     call(
-      () => invoke<number>('import_challenge_cookies', { host }),
+      () => invoke<ImportOutcome>('import_challenge_cookies', { host }),
       () => Promise.reject(new Error('The challenge browser is available in the desktop app.')),
     ),
 
@@ -153,6 +154,12 @@ export const engine = {
   listCookies: () =>
     call(
       () => invoke<CookieRow[]>('list_cookies'),
+      () => Promise.reject(new Error('The cookie jar is available in the desktop app.')),
+    ),
+
+  listCookiesForHost: (host: string) =>
+    call(
+      () => invoke<CookieRow[]>('list_cookies_for_host', { host }),
       () => Promise.reject(new Error('The cookie jar is available in the desktop app.')),
     ),
 

@@ -177,8 +177,19 @@ pub fn detect(status: u16, headers: &[(String, String)], body: &[u8]) -> Option<
     let body = String::from_utf8_lossy(scan);
     let vendor = vendor_from(headers, &body);
     let refusal = matches!(status, 401 | 403 | 429 | 503);
+    let lower_body = body.to_ascii_lowercase();
+    let body_challenge = JS_MARKERS.iter().any(|m| lower_body.contains(m))
+        || lower_body.contains("turnstile")
+        || lower_body.contains("captcha");
+    let mitigated = header(headers, "cf-mitigated").is_some();
+    // A healthy page served by Cloudflare is not a challenge: `Server: cloudflare` alone is far
+    // too common. Outside a refusal, demand a challenge body or `cf-mitigated`.
+    if !refusal && !body_challenge && !mitigated {
+        return None;
+    }
     let (vendor, evidence) = match vendor {
-        Some(v) => v,
+        Some(v) if refusal || body_challenge || mitigated => v,
+        Some(_) => return None,
         None if refusal => {
             // No vendor: only the strong shared markers count, so an app's own 403 stays clean.
             let lower = body.to_ascii_lowercase();
@@ -304,5 +315,47 @@ mod tests {
     fn summary_is_readable() {
         let sig = detect(403, &h(&[("cf-mitigated", "challenge")]), b"").unwrap();
         assert_eq!(sig.summary(), "Cloudflare interactive challenge");
+    }
+}
+
+#[cfg(test)]
+mod healthy_tests {
+    use super::*;
+
+    fn h(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn a_healthy_cloudflare_page_is_not_a_challenge() {
+        let sig = detect(
+            200,
+            &h(&[("server", "cloudflare"), ("cf-ray", "a4e76ec11a948234-SIN")]),
+            b"<html><title>Beranda</title><body>hello</body></html>",
+        );
+        assert!(sig.is_none(), "{sig:?}");
+    }
+
+    #[test]
+    fn a_healthy_page_with_a_challenge_script_is_still_detected() {
+        let sig = detect(
+            200,
+            &h(&[("server", "cloudflare")]),
+            b"<script src=\"/cdn-cgi/challenge-platform/h/b\"></script>",
+        );
+        assert!(sig.is_some());
+    }
+
+    #[test]
+    fn cf_mitigated_on_a_200_is_detected() {
+        assert!(detect(200, &h(&[("cf-mitigated", "challenge")]), b"").is_some());
+    }
+
+    #[test]
+    fn a_refusal_from_cloudflare_is_still_reported() {
+        assert!(detect(403, &h(&[("server", "cloudflare")]), b"nope").is_some());
     }
 }

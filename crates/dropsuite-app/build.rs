@@ -52,6 +52,7 @@ fn main() {
             "list_dropai_models",
             "open_embedded_browser",
             "list_cookies",
+            "list_cookies_for_host",
             "save_cookie",
             "delete_cookie",
             "clear_cookies",

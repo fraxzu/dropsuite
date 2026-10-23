@@ -1,120 +1,127 @@
-# Panduan Uji "Challenge / Cloudflare" untuk Pemula
+# Panduan uji challenge / Cloudflare
 
-Panduan ini untuk menguji satu fitur baru DropSuite: **melewati halaman pengecekan bot** (seperti layar Cloudflare "Checking your browser" atau "Verify you are human").
+Panduan ini menjelaskan cara menguji fitur **penanganan halaman pengecekan bot** (layar
+"Checking your browser" atau "Verify you are human" dari Cloudflare).
 
-Ditulis untuk orang yang baru kenal DropSuite dan Burp. Tidak perlu tahu istilah teknis — semua dijelaskan dengan bahasa biasa.
-
----
-
-## 1. Ini sebenarnya menguji apa?
-
-Bayangkan situs web dijaga **satpam bot** (Cloudflare). Sebelum Anda masuk, satpam kadang memberi tes kecil: centang kotak "I'm human", atau tunggu beberapa detik. Kalau lolos, satpam memberi Anda **kartu akses** (namanya cookie `cf_clearance`). Selama kartu itu masih dipegang, Anda bebas masuk tanpa dites lagi.
-
-Masalahnya: alat seperti DropSuite biasanya tidak bisa mengerjakan tes satpam itu. Fitur baru ini menyelesaikannya begini:
-1. DropSuite membuka **jendela browser kecil** supaya **Anda** yang mengerjakan tes satpam (klik centang, dll).
-2. Setelah lolos, DropSuite **mengambil kartu akses** (cookie) dari jendela itu.
-3. Mulai sekarang DropSuite memakai kartu itu, jadi request berikutnya bisa tembus.
-
-**Yang kita buktikan di panduan ini:** setelah Anda selesaikan tes satpam dan impor kartunya, request berikutnya **masuk ke halaman asli**, bukan balik ke layar satpam lagi.
+Ditulis untuk pemakaian sehari-hari: setiap langkah menyebut apa yang diklik, apa yang harus
+muncul, dan apa artinya kalau tidak muncul.
 
 ---
 
-## 2. Penting dulu (jangan dilewati)
+## 1. Yang sedang diuji
 
-- **Hanya untuk situs milik Anda sendiri**, atau situs yang Anda punya izin tertulis untuk diuji. Melewati satpam bot di situs orang lain itu melanggar. Di panduan ini kita pakai situs Anda sendiri.
-- **Situs Anda sekarang (lumens.my.id) belum pakai Cloudflare**, jadi tidak ada satpam untuk diuji. Bagian 3 menjelaskan cara memasang satpam di situs Anda sendiri, supaya ada yang diuji.
-- **Tunggu aba-aba "versi baru sudah dipasang".** Fitur ini belum ada di DropSuite yang terpasang sekarang. Saya akan build dan pasang versi barunya dulu, lalu memberi tahu Anda. Sebelum itu, langkah di bawah belum akan muncul di aplikasi.
+Cloudflare memasang tes kecil sebelum situs dibuka. Kalau lolos, Cloudflare memberi cookie
+`cf_clearance` — semacam kartu akses berdurasi pendek. Selama kartu itu dipegang, request
+berikutnya tidak dites lagi.
 
----
+DropSuite tidak punya mesin JavaScript, jadi tesnya dikerjakan di jendela browser bawaan
+aplikasi. Alurnya:
 
-## 3. Menyiapkan "satpam" di situs Anda sendiri (sekali saja)
+1. Request kena challenge → banner menyebut vendornya.
+2. **Open browser** → jendela dibuka, host itu di-*tunnel* (tidak di-MITM) supaya sidik jari
+   TLS browser tetap asli dan tes bisa lolos.
+3. Anda menyelesaikan tes. Cloudflare menulis `cf_clearance` ke cookie jendela itu.
+4. **Import cookies** → cookie dari jendela disalin ke cookie jar untuk host tersebut.
+5. Request dikirim ulang; jar menempelkan cookie, target meloloskan.
 
-Supaya ada challenge untuk diuji, pasang situs Anda di belakang Cloudflare gratis, lalu nyalakan mode tes.
-
-1. Buat akun gratis di cloudflare.com, lalu tambahkan domain Anda (ikuti wizard-nya; Anda akan diminta mengganti "nameserver" di tempat beli domain). Ini bagian paling teknis, dan cukup dilakukan sekali.
-2. Setelah domain aktif di Cloudflare, buka menu **Security**.
-3. Nyalakan **"I'm Under Attack Mode"** (mode "sedang diserang"). Mode ini membuat Cloudflare menampilkan layar pengecekan ke **setiap** pengunjung — persis yang kita butuhkan untuk menguji.
-4. Buka situs Anda di browser biasa (Chrome) untuk memastikan layar "Checking your browser…" benar-benar muncul. Kalau muncul, satpam sudah aktif.
-
-> Kalau terlalu ribet menyiapkan Cloudflare, lewati saja uji ini. Fitur lain DropSuite tetap bisa diuji dengan [PANDUAN-TESTING.md](PANDUAN-TESTING.md). Uji challenge ini sifatnya khusus.
-
-**Setelah selesai menguji, matikan lagi "I'm Under Attack Mode"** supaya pengunjung asli Anda tidak kena layar pengecekan terus.
-
----
-
-## 4. Langkah uji di DropSuite (bagian utama)
-
-Ikuti urut. Di tiap langkah sudah ditulis Anda harus klik apa dan hasil yang benar seperti apa.
-
-### Persiapan
-- [ ] **1.** Buka DropSuite. Di bar atas, klik **Start**. Tulisan berubah jadi "Listening on 127.0.0.1:8080".
-- [ ] **2.** Klik ikon **Listener** (pojok kanan atas). Klik **Generate Root CA**. Muncul sidik jari (fingerprint) CA. (Ini izin agar DropSuite bisa membaca isi lalu lintas HTTPS. Butuh sekali saja.)
-- [ ] **3.** Masih di Listener, pada kotak **allowlist**, ketik alamat situs Anda (contoh: `situsanda.com`). Simpan. (Allowlist = daftar situs yang boleh "dibuka isinya" oleh DropSuite.)
-
-### Memicu challenge
-- [ ] **4.** Buka tab **Replay** di bar atas.
-- [ ] **5.** Di kolom URL, ketik alamat situs Anda (contoh: `https://situsanda.com/`). Klik **Send** (atau tekan `Ctrl+Enter`).
-- [ ] **6.** Lihat hasil di sebelah kanan. Kalau satpam aktif, muncul **banner** yang menyebut nama vendor, misalnya **"Cloudflare challenge"**. Inilah tanda request Anda dicegat satpam, bukan dijawab halaman asli.
-
-> Kalau banner tidak muncul dan langsung dapat halaman asli, berarti satpam tidak aktif. Balik ke Bagian 3 dan pastikan "I'm Under Attack Mode" menyala.
-
-### Menyelesaikan tes satpam
-- [ ] **7.** Klik tombol **Open browser** (di dekat banner). Sebuah **jendela browser kecil** terbuka menampilkan layar satpam.
-- [ ] **8.** **Kerjakan tesnya di jendela itu** — biasanya centang kotak "I'm human" lalu tunggu, atau cukup tunggu beberapa detik sampai layar hilang dan halaman asli muncul. (Ini bagian yang harus manusia; DropSuite tidak bisa menggantikannya.)
-- [ ] **9.** Setelah halaman asli muncul di jendela itu, **tutup jendelanya**.
-
-### Memakai kartu akses
-- [ ] **10.** Kembali ke DropSuite. Klik tombol **Import cookies**. (DropSuite menyalin "kartu akses" dari jendela tadi.) Biasanya muncul notifikasi kecil bahwa cookie berhasil diimpor.
-- [ ] **11.** Klik **Send** sekali lagi pada request yang sama.
-
-### Membaca hasilnya
-- [ ] **12. LULUS** kalau hasil kali ini adalah **halaman asli situs Anda** (status 200, atau isi halaman sungguhan), **bukan** banner challenge lagi. Berarti kartu akses berhasil dipanen dan dipakai. 🎉
-- [ ] **13. BELUM LULUS** kalau masih muncul banner challenge. **Ini belum tentu fiturnya rusak** — baca Bagian 5.
+**Poin penting:** cookie di langkah 4 **berasal dari jendela challenge itu sendiri**. Tidak ada
+yang diambil dari internet, dari browser lain, atau dari akun mana pun. DropSuite membaca cookie
+store jendela lewat WebView2 untuk host yang sama, lalu menyimpannya.
 
 ---
 
-## 5. Kalau langkah 12 masih kena challenge (penting)
+## 2. Sebelum mulai
 
-Jangan langsung menyimpulkan fiturnya gagal. Ada satu keterbatasan yang sudah diketahui:
-
-Kartu akses (`cf_clearance`) kadang terikat pada "sidik jari browser" yang menyelesaikannya. Saat DropSuite mengirim ulang request, Cloudflare yang **sangat ketat** bisa tetap menolak sampai fitur lanjutan **HTTP/2 + peniruan ClientHello** selesai dibuat. Fitur lanjutan itu sedang dikerjakan (langkah berikutnya).
-
-Jadi hasil "masih kena challenge" bisa berarti:
-- Situs Cloudflare Anda di-set terlalu ketat, **atau**
-- Memang perlu menunggu fitur HTTP/2 selesai.
-
-Yang **sudah membuktikan fitur ini bekerja** walau langkah 12 belum tembus:
-- Banner challenge muncul dengan benar di langkah 6 (deteksi jalan).
-- Jendela browser terbuka dan Anda bisa menyelesaikan tes di langkah 8.
-- Notifikasi "cookie diimpor" muncul di langkah 10 (pemanenan jalan).
-
-Kalau tiga hal itu terjadi, bagian mekanis fitur sudah benar.
+- Uji hanya situs milik sendiri atau yang ada izinnya.
+- Aplikasi harus versi terbaru. Kalau muncul `not allowed by ACL`, yang terpasang lebih tua.
+- Root CA harus sudah dibuat (Listener → **Generate Root CA**) agar HTTPS bisa dibaca.
+- Untuk situs yang diuji, jangan masukkan host-nya ke allowlist MITM kalau ingin uji challenge —
+  jendela challenge men-tunnel sendiri, dan tunnel butuh host tidak di-MITM.
 
 ---
 
-## 6. Masalah yang sering muncul
+## 3. Langkah uji
+
+1. **Start** listener. Pastikan berubah menjadi "Listening on 127.0.0.1:8080".
+2. Buka tab **Replay**, isi URL situs, klik **Send**.
+3. Kalau kena challenge, muncul banner vendor di panel respons. Kalau tidak muncul padahal
+   situs jelas memblokir, lihat Bagian 6.
+4. Klik **Open browser**. Jendela baru terbuka dengan judul "Challenge Browser (tunneled)".
+5. **Selesaikan tesnya** di jendela itu: centang kotak, atau tunggu sampai halaman asli muncul.
+   Ini bagian yang memang harus manusia.
+6. Setelah halaman asli tampil, biarkan jendela tetap terbuka, kembali ke DropSuite, klik
+   **Import cookies**.
+7. Baca notifikasinya:
+   - `cf_clearance imported (…)` → berhasil, lanjut langkah 8.
+   - `<n> cookie(s) from the window: __cf_bm, _cfuvid. No cf_clearance yet` → tesnya belum
+     selesai. Kembali ke langkah 5, pastikan halaman asli benar-benar terbuka, lalu import lagi.
+8. Klik **Send** sekali lagi.
+
+---
+
+## 4. Membaca hasil
+
+Pada baris fakta respons ada jumlah `jar: N` = berapa cookie jar yang benar-benar terkirim.
+
+| Hasil | Arti |
+|---|---|
+| `200` + halaman asli, `jar: 1` atau lebih | Lolos. Cookie dipakai. |
+| `200` tapi halaman tetap layar challenge | Cookie terkirim tetapi ditolak — biasanya karena sidik jari (lihat Bagian 5) |
+| `403`, `jar: 0` | Tidak ada cookie yang cocok. Lihat Bagian 6. |
+| `403`, `jar: 1+` | Cookie dikirim, masih ditolak |
+
+---
+
+## 5. Kalau tetap diblokir walau `jar` lebih dari 0
+
+`cf_clearance` terikat pada IP, User-Agent, dan sidik jari TLS saat tes diselesaikan. Yang biasa
+membuatnya ditolak:
+
+- **User-Agent berubah.** Pasang preset browser (Chrome/Firefox) **sebelum** membuka jendela, dan
+  jangan mengubahnya sesudahnya. UA berbeda = cookie dianggap milik client lain.
+- **Cookie kedaluwarsa.** Masa berlakunya pendek (biasanya sekitar 30 menit). Impor ulang.
+- **IP berubah** (VPN dinyalakan/dimatikan di tengah jalan).
+- **Situs memakai setting ketat.** Peniruan ClientHello TLS belum ada, jadi situs dengan Bot
+  Fight Mode ketat masih bisa menolak walau cookie valid. Ini batasan yang diketahui, bukan
+  kerusakan.
+
+---
+
+## 6. Kalau tidak ada cookie yang terkirim
+
+`jar: 0` berarti jar tidak punya cookie yang cocok. Periksa berurutan:
+
+1. **Switch jar mati.** Listener → bagian "Browser fingerprint" → centang
+   "Attach jar cookies to Replay and Fuzzer".
+2. **Skema URL.** Replay memakai `http://` sementara cookie dari challenge bertanda `Secure` →
+   tidak dikirim. Pakai `https://`.
+3. **Host berbeda.** Cookie disimpan untuk host tempat tes diselesaikan. `presidenri.go.id` dan
+   `www.presidenri.go.id` adalah dua host berbeda; selesaikan tes dan impor pada host yang sama
+   dengan yang Anda Replay.
+4. **Path cookie tidak cocok.** Lihat daftar jar di Listener; kolom path tampil di sana. Replay
+   harus memakai path yang sama atau di bawahnya.
+5. **Cookie sudah kedaluwarsa.** Daftar jar akan mengosongkannya; impor ulang.
+
+Kalau sudah benar semua tetapi `jar` tetap 0, kirim isi daftar jar (nama, host, path) — jangan
+nilai cookie-nya.
+
+---
+
+## 7. Masalah lain
 
 | Gejala | Penyebab & solusi |
 |---|---|
-| Jendela di langkah 7 kosong / error sertifikat | Root CA belum dibuat. Ulangi langkah 2. |
-| Banner challenge tidak pernah muncul | Satpam tidak aktif. Nyalakan "I'm Under Attack Mode" (Bagian 3). |
-| Situs tidak terbuka sama sekali | Alamat salah, atau situs belum ada di allowlist (langkah 3). |
-| "Import cookies" tidak ada efeknya | Pastikan di langkah 9 halaman asli benar-benar sudah muncul di jendela sebelum ditutup. Kalau jendela ditutup saat masih di layar satpam, belum ada kartu untuk dipanen. |
-| Pengunjung asli situs Anda kena layar pengecekan terus | Anda lupa mematikan "I'm Under Attack Mode". Matikan di Cloudflare → Security. |
+| Jendela challenge kosong / error sertifikat | Root CA belum dibuat. Listener → Generate Root CA. |
+| `not allowed by ACL` | Aplikasi terpasang lebih tua dari daftar izin command. Pasang installer terbaru. |
+| "No challenge window is open" saat import | Jendela sudah ditutup. Buka lagi, selesaikan tes, lalu import sebelum menutup jendela. |
+| Banner challenge tidak pernah muncul | Deteksi butuh penanda vendor. Kalau situs memblokir tanpa penanda, lihat status dan `jar` saja. |
+| Pengunjung asli ikut kena layar cek | Anda menyalakan "I'm Under Attack Mode" di Cloudflare; matikan setelah selesai. |
 
 ---
 
-## 7. Yang perlu Anda catat untuk saya
+## 8. Yang perlu dicatat saat melaporkan masalah
 
-Saat menguji, catat singkat:
-1. Di langkah berapa berhenti / bermasalah.
-2. Apa yang muncul vs apa yang Anda harapkan.
-3. Screenshot kalau bisa (terutama banner di langkah 6 dan hasil di langkah 12).
-
-Dari catatan itu saya bisa tahu apakah yang perlu diperbaiki ada di fitur DropSuite, atau hanya soal pengaturan Cloudflare.
-
-## Jika muncul "not allowed by ACL"
-
-Artinya aplikasi yang terpasang lebih tua daripada daftar izin command. Command baru hanya
-bisa dipanggil kalau capability mengizinkannya, dan capability ikut dikompilasi ke binary.
-Pasang ulang installer terbaru; menjalankan file lama tidak akan menambah izin.
+1. Langkah berapa yang gagal.
+2. Nilai `jar: N` pada respons.
+3. Nama cookie yang muncul di notifikasi import.
+4. Preset yang dipakai dan skema URL.

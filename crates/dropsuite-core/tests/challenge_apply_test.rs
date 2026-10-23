@@ -225,17 +225,17 @@ async fn jar_skips_cookies_for_other_paths() {
 }
 
 #[tokio::test]
-async fn explicit_cookie_header_wins_over_the_jar() {
+async fn jar_replaces_a_stale_value_and_keeps_other_names() {
     let (port, seen) = fixture().await;
     let apply = ApplyConfig {
         attach_cookies: true,
         cookies: vec![cookie("from", "jar", "/", false)],
         ..Default::default()
     };
-    send(
+    let r = send(
         &req(
             format!("http://127.0.0.1:{port}/"),
-            &[("Cookie", "from=editor")],
+            &[("Cookie", "from=stale; keep=me")],
         ),
         &opts(apply),
     )
@@ -243,13 +243,43 @@ async fn explicit_cookie_header_wins_over_the_jar() {
     .unwrap();
 
     let head = seen.lock().unwrap()[0].head.clone();
-    assert_eq!(header_line(&head, "cookie"), Some("from=editor"));
+    let sent = header_line(&head, "cookie").unwrap();
+    assert!(
+        sent.contains("from=jar"),
+        "the jar holds the current value: {sent}"
+    );
+    assert!(!sent.contains("from=stale"));
+    assert!(sent.contains("keep=me"), "unrelated names survive: {sent}");
+    assert_eq!(r.cookies_attached, 1);
     assert_eq!(
         head.lines()
             .filter(|l| l.to_ascii_lowercase().starts_with("cookie:"))
             .count(),
         1
     );
+}
+
+#[tokio::test]
+async fn jar_off_keeps_the_request_cookie_untouched() {
+    let (port, seen) = fixture().await;
+    let apply = ApplyConfig {
+        attach_cookies: false,
+        cookies: vec![cookie("from", "jar", "/", false)],
+        ..Default::default()
+    };
+    let r = send(
+        &req(
+            format!("http://127.0.0.1:{port}/"),
+            &[("Cookie", "from=stale")],
+        ),
+        &opts(apply),
+    )
+    .await
+    .unwrap();
+
+    let head = seen.lock().unwrap()[0].head.clone();
+    assert_eq!(header_line(&head, "cookie"), Some("from=stale"));
+    assert_eq!(r.cookies_attached, 0);
 }
 
 #[tokio::test]
@@ -317,4 +347,18 @@ async fn preset_and_jar_are_transparent_to_the_snapshot() {
         .iter()
         .any(|(n, v)| n.eq_ignore_ascii_case("cookie") && v.contains("cf_clearance")));
     assert!(r.sent_bytes > 0);
+}
+
+#[tokio::test]
+async fn attached_cookie_count_is_reported() {
+    let (port, _seen) = fixture().await;
+    let apply = ApplyConfig {
+        attach_cookies: true,
+        cookies: vec![cookie("a", "1", "/", false), cookie("b", "2", "/", false)],
+        ..Default::default()
+    };
+    let r = send(&req(format!("http://127.0.0.1:{port}/"), &[]), &opts(apply))
+        .await
+        .unwrap();
+    assert_eq!(r.cookies_attached, 2);
 }

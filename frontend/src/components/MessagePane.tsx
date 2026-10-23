@@ -55,6 +55,19 @@ function headLines(startLine: string, headers: Header[]): React.ReactNode[] {
   ];
 }
 
+// HTTP date headers are always sent in GMT. Show the equivalent in the viewer's own timezone
+// as a convenience, without touching the original value (evidence stays exactly as on the wire).
+const HTTP_DATE_HEADERS = new Set(['date', 'expires', 'last-modified', 'if-modified-since', 'if-unmodified-since']);
+function localDateHint(name: string, value: string): string | null {
+  if (!HTTP_DATE_HEADERS.has(name.trim().toLowerCase())) return null;
+  const d = new Date(value.trim());
+  if (Number.isNaN(d.getTime())) return null;
+  const offsetMin = -d.getTimezoneOffset(); // minutes east of UTC, for the viewer
+  const zone = offsetMin === 420 ? 'WIB' : offsetMin === 480 ? 'WITA' : offsetMin === 540 ? 'WIT' : 'lokal';
+  const t = d.toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return `${t} ${zone}`;
+}
+
 export const MessagePane: React.FC<MessagePaneProps> = ({ side, record, title, onCopied }) => {
   const [view, setView] = useStoredState<View>(`view.${side}`, side === 'request' ? 'raw' : 'body');
   const [pretty, setPretty] = useStoredState<boolean>('json.pretty', true);
@@ -197,12 +210,22 @@ export const MessagePane: React.FC<MessagePaneProps> = ({ side, record, title, o
           </tr>
         </thead>
         <tbody>
-          {headers.map(([k, v], i) => (
-            <tr key={i}>
-              <td className="k">{k}</td>
-              <td>{withRedactions(v)}</td>
-            </tr>
-          ))}
+          {headers.map(([k, v], i) => {
+            const local = localDateHint(k, v);
+            return (
+              <tr key={i}>
+                <td className="k">{k}</td>
+                <td>
+                  {withRedactions(v)}
+                  {local && (
+                    <span className="hdr-local" title="Waktu server (GMT) dalam zona waktu Anda. Nilai asli di sebelah kiri tidak diubah.">
+                      {' · '}{local}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     ) : (

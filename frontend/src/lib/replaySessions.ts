@@ -85,6 +85,7 @@ function mapAttemptRecord(rec: RepeaterAttemptRecord): Attempt {
       request_message: [],
       // Stored attempts do not keep the challenge flag, so a reopened session shows none.
       challenge: null,
+      cookies_attached: 0,
     },
   };
 }

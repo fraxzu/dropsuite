@@ -124,6 +124,7 @@ fn main() {
             commands::get_apply_settings,
             commands::set_apply_settings,
             commands::list_cookies,
+            commands::list_cookies_for_host,
             commands::save_cookie,
             commands::delete_cookie,
             commands::clear_cookies,

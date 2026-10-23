@@ -53,6 +53,7 @@
     "allow-list-dropai-models",
     "allow-open-embedded-browser",
     "allow-list-cookies",
+    "allow-list-cookies-for-host",
     "allow-save-cookie",
     "allow-delete-cookie",
     "allow-clear-cookies",

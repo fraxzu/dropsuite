@@ -1568,6 +1568,13 @@ body.resizing-col * {
   color: var(--syn-key);
 }
 
+/* Local-time hint appended to GMT date headers; muted so the real value still reads first. */
+.hdr-local {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
 .kv td.src {
   width: 1%;
   white-space: nowrap;

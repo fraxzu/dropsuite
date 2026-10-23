@@ -86,6 +86,8 @@ pub struct ReplayResponse {
     pub request_message: Vec<u8>,
     /// Set when the response is a bot challenge rather than the application's own answer.
     pub challenge: Option<ChallengeSignal>,
+    /// Jar cookies that were attached to this request.
+    pub cookies_attached: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -161,6 +163,10 @@ pub struct Prepared {
     pub dropped_headers: Vec<String>,
     /// Whether the target uses HTTPS (TLS).
     pub tls: bool,
+    /// Preset fields added because the request left them out.
+    pub preset_fields: usize,
+    /// Jar cookies attached to the request.
+    pub cookies_attached: usize,
 }
 
 impl Prepared {
@@ -272,6 +278,7 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
 
     let mut lines = String::new();
     let mut dropped = Vec::new();
+    let mut existing_cookie: Option<String> = None;
     for (name, value) in &req.headers {
         let name = name.trim();
         if !is_token(name) {
@@ -311,21 +318,24 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
             }
             _ => {}
         }
+        if lower == "cookie" {
+            // Rebuilt below so jar cookies can replace stale captured values by name.
+            existing_cookie = Some(value.trim().to_string());
+            continue;
+        }
         if HOP_BY_HOP.contains(&lower.as_str()) {
             dropped.push(name.to_string());
         }
         lines.push_str(&format!("{name}: {}\r\n", value.trim()));
     }
 
-    // Preset and jar fill only what the request left out, so an explicit value always wins.
+    // A preset only fills what the request left out. The jar is different: a captured Cookie
+    // header is usually older than the jar, so jar names replace it and its other names survive.
     let preset_names = header_preset::fill(apply.preset, &req.headers);
-    let user_has_cookie = req
-        .headers
-        .iter()
-        .any(|(n, _)| n.trim().eq_ignore_ascii_case("cookie"));
-    let cookie_header = if apply.attach_cookies && !user_has_cookie {
-        let path = origin.split('?').next().unwrap_or("/");
-        cookies::header_value(
+    let preset_fields = preset_names.len();
+    let path = origin.split('?').next().unwrap_or("/");
+    let jar_pairs = if apply.attach_cookies {
+        cookies::pairs_for(
             &apply.cookies,
             &host,
             path,
@@ -333,8 +343,18 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
             chrono::Utc::now().timestamp(),
         )
     } else {
-        None
+        Vec::new()
     };
+    let cookies_attached = jar_pairs.len();
+    let cookie_header = if jar_pairs.is_empty() {
+        existing_cookie.clone()
+    } else {
+        Some(match &existing_cookie {
+            Some(existing) => cookies::merge_cookie_header(existing, &jar_pairs),
+            None => cookies::join_pairs(&jar_pairs),
+        })
+    };
+
     let mut added = String::new();
     for (name, value) in preset_names {
         added.push_str(&format!("{name}: {value}\r\n"));
@@ -375,6 +395,8 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
         body_len: body.len(),
         dropped_headers: dropped,
         tls,
+        preset_fields,
+        cookies_attached,
     })
 }
 
@@ -447,6 +469,7 @@ where
         request_message,
         dropped_headers: prepared.dropped_headers.clone(),
         challenge,
+        cookies_attached: prepared.cookies_attached,
     })
 }
 
@@ -754,6 +777,7 @@ pub async fn send_with(
         request_message,
         dropped_headers: prepared.dropped_headers,
         challenge,
+        cookies_attached: prepared.cookies_attached,
     })
 }
 

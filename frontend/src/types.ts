@@ -46,6 +46,8 @@ export interface ReplayResponse {
   request_message: number[];
   /** Present when the answer was a bot challenge rather than the application's own response. */
   challenge: ChallengeSignal | null;
+  /** Jar cookies attached to the request that produced this response. */
+  cookies_attached: number;
 }
 
 /** Bot-challenge detection result. */
@@ -61,6 +63,12 @@ export type BrowserPreset = 'off' | 'chrome' | 'edge' | 'firefox' | 'safari';
 export interface ApplySettings {
   preset: BrowserPreset;
   cookie_jar: boolean;
+}
+
+/** What an import collected; names, and whether the clearance cookie was among them. */
+export interface ImportOutcome {
+  imported: string[];
+  has_clearance: boolean;
 }
 
 export interface CookieRow {

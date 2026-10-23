@@ -673,6 +673,28 @@ pub fn list_cookies(state: State<'_, EngineState>) -> Result<Vec<CookieRow>, Str
         .collect())
 }
 
+/// Cookies in the jar that would be sent to `host` (domain/path are not checked here, so the
+/// list also shows rows that exist but may not match a specific path).
+#[tauri::command]
+pub fn list_cookies_for_host(
+    state: State<'_, EngineState>,
+    host: String,
+) -> Result<Vec<CookieRow>, String> {
+    let engine = state.engine()?;
+    let host = host.trim().trim_end_matches('.').to_ascii_lowercase();
+    if host.is_empty() {
+        return Ok(Vec::new());
+    }
+    let _ = engine.storage.purge_expired_cookies(now_secs());
+    Ok(engine
+        .storage
+        .cookies_for_host(&host)
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(CookieRow::from)
+        .collect())
+}
+
 /// Save a cookie typed or pasted for `host`. `raw` is `name=value` and may carry attributes
 /// (`; Path=/`, `; Secure`, …), so a whole `cf_clearance=…` line from a browser can be pasted.
 #[tauri::command]
@@ -809,13 +831,22 @@ pub async fn open_challenge_browser(
     Ok(())
 }
 
-/// Copy the cookies of the open challenge window into the jar for `host`.
+/// What an import actually collected, so the interface can name it instead of just counting.
+#[derive(Serialize)]
+pub struct ImportOutcome {
+    pub imported: Vec<String>,
+    /// Whether `cf_clearance` was among them; without it the challenge is usually still up.
+    pub has_clearance: bool,
+}
+
+/// Copy the cookies of the open challenge window into the jar for `host`. The cookies come from
+/// that window's own cookie store, read through WebView2's CookieManager.
 #[tauri::command]
 pub async fn import_challenge_cookies(
     app: tauri::AppHandle,
     state: State<'_, EngineState>,
     host: String,
-) -> Result<usize, String> {
+) -> Result<ImportOutcome, String> {
     let engine = state.engine()?;
     let host = host.trim().trim_end_matches('.').to_ascii_lowercase();
     if host.is_empty() {
@@ -831,21 +862,31 @@ pub async fn import_challenge_cookies(
 
     let harvested = crate::platform::harvest_cookies(&window, &format!("https://{host}/")).await?;
     let now = now_secs();
-    let mut saved = 0usize;
+    let mut imported = Vec::new();
     for cookie in &harvested {
         let Some(raw) = crate::platform::harvested_to_set_cookie(cookie) else {
             continue;
         };
-        if let Some(parsed) = dropsuite_core::cookies::parse_set_cookie(&host, &raw, now) {
-            if engine.storage.upsert_cookie(&parsed).is_ok() {
-                saved += 1;
-            }
+        let Some(parsed) = dropsuite_core::cookies::parse_set_cookie(&host, &raw, now) else {
+            continue;
+        };
+        if engine.storage.upsert_cookie(&parsed).is_ok() {
+            imported.push(parsed.name.clone());
         }
     }
-    if saved == 0 {
-        return Err("The browser holds no cookie for that host yet.".into());
+    if imported.is_empty() {
+        return Err(
+            "The browser holds no cookie for that host yet. Finish the check in the window first."
+                .into(),
+        );
     }
-    Ok(saved)
+    let has_clearance = imported
+        .iter()
+        .any(|n| n.eq_ignore_ascii_case("cf_clearance"));
+    Ok(ImportOutcome {
+        imported,
+        has_clearance,
+    })
 }
 
 #[tauri::command]

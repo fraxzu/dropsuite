@@ -642,24 +642,21 @@ impl ProxyEngine {
             inner: client_stream,
         };
 
-        let accept = match tokio::time::timeout(
-            TLS_HANDSHAKE_TIMEOUT,
-            acceptor.accept(client_stream),
-        )
-        .await
-        {
-            Ok(Ok(tls)) => tls,
-            Ok(Err(e)) => {
-                info!(
+        let accept =
+            match tokio::time::timeout(TLS_HANDSHAKE_TIMEOUT, acceptor.accept(client_stream)).await
+            {
+                Ok(Ok(tls)) => tls,
+                Ok(Err(e)) => {
+                    info!(
                     "TLS handshake for {authority} failed (client may not trust the local CA): {e}"
                 );
-                return;
-            }
-            Err(_) => {
-                warn!("TLS handshake for {authority} timed out");
-                return;
-            }
-        };
+                    return;
+                }
+                Err(_) => {
+                    warn!("TLS handshake for {authority} timed out");
+                    return;
+                }
+            };
 
         let alpn = accept.get_ref().1.alpn_protocol();
         if let Some(p) = alpn {

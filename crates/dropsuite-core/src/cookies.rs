@@ -238,6 +238,70 @@ fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
     era * 146_097 + doe - 719_468
 }
 
+/// Matching jar cookies as name/value pairs, longest path first, deduplicated by name.
+pub fn pairs_for(
+    cookies: &[StoredCookie],
+    host: &str,
+    path: &str,
+    tls: bool,
+    now: i64,
+) -> Vec<(String, String)> {
+    let mut usable: Vec<&StoredCookie> = cookies
+        .iter()
+        .filter(|c| c.matches(host, path, tls, now))
+        .collect();
+    usable.sort_by(|a, b| {
+        b.path
+            .len()
+            .cmp(&a.path.len())
+            .then(a.created_at.cmp(&b.created_at))
+    });
+
+    let mut seen: Vec<&str> = Vec::new();
+    let mut out = Vec::new();
+    for cookie in usable {
+        if seen.contains(&cookie.name.as_str()) {
+            continue;
+        }
+        seen.push(&cookie.name);
+        out.push((cookie.name.clone(), cookie.value.clone()));
+    }
+    out
+}
+
+/// `name=value; name=value` for a header value.
+pub fn join_pairs(pairs: &[(String, String)]) -> String {
+    pairs
+        .iter()
+        .map(|(n, v)| format!("{n}={v}"))
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
+/// Merge a `Cookie` header the request already carries with the jar. The jar wins for names it
+/// holds, because a captured header is usually older than the jar, while extra names from the
+/// request survive.
+pub fn merge_cookie_header(existing: &str, jar: &[(String, String)]) -> String {
+    let jar_names: Vec<&str> = jar.iter().map(|(n, _)| n.as_str()).collect();
+    let mut kept: Vec<(String, String)> = Vec::new();
+    for pair in existing.split(';') {
+        let pair = pair.trim();
+        if pair.is_empty() {
+            continue;
+        }
+        let name = pair.split_once('=').map(|(n, _)| n.trim()).unwrap_or(pair);
+        if jar_names.iter().any(|n| n.eq_ignore_ascii_case(name)) {
+            continue;
+        }
+        kept.push(match pair.split_once('=') {
+            Some((n, v)) => (n.trim().to_string(), v.trim().to_string()),
+            None => (name.to_string(), String::new()),
+        });
+    }
+    kept.extend(jar.iter().cloned());
+    join_pairs(&kept)
+}
+
 /// Build a `Cookie` header value from the jar, longest path first, deduplicated by name.
 pub fn header_value(
     cookies: &[StoredCookie],

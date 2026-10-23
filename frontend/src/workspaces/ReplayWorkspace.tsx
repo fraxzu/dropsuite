@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Copy, GitCompare, Loader2, Plus, Send, Sparkles, X } from 'lucide-react';
 import { ReplayFailure, TransactionRecord } from '../types';
 import { bytesToText, formatBytes, formatDuration, statusClass } from '../lib/http';
@@ -293,7 +293,15 @@ export const ReplayWorkspace: React.FC<ReplayWorkspaceProps> = ({ active, sessio
             className="btn btn-primary replay-send"
             disabled={!canSend}
             onClick={sendNow}
-            title={busyElsewhere ? 'Another Replay request is running' : canSend ? 'Send (Ctrl+Enter)' : 'Resolve the issues below the request first'}
+            title={
+              busyElsewhere
+                ? 'Another Replay request is running'
+                : canSend
+                  ? 'Send (Ctrl+Enter)'
+                  : issues[0]
+                    ? `Can't send: ${issues[0].text}${compare ? ' — open Editor to fix it.' : ''}`
+                    : 'Resolve the issues below the request first'
+            }
           >
             <Send size={12} /> Send
           </button>
@@ -475,6 +483,25 @@ const AttemptList: React.FC<{
 const ResponsePanel: React.FC<{ tab: ReplayTab; sending?: string; onLatest: () => void; onToast: (m: string) => void }> = ({ tab, sending, onLatest, onToast }) => {
   const [side, setSide] = useState<Side>('response');
   const [analyze, setAnalyze] = useState(false);
+  const [jarNames, setJarNames] = useState<string[]>([]);
+  const jarShown = tab.attempts.find((a) => a.seq === tab.viewSeq) ?? tab.attempts[tab.attempts.length - 1];
+  const jarHost = (jarShown?.response?.destination ?? "").replace(/:\d+$/, "");
+  const loadJar = useCallback(async () => {
+    if (!jarHost) {
+      setJarNames([]);
+      return;
+    }
+    try {
+      const rows = await engine.listCookiesForHost(jarHost);
+      setJarNames(rows.map((x) => x.name));
+    } catch {
+      setJarNames([]);
+    }
+  }, [jarHost]);
+  useEffect(() => {
+    void loadJar();
+  }, [loadJar, jarShown?.response?.cookies_attached]);
+
   if (sending) {
     return (
       <div className="state" aria-busy="true">
@@ -521,14 +548,21 @@ const ResponsePanel: React.FC<{ tab: ReplayTab; sending?: string; onLatest: () =
   }
   const r = shown.response;
   const host = r.destination.replace(/:\d+$/, '');
+
   const solveChallenge = async (importAfter: boolean) => {
     try {
       if (!importAfter) {
         await engine.openChallengeBrowser(`https://${host}/`);
         onToast(`Finish the check in the browser window, then press Import cookies.`);
       } else {
-        const n = await engine.importChallengeCookies(host);
-        onToast(`${n} cookie(s) imported for ${host}. Replay again.`);
+        const out = await engine.importChallengeCookies(host);
+        void loadJar();
+        const names = out.imported.join(', ');
+        onToast(
+          out.has_clearance
+            ? `cf_clearance imported for ${host} (${names}). Replay again.`
+            : `${out.imported.length} cookie(s) from the window: ${names}. No cf_clearance yet - finish the check, then import again.`,
+        );
       }
     } catch (e) {
       onToast(e instanceof Error ? e.message : String(e));
@@ -575,6 +609,18 @@ const ResponsePanel: React.FC<{ tab: ReplayTab; sending?: string; onLatest: () =
           <button className="link-btn" onClick={() => void solveChallenge(true)}>
             Import cookies
           </button>
+          <span
+            className="field-hint"
+            title={jarNames.join(", ")}
+            data-jar-count={jarNames.length}
+          >
+            {jarNames.length > 0
+              ? `jar: ${jarNames.length} for this host (${jarNames.slice(0, 3).join(", ")}${jarNames.length > 3 ? "…" : ""})`
+              : "jar: empty for this host"}
+            {jarNames.length > 0 && !jarNames.some((n) => n.toLowerCase() === "cf_clearance")
+              ? " - no cf_clearance yet"
+              : ""}
+          </span>
         </div>
       )}
       <div className="insp-head">
@@ -586,6 +632,7 @@ const ResponsePanel: React.FC<{ tab: ReplayTab; sending?: string; onLatest: () =
         <span className="insp-facts">
           <span>#{shown.seq}</span>
           <span>{formatDuration(r.duration_ms)}</span>
+          <span title="Cookies attached from the jar for this host">jar: {r.cookies_attached}</span>
           <span title="Response bytes received, head included">{formatBytes(r.total_bytes)} received</span>
           <span title="Request bytes sent, head included">{formatBytes(r.sent_bytes)} sent</span>
           <span>Not saved</span>
