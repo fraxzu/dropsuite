@@ -15,9 +15,9 @@ publicly.
 
 Because DropSuite is itself a testing tool, it is worth being clear:
 
-- If **DropSuite behaves unsafely** — it keeps a secret it was meant to hide,
+- If **DropSuite behaves unsafely**, it keeps a secret it was meant to hide,
   reaches a host it should have refused, mishandles the root CA, or ships a bad
-  installer or update — that is a bug in DropSuite. Report it here.
+  installer or update, that is a bug in DropSuite. Report it here.
 - If you **found an issue in some website while using DropSuite**, that belongs
   to that website's owner, not to this project. Report it to them, and only
   test things you are allowed to test.

@@ -1,14 +1,14 @@
-# Roadmap DropSuite — Gabungan
+# Roadmap DropSuite: Gabungan
 
 Dua agen jalan paralel di folder sumber yang sama (`rea_software`),
 dikoordinasikan lewat git. Terakhir diperbarui: 2026-10-24.
 
 ## Pembagian peran
 
-- **DeepSeek — semua backend/mesin + command IPC.** Rust core (proxy, scanner,
+- **DeepSeek, semua backend/mesin + command IPC.** Rust core (proxy, scanner,
   OAST, HTTP/2, dll) dan command Tauri yang menyajikannya ke UI. Termasuk semua
   fitur di Jalur A **dan** fitur Jalur B yang butuh backend.
-- **Claude/Fraxzu — semua UI + shipping.** React/CSS/UX: panel, tombol, tampilan
+- **Claude/Fraxzu, semua UI + shipping.** React/CSS/UX: panel, tombol, tampilan
   hasil, dan menyambungkan UI ke command DeepSeek. Plus urusan rilis (GitHub,
   release, code signing, lisensi) yang bukan fitur.
 
@@ -23,7 +23,7 @@ commit; Claude lihat di git lalu bangun UI-nya.
 
 ---
 
-## Jalur A — DeepSeek (teks asli, tidak diubah)
+## Jalur A: DeepSeek (teks asli, tidak diubah)
 
 - [x] **Step 1-2: challenge detect, presets, jar, challenge browser**
 - [x] **Step 3a: h2 ALPN + h2 upstream for Replay/Fuzzer**
@@ -35,7 +35,7 @@ commit; Claude lihat di git lalu bangun UI-nya.
 > metadata cloud). Jaga semua test keamanan tetap hijau sebagai gerbang.
 
 ### Backend untuk quick win (DeepSeek, UI-nya oleh Claude)
-- [ ] Mesin **wordlist custom** untuk Content Discovery & Fuzzer (baca file) — *saat ini cuma 144 path bawaan*
+- [ ] Mesin **wordlist custom** untuk Content Discovery & Fuzzer (baca file), *saat ini cuma 144 path bawaan*
 - [ ] Fuzzer: mode **Pitchfork** & **Battering ram** + **Grep match/extract**
 - [ ] Backend **Save / Load project** (engagement terpisah per target)
 - [ ] (opsional) **WebSocket inspection**
@@ -44,10 +44,10 @@ commit; Claude lihat di git lalu bangun UI-nya.
 
 ---
 
-## Jalur B — Claude (UI + shipping)
+## Jalur B: Claude (UI + shipping)
 
-### B1. Shipping — jadikan "aplikasi beneran" (prioritas sekarang)
-- [ ] Push repo ke **GitHub** (privat dulu) — *repo & commit sudah siap, tinggal `gh auth login` + push*
+### B1. Shipping: jadikan "aplikasi beneran" (prioritas sekarang)
+- [ ] Push repo ke **GitHub** (privat dulu), *repo & commit sudah siap, tinggal `gh auth login` + push*
 - [ ] **Rilis pertama** di GitHub Releases (tag versi) → mengaktifkan auto-update
 - [ ] **Code signing** installer → hilangkan peringatan SmartScreen
 - [ ] **Pilih lisensi** (MIT / Apache-2.0 / GPL)

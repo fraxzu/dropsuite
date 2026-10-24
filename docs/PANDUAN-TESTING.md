@@ -151,8 +151,8 @@ curl.exe -x http://127.0.0.1:8080 -H "Authorization: Bearer token-asli-123" -H "
 Gunakan hanya ke server uji lokal atau target latihan.
 
 - [ ] Buka **Fuzzer** dan isi template request, misalnya `http://127.0.0.1:9090/api/status?id=1`. Pilih teks yang mau diganti (misalnya `1`), lalu **Add position**. Teks dibungkus `{{ }}`.
-- [ ] **Sniper** dengan payload **List** (3–5 kata), lalu **Start attack**. Hasil mengalir satu per satu dengan status dan panjang respons.
-- [ ] Payload **Number range** (misalnya 1–20).
+- [ ] **Sniper** dengan payload **List** (3-5 kata), lalu **Start attack**. Hasil mengalir satu per satu dengan status dan panjang respons.
+- [ ] Payload **Number range** (misalnya 1-20).
 - [ ] Dua posisi dan **Cluster bomb**. Jumlah request = jumlah payload set 1 × payload set 2.
 - [ ] **Presets** memuat daftar bawaan.
 - [ ] Atur concurrency dan delay. Kecepatan serangan berubah.
@@ -204,3 +204,11 @@ Catat untuk setiap masalah:
 1. Bagian dan langkah di panduan ini (misalnya "6. Intercept, langkah ke-4").
 2. Yang dilakukan, yang diharapkan, dan yang terjadi.
 3. Screenshot, dan bila perlu file log dari folder log (lihat di Listener settings).
+
+## Active scan (uji aktif)
+
+Mode **Active** di Scanner mengirim request sungguhan, satu titik suntik per kali, ke situs yang
+Anda punya izin untuk menguji. Empat pemeriksaan: reflected XSS (confidensi tinggi hanya bila
+marker pantul tanpa di-encode), SQL error-based, path traversal, dan open redirect. Setiap temuan
+menyertakan bukti (potongan respons) dan tingkat keyakinan. Berjalan berurutan dengan delay,
+berhenti saat target membalas 403/429 beruntun, dan patuhi batas request maksimum.

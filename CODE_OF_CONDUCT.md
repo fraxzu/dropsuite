@@ -11,7 +11,7 @@ Be decent. Teach when you can. Test only what you are allowed to.
 ## What we ask
 
 - Treat people the way you would want a senior researcher to treat you on your
-  first day — patiently, and without ego.
+  first day, patiently, and without ego.
 - Critique the code and the idea, never the person.
 - Keep it useful: reproducible reports, clear pull requests, honest trade-offs.
 - Handle real security flaws privately (see [SECURITY.md](SECURITY.md)), not as
@@ -21,7 +21,7 @@ Be decent. Teach when you can. Test only what you are allowed to.
 
 - Harassment, slurs, or discrimination of any kind.
 - Posting anyone's private information.
-- Using DropSuite — or egging others on to use it — against systems you do not
+- Using DropSuite, or egging others on to use it, against systems you do not
   own and have no written permission to test, and bragging about it here. This
   project exists for authorized testing and education; that line is not up for
   debate.

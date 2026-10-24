@@ -2,7 +2,7 @@
 
 DropSuite is a free alternative to the workflows other proxies lock behind a
 paid tier, and it stays that way because people pitch in. Code, docs, tests, a
-good bug report, or a better wordlist — all of it helps.
+good bug report, or a better wordlist, all of it helps.
 
 > DropSuite is for authorized testing and education only. Please keep examples,
 > issues and test targets to systems you own or have written permission to test
@@ -25,13 +25,13 @@ node frontend/node_modules/@tauri-apps/cli/tauri.js build
 
 ## How the project is laid out
 
-- `crates/dropsuite-core` — the engine (proxy, HTTPS interception, CA, replay,
+- `crates/dropsuite-core`: the engine (proxy, HTTPS interception, CA, replay,
   intruder, scope, cookies, challenge detection, storage). No GUI dependency.
-- `crates/dropsuite-app` — the Tauri desktop app (IPC commands, engine setup).
-- `crates/dropsuite-desktop` — headless dev daemon with an HTTP bridge.
-- `crates/dropsuite-cli` — CLI tools, including a local mock upstream.
-- `frontend/` — React + Vite UI.
-- `docs/` — architecture, security model, and testing guides.
+- `crates/dropsuite-app`: the Tauri desktop app (IPC commands, engine setup).
+- `crates/dropsuite-desktop`: headless dev daemon with an HTTP bridge.
+- `crates/dropsuite-cli`: CLI tools, including a local mock upstream.
+- `frontend/`: React + Vite UI.
+- `docs/`: architecture, security model, and testing guides.
 
 ## Before you open a pull request
 
@@ -47,9 +47,9 @@ node frontend/node_modules/@tauri-apps/cli/tauri.js build
 Register it in **all three** places, or it fails at runtime with "not allowed
 by ACL" (the Rust tests do not catch this, because they call the core directly):
 
-1. `crates/dropsuite-app/src/main.rs` — `generate_handler![...]`
-2. `crates/dropsuite-app/build.rs` — the commands list
-3. `crates/dropsuite-app/capabilities/main-window.json` — `"allow-<name>"`
+1. `crates/dropsuite-app/src/main.rs`: `generate_handler![...]`
+2. `crates/dropsuite-app/build.rs`: the commands list
+3. `crates/dropsuite-app/capabilities/main-window.json`: `"allow-<name>"`
 
 ### Style notes
 
@@ -60,4 +60,4 @@ by ACL" (the Rust tests do not catch this, because they call the core directly):
 ## Reporting bugs
 
 Open an issue with steps to reproduce, what you expected, and what happened.
-For **security** problems, do not open a public issue — see `SECURITY.md`.
+For **security** problems, do not open a public issue, see `SECURITY.md`.

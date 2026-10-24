@@ -1,38 +1,78 @@
+<div align="center">
+
+<img src="docs/assets/dropsuite-mark.svg" alt="DropSuite" width="96" height="96" />
+
 # DropSuite
 
-A local-first, intercepting web security testing platform — a free workspace for
-authorized web application testing. Built in Rust (Tokio) + SQLite with a Tauri 2
-desktop shell and a React UI.
+A local-first, intercepting web security testing proxy. Free, with no paywalled core.
 
-> **Status: alpha / work in progress.** Interfaces and data formats may change.
+[![License: MIT](https://img.shields.io/badge/License-MIT-3d8bff.svg)](LICENSE)
+![Status: alpha](https://img.shields.io/badge/status-alpha-e8a43c.svg)
+![Platform: Windows](https://img.shields.io/badge/platform-Windows-6ea8ff.svg)
 
-> **License:** [MIT](LICENSE). See also the [code of conduct](CODE_OF_CONDUCT.md),
-> [contributing guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
+</div>
+
+DropSuite sits between your browser and a target, then captures, inspects, replays and fuzzes the
+HTTP traffic that passes through. It is built for one person testing one target on their own
+machine. Everything it captures stays in a local SQLite file, and the app makes no analytics or
+pingback calls of its own.
+
+It is written in Rust (Tokio) with a Tauri 2 desktop shell and a React UI. The engine has no GUI
+dependency, so it also runs headless.
+
+> **Authorized use only.** Test systems you own or have written permission to test, or deliberately
+> vulnerable practice targets such as OWASP Juice Shop. You are responsible for how you use it.
+
+<div align="center">
+  <img src="docs/assets/shots/proxy-history.png" alt="DropSuite proxy history and request inspector" width="900" />
+</div>
 
 ## What it does
 
-- **Proxy + HTTPS interception** — capture traffic on `127.0.0.1:8080`; decrypt only
-  the hosts you allowlist (others are tunnelled untouched). The root CA is created only
-  when you click Generate, stored DPAPI-protected, and never installed into any trust store.
-- **HTTP history** — searchable, filterable, with a request/response inspector. Credentials
-  are redacted at the storage boundary. Export to HAR. Clear with one button.
-- **Intercept** — hold, edit, forward or drop requests and responses.
-- **Target** — site map, scope rules, match & replace.
-- **Replay** — edit and resend a request; per-tab attempt history; side-by-side diff.
-- **Fuzzer** — Sniper / Cluster bomb with payload positions.
-- **Decoder / Comparer** — local encode/decode and text diff.
-- **Scanner** — passive checks across captured traffic; content discovery.
-- **Drop AI** — bring your own model and key; secrets redacted before anything is sent.
-- **Fingerprint & challenge handling** — browser header presets, a cookie jar, and an
-  embedded browser to solve interactive challenges on sites **you are authorized to test**.
+**Proxy and HTTPS interception.** An HTTP/1.1 forward proxy on `127.0.0.1:8080`. HTTPS is decrypted
+only for the hosts you add to an allowlist; everything else is tunnelled untouched. The root CA
+exists only after you click Generate, its private key is stored encrypted with Windows DPAPI, and
+it is never installed into any trust store.
 
-Everything stays on your machine. The app makes no analytics or pingback calls.
+**HTTP history and inspector.** Every request and response, searchable and filterable, with a
+request and response view that shows headers, body and timing. Credentials are redacted before they
+are written to disk, so the saved history never keeps the real token. You can reveal the real value
+in the app when you need it, held in memory for the session only and never saved.
 
-## Authorized use only
+**Intercept.** Hold a request or response, edit it, then forward or drop it.
 
-DropSuite is for testing systems you own or have **written permission** to test. Using it
-to probe or bypass protections on systems you do not control may be illegal. You are
-responsible for how you use it.
+**Target tools.** A site map built from captured traffic, scope rules, and match and replace rules
+applied to requests and responses in flight.
+
+**Replay.** Edit one request and resend it. Each tab keeps its own attempt history, and you can
+compare two responses side by side.
+
+**Fuzzer.** Mark positions in a request and run Sniper or Cluster bomb with your own payload lists
+or a loaded wordlist. Out of scope and restricted targets are refused, not sent.
+
+**Decoder and Comparer.** Encode and decode Base64, URL, Hex, HTML and JWT, all locally. Diff two
+texts line by line.
+
+**Scanner.** Passive checks across the captured history, grouped by type and severity, plus content
+discovery against a target. An active scanner is in progress (see Status).
+
+**Drop AI.** Bring your own model and key. Secrets are redacted and the exact prompt is previewed
+before anything is sent, and requests go straight to your endpoint, never through the proxy.
+
+<div align="center">
+  <img src="docs/assets/shots/scanner.png" alt="Passive scanner findings" width="440" />
+  <img src="docs/assets/shots/replay.png" alt="Replay editor and response" width="440" />
+  <br/>
+  <img src="docs/assets/shots/target-sitemap.png" alt="Target site map" width="440" />
+  <img src="docs/assets/shots/fuzzer.png" alt="Fuzzer attack setup" width="440" />
+</div>
+
+## Install
+
+1. Download the latest `DropSuite_0.1.0_x64-setup.exe` from the releases.
+2. Run it. The installer is per user and does not need admin rights.
+3. The installer is not code signed yet, so Windows SmartScreen will warn on first run. Choose
+   **More info** then **Run anyway**, and verify the published SHA-256 of the file you downloaded.
 
 ## Build from source
 
@@ -45,20 +85,39 @@ cd frontend && npm install && npm run build && cd ..
 # Run the tests
 cargo test --workspace
 
-# Build the desktop app + installer (output under target/release/bundle/nsis)
+# Build the desktop app and installer
 node frontend/node_modules/@tauri-apps/cli/tauri.js build
 ```
 
-The installer is currently unsigned, so Windows SmartScreen will warn on first run
-(More info → Run anyway).
+## Status
+
+DropSuite is alpha. These are shipped and covered by the test suite:
+
+- Proxy, HTTPS interception, intercept, HTTP history with redaction
+- Site map, scope, match and replace
+- Replay with per tab history and response diffing
+- Fuzzer (Sniper and Cluster bomb), custom wordlists
+- Decoder, Comparer
+- Passive scanner and content discovery
+- Cookie jar and interactive challenge handling
+- Drop AI (bring your own key)
+
+In progress: an active scanner with evidence and confidence scoring, and out of band detection.
+Interfaces and data formats can still change.
 
 ## Layout
 
-- `crates/dropsuite-core` — the engine (proxy, HTTPS interception, CA, replay, intruder,
-  scope, cookies, challenge detection, storage).
-- `crates/dropsuite-app` — the Tauri desktop app (IPC commands, engine setup).
-- `crates/dropsuite-desktop` — headless dev daemon with an HTTP bridge for UI work in a browser.
-- `crates/dropsuite-cli` — CLI tools, including a local mock upstream for testing.
-- `frontend/` — React + Vite UI.
-- `docs/` — architecture, security model, and the Indonesian testing guides
-  (`PANDUAN-TESTING.md`, `PANDUAN-UJI-CHALLENGE.md`).
+- `crates/dropsuite-core`: the engine (proxy, HTTPS interception, CA, replay, intruder, scope,
+  cookies, challenge detection, storage). No GUI dependency.
+- `crates/dropsuite-app`: the Tauri desktop app (IPC commands, engine setup).
+- `crates/dropsuite-desktop`: a headless dev daemon with an HTTP bridge.
+- `crates/dropsuite-cli`: CLI tools, including a local mock upstream.
+- `frontend/`: the React and Vite UI.
+- `docs/`: architecture, the security model, and testing guides.
+
+## Community
+
+- [License: MIT](LICENSE)
+- [Code of conduct](CODE_OF_CONDUCT.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)

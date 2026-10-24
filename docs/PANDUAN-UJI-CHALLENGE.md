@@ -11,7 +11,7 @@ muncul, dan apa artinya kalau tidak muncul.
 ## 1. Yang sedang diuji
 
 Cloudflare memasang tes kecil sebelum situs dibuka. Kalau lolos, Cloudflare memberi cookie
-`cf_clearance` — semacam kartu akses berdurasi pendek. Selama kartu itu dipegang, request
+`cf_clearance`, semacam kartu akses berdurasi pendek. Selama kartu itu dipegang, request
 berikutnya tidak dites lagi.
 
 DropSuite tidak punya mesin JavaScript, jadi tesnya dikerjakan di jendela browser bawaan
@@ -35,7 +35,7 @@ store jendela lewat WebView2 untuk host yang sama, lalu menyimpannya.
 - Uji hanya situs milik sendiri atau yang ada izinnya.
 - Aplikasi harus versi terbaru. Kalau muncul `not allowed by ACL`, yang terpasang lebih tua.
 - Root CA harus sudah dibuat (Listener → **Generate Root CA**) agar HTTPS bisa dibaca.
-- Untuk situs yang diuji, jangan masukkan host-nya ke allowlist MITM kalau ingin uji challenge —
+- Untuk situs yang diuji, jangan masukkan host-nya ke allowlist MITM kalau ingin uji challenge , 
   jendela challenge men-tunnel sendiri, dan tunnel butuh host tidak di-MITM.
 
 ---
@@ -66,7 +66,7 @@ Pada baris fakta respons ada jumlah `jar: N` = berapa cookie jar yang benar-bena
 | Hasil | Arti |
 |---|---|
 | `200` + halaman asli, `jar: 1` atau lebih | Lolos. Cookie dipakai. |
-| `200` tapi halaman tetap layar challenge | Cookie terkirim tetapi ditolak — biasanya karena sidik jari (lihat Bagian 5) |
+| `200` tapi halaman tetap layar challenge | Cookie terkirim tetapi ditolak, biasanya karena sidik jari (lihat Bagian 5) |
 | `403`, `jar: 0` | Tidak ada cookie yang cocok. Lihat Bagian 6. |
 | `403`, `jar: 1+` | Cookie dikirim, masih ditolak |
 
@@ -102,7 +102,7 @@ membuatnya ditolak:
    harus memakai path yang sama atau di bawahnya.
 5. **Cookie sudah kedaluwarsa.** Daftar jar akan mengosongkannya; impor ulang.
 
-Kalau sudah benar semua tetapi `jar` tetap 0, kirim isi daftar jar (nama, host, path) — jangan
+Kalau sudah benar semua tetapi `jar` tetap 0, kirim isi daftar jar (nama, host, path), jangan
 nilai cookie-nya.
 
 ---
