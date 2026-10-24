@@ -69,7 +69,7 @@ before anything is sent, and requests go straight to your endpoint, never throug
 
 ## Install
 
-1. Download the latest `DropSuite_0.1.0_x64-setup.exe` from the releases.
+1. Download the latest `DropSuite_*_x64-setup.exe` from the releases.
 2. Run it. The installer is per user and does not need admin rights.
 3. The installer is not code signed yet, so Windows SmartScreen will warn on first run. Choose
    **More info** then **Run anyway**, and verify the published SHA-256 of the file you downloaded.

@@ -10,6 +10,7 @@ import {
   BrowserPreset,
   CookieRow,
   ImportOutcome,
+  ActiveScanReport,
   IntruderAttack,
   IntruderStatus,
   InterceptStatus,
@@ -75,6 +76,14 @@ export const engine = {
   transaction: (id: number) =>
     call(() => invoke<TransactionRecord>('get_transaction', { id }), () => http<TransactionRecord>(`/api/history/${id}`)),
 
+  /** The unredacted copy of a transaction, from the session-only in-memory cache. Null once it is
+   *  no longer held (never saved to disk). Desktop only. */
+  getTransactionUnredacted: (id: number) =>
+    call(
+      () => invoke<TransactionRecord | null>('get_transaction_unredacted', { id }),
+      () => Promise.reject(new Error('Desktop only')),
+    ),
+
   setRunning: (run: boolean) =>
     call(
       async () => {
@@ -139,6 +148,12 @@ export const engine = {
     call(
       () => invoke<ImportOutcome>('import_challenge_cookies', { host }),
       () => Promise.reject(new Error('The challenge browser is available in the desktop app.')),
+    ),
+
+  startActiveScan: (request: { method: string; url: string; headers: [string, string][]; body: string }, maxRequests: number, delayMs: number) =>
+    call(
+      () => invoke<ActiveScanReport>('start_active_scan', { request, maxRequests, delayMs }),
+      () => Promise.reject(new Error('Active scanning is available in the desktop app.')),
     ),
 
   getApplySettings: () =>

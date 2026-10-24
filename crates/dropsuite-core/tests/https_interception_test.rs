@@ -230,7 +230,7 @@ async fn successful_tls_interception_and_capture() {
 
     // Send an HTTP request over the intercepted TLS tunnel
     let http_req =
-        format!("GET /test-path HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
+        "GET /test-path HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n".to_string();
     tls_client.write_all(http_req.as_bytes()).await.unwrap();
 
     let mut response_buf = vec![0u8; 2048];
@@ -681,7 +681,7 @@ async fn ca_removal_clears_in_memory_state() {
 #[tokio::test]
 async fn non_loopback_listener_bind_is_rejected() {
     let dir = temp_dir("non-loopback");
-    let storage = StorageManager::new(&dir.join("test.db")).unwrap();
+    let storage = StorageManager::new(dir.join("test.db")).unwrap();
 
     // 0.0.0.0 (all interfaces) must fail closed
     let mut proxy_any = ProxyEngine::new("0.0.0.0", 0, storage.clone());
@@ -756,8 +756,8 @@ async fn dns_resolution_connection_pinning_prevents_toctou() {
         .await
         .expect("Must connect to pinned SocketAddr without DNS resolution");
 
-    let mut reader = upstream.reader;
-    let mut writer = upstream.writer;
+    // h2 may be negotiated; the fixture offers h2, so force the h1 half for this framing test.
+    let (mut reader, mut writer) = tokio::io::split(upstream.stream);
 
     let req = format!(
         "GET /pinning-test HTTP/1.1\r\nHost: {unresolvable_host}\r\nConnection: close\r\n\r\n"
@@ -830,7 +830,7 @@ async fn tls_session_request_rechecks_destination_after_rebinding() {
     // The request inside the TLS session resolves again and now gets the metadata address: it
     // must be refused before the pinned upstream connect is attempted.
     let dir = temp_dir("rebind");
-    let storage = StorageManager::new(&dir.join("test.db")).unwrap();
+    let storage = StorageManager::new(dir.join("test.db")).unwrap();
     let mut proxy = ProxyEngine::new("127.0.0.1", 0, storage);
     proxy.set_https_interception(HttpsInterceptConfig {
         ca_dir: dir.join("ca"),
@@ -990,7 +990,7 @@ async fn handshake_trusting(stream: TcpStream, ca_pem: &str) -> Result<(), std::
 async fn allowlisted_connect_without_ca_fails_closed_and_creates_none() {
     // A proxy whose user never pressed Generate: no CA exists, and interception must not make one.
     let dir = temp_dir("no-ca");
-    let storage = StorageManager::new(&dir.join("test.db")).unwrap();
+    let storage = StorageManager::new(dir.join("test.db")).unwrap();
     let mut proxy = ProxyEngine::new("127.0.0.1", 0, storage);
     proxy.set_https_interception(HttpsInterceptConfig {
         ca_dir: dir.join("ca"),

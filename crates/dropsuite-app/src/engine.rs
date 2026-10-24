@@ -59,6 +59,9 @@ impl Engine {
             upstream_roots: Vec::new(),
         };
         proxy.set_https_interception(https_cfg);
+        proxy.set_tls_profile(dropsuite_core::TlsProfile::for_preset(
+            settings.header_preset,
+        ));
         tracing::info!("History database opened; listener port {port} (capture off until started)");
         Ok(Engine {
             storage,

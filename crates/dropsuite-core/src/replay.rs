@@ -117,6 +117,7 @@ fn invalid(message: impl Into<String>) -> ReplayError {
     ReplayError::new("invalid", message)
 }
 
+#[derive(Clone)]
 pub struct ReplayOptions {
     pub connect_timeout: Duration,
     /// How long to wait for the response head once the request is sent. The body then
@@ -144,6 +145,8 @@ pub struct ApplyConfig {
     pub force_preset: bool,
     /// Exact User-Agent of that window, which Cloudflare binds the clearance cookie to.
     pub pin_user_agent: Option<String>,
+    /// ClientHello shape sent to the destination.
+    pub tls_profile: crate::tls_profile::TlsProfile,
 }
 
 /// Test seams for [`send_with`]. The default (what [`send`] uses) is system DNS and no gate.
@@ -301,7 +304,7 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
     let mut lines = String::new();
     let mut dropped = Vec::new();
     let mut existing_cookie: Option<String> = None;
-    for (name, value) in headers.iter().copied() {
+    for (name, value) in headers.iter() {
         let name = name.trim();
         if !is_token(name) {
             return Err(invalid(format!(
@@ -640,9 +643,13 @@ pub async fn send_with(
                 let _ = root_store.add(root.clone());
             }
         }
-        let mut client_config = ClientConfig::builder()
-            .with_root_certificates(root_store)
-            .with_no_client_auth();
+        let mut client_config = ClientConfig::builder_with_provider(crate::tls_profile::provider(
+            opts.apply.tls_profile,
+        ))
+        .with_safe_default_protocol_versions()
+        .expect("rustls default protocol versions are supported")
+        .with_root_certificates(root_store)
+        .with_no_client_auth();
         // Offer h2 first: bot protection notices a bare h1-only client. The branch below only
         // speaks h2 when the destination selects it, so a h1-only server is unaffected.
         client_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];

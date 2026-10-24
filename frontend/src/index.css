@@ -1700,6 +1700,22 @@ body.resizing-col * {
   flex-shrink: 0;
 }
 
+.reveal-note {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.sitemap-clear {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  height: 22px;
+  font-size: var(--fs-xs);
+}
+
 .pane-title {
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -2597,6 +2613,14 @@ span.ab.b {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 4px 12px;
+}
+/* Keep the controls inside their grid cell. Without min-width:0 a <select> grows
+   to its longest option ("Sniper (one set, each position in turn)") and spills
+   over the next field. */
+.fz-controls select,
+.fz-controls input {
+  min-width: 0;
+  width: 100%;
 }
 .fuzzer .field {
   grid-template-columns: 92px 1fr;

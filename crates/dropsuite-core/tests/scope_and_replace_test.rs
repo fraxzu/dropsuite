@@ -5,8 +5,10 @@ use dropsuite_core::{
 
 #[test]
 fn test_scope_wildcard_and_prefix_evaluation() {
-    let mut config = ScopeConfig::default();
-    config.enabled = true;
+    let mut config = ScopeConfig {
+        enabled: true,
+        ..Default::default()
+    };
     config.drop_out_of_scope = true;
     config.rules = vec![
         ScopeRule {
@@ -162,8 +164,10 @@ fn test_match_replace_comprehensive_rules() {
 
 #[test]
 fn test_sitemap_building_and_scope_tagging() {
-    let mut scope_cfg = ScopeConfig::default();
-    scope_cfg.enabled = true;
+    let mut scope_cfg = ScopeConfig {
+        enabled: true,
+        ..Default::default()
+    };
     scope_cfg.rules = vec![ScopeRule {
         id: "target_scope".into(),
         enabled: true,

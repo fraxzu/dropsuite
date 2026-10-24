@@ -115,6 +115,22 @@ impl H2Call {
         Ok(total)
     }
 
+    /// Hand the send stream and the pending response to the caller, for adapters that speak
+    /// AsyncWrite/AsyncRead.
+    pub fn split(
+        self,
+    ) -> (
+        h2::SendStream<Bytes>,
+        h2::client::ResponseFuture,
+        tokio::task::JoinHandle<()>,
+    ) {
+        (
+            self.sender,
+            self.response.expect("response future is taken once"),
+            self.driver,
+        )
+    }
+
     /// Stop the connection driver.
     pub fn finish(self) {
         self.driver.abort();
@@ -222,8 +238,10 @@ where
     Ok(head)
 }
 
+type ParsedHead = (String, String, Method, Vec<(String, String)>);
+
 /// Split a prepared request head into authority, target, method and fields.
-fn parse_head(head: &[u8]) -> Result<(String, String, Method, Vec<(String, String)>), String> {
+fn parse_head(head: &[u8]) -> Result<ParsedHead, String> {
     let mut fields = [httparse::EMPTY_HEADER; crate::http1::MAX_HEADERS];
     let mut request = httparse::Request::new(&mut fields);
     match request.parse(head) {

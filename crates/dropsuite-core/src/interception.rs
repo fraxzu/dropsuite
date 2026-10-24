@@ -205,6 +205,7 @@ impl InterceptManager {
     }
 
     /// Submit a request to be held for user decision. Returns a oneshot receiver for the decision.
+    #[allow(clippy::too_many_arguments)]
     pub async fn hold_request(
         &self,
         method: String,
@@ -272,6 +273,7 @@ impl InterceptManager {
     }
 
     /// Submit a response to be held for user decision. Returns a oneshot receiver for the decision.
+    #[allow(clippy::too_many_arguments)]
     pub async fn hold_response(
         &self,
         method: String,

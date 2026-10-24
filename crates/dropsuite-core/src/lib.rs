@@ -1,7 +1,9 @@
+pub mod active_scan;
 pub mod allowlist;
 pub mod ca;
 pub mod challenge;
 pub mod cookies;
+pub mod evidence;
 pub mod header_preset;
 pub mod http1;
 pub mod http2;
@@ -16,11 +18,16 @@ pub mod sanitize;
 pub mod scope;
 pub mod sitemap;
 pub mod storage;
+pub mod tls_profile;
+pub mod waf_detect;
+pub mod xss_context;
 
+pub use active_scan::{ActiveFinding, CheckKind, Confidence, ScanOptions, ScanReport};
 pub use allowlist::InterceptAllowlist;
 pub use ca::CaStatus;
 pub use challenge::{ChallengeKind, ChallengeSignal, ChallengeVendor};
 pub use cookies::StoredCookie;
+pub use evidence::{BodyDiff, Evidence, HttpPair, Insertion, InsertionKind, Repro};
 pub use header_preset::BrowserPreset;
 pub use https::{HttpsInterceptConfig, HttpsInterception, LeafCache, LeafEntry};
 pub use interception::{
@@ -42,3 +49,4 @@ pub use sanitize::sanitize_record;
 pub use scope::{ScopeConfig, ScopeEngine, ScopeRule, ScopeRuleType};
 pub use sitemap::{build_sitemap, SiteNodeSummary};
 pub use storage::{LegacyAudit, StorageManager};
+pub use tls_profile::TlsProfile;

@@ -116,7 +116,7 @@ async fn start_proxy_on(
     intercept: Option<&[&str]>,
 ) -> (ProxyEngine, StorageManager, u16) {
     let dir = temp_dir(tag);
-    let storage = StorageManager::new(&dir.join("test.db")).unwrap();
+    let storage = StorageManager::new(dir.join("test.db")).unwrap();
     let mut proxy = ProxyEngine::new(bind, 0, storage.clone());
     if let Some(entries) = intercept {
         let allowlist = InterceptAllowlist::from_user_entries(
@@ -582,7 +582,7 @@ async fn own_loopback_listener_is_refused_in_both_families() {
 #[tokio::test]
 async fn non_loopback_ipv6_bind_addresses_are_still_rejected() {
     let dir = temp_dir("bind6");
-    let storage = StorageManager::new(&dir.join("test.db")).unwrap();
+    let storage = StorageManager::new(dir.join("test.db")).unwrap();
     // `::` used to canonicalize to 0.0.0.0; it must still be refused now that it stays IPv6.
     for bind in ["::", "::ffff:192.168.1.1", "fd00::1", "fe80::1"] {
         let mut proxy = ProxyEngine::new(bind, 0, storage.clone());

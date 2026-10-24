@@ -220,7 +220,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 cors, json.len(), json
                             );
                             let _ = stream.write_all(resp.as_bytes()).await;
-                            return;
                         }
                     } else if let Some(id_str) = path.strip_prefix("/api/intercept/drop/") {
                         if let Ok(id) = id_str.parse::<u64>() {
@@ -235,7 +234,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 cors, json.len(), json
                             );
                             let _ = stream.write_all(resp.as_bytes()).await;
-                            return;
                         }
                     } else if let Some(id_str) = path.strip_prefix("/api/history/") {
                         if let Ok(id) = id_str.parse::<i64>() {
@@ -288,7 +286,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 let _ = storage.delete_repeater_tab(id);
                                 let resp = format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{}Content-Length: 15\r\n\r\n{{\"status\":\"ok\"}}", cors);
                                 let _ = stream.write_all(resp.as_bytes()).await;
-                                return;
                             }
                         }
                     } else if path == "/api/repeater/attempts" && method == "GET" {

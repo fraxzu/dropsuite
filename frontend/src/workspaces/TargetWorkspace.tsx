@@ -20,7 +20,7 @@ import {
   TransactionSummary,
 } from '../types';
 import { useHistory, useTransaction } from '../lib/api';
-import { matchReplace, scope } from '../lib/transport';
+import { engine, matchReplace, scope } from '../lib/transport';
 import { useStoredState } from '../lib/useStoredState';
 import { HistoryGrid, SortState, sortRows } from '../components/HistoryGrid';
 import { Inspector } from '../components/Inspector';
@@ -52,11 +52,30 @@ export const TargetWorkspace: React.FC<TargetWorkspaceProps> = ({
   const [subtab, setSubtab] = useStoredState<TargetSubtab>('target.subtab', 'sitemap');
 
   // ================= SITE MAP STATE =================
-  const { items } = useHistory({ q: '', method: '' }, active);
+  const { items, refresh } = useHistory({ q: '', method: '' }, active);
   const all = items ?? [];
   const roots = useMemo(() => buildSiteTree(all), [all]);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  // The site map is built from HTTP history, so clearing it clears the shared history
+  // (this also empties the Proxy history and the Scanner). Nothing is sent.
+  const clearSitemap = async () => {
+    const n = all.length;
+    if (n === 0) return;
+    if (!window.confirm(`Delete all ${n} captured request(s)? This clears the site map, the Proxy history and the Scanner. This cannot be undone.`)) {
+      return;
+    }
+    try {
+      const removed = await engine.clearHistory();
+      setSelectedKey(null);
+      setSelectedId(null);
+      await refresh();
+      onToast(`Cleared ${removed} request(s)`);
+    } catch (err) {
+      onToast(`Clear failed: ${err}`);
+    }
+  };
   const [expandedList, setExpandedList] = useStoredState<string[]>('target.expanded', []);
   const expanded = useMemo(() => new Set(expandedList), [expandedList]);
   const [treeW, setTreeW] = useStoredState<number>('target.treeWidth', 300);
@@ -443,6 +462,7 @@ export const TargetWorkspace: React.FC<TargetWorkspaceProps> = ({
               }}
               expanded={expanded}
               onExpanded={(s) => setExpandedList([...s])}
+              onClear={clearSitemap}
               footer={
                 truncated ? (
                   <div className="trunc-note">

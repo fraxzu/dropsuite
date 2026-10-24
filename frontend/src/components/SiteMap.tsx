@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, FileText, Folder, Globe, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, Folder, Globe, Search, Trash2, X } from 'lucide-react';
 import { TransactionSummary } from '../types';
 import { displayPath, splitPathQuery, statusClass } from '../lib/http';
 
@@ -71,11 +71,12 @@ interface SiteMapProps {
   expanded: Set<string>;
   onExpanded: (next: Set<string>) => void;
   footer?: React.ReactNode;
+  onClear?: () => void;
 }
 
 const DOT_ORDER = ['s2', 's3', 's4', 's5'];
 
-export const SiteMap: React.FC<SiteMapProps> = ({ roots, selectedKey, onSelect, expanded, onExpanded, footer }) => {
+export const SiteMap: React.FC<SiteMapProps> = ({ roots, selectedKey, onSelect, expanded, onExpanded, footer, onClear }) => {
   const [filter, setFilter] = useState('');
   const treeRef = useRef<HTMLDivElement>(null);
   const f = filter.trim().toLowerCase();
@@ -156,6 +157,15 @@ export const SiteMap: React.FC<SiteMapProps> = ({ roots, selectedKey, onSelect, 
         <span className="pane-sub">
           {hostCount} {hostCount === 1 ? 'host' : 'hosts'}
         </span>
+        {onClear && hostCount > 0 && (
+          <button
+            className="btn sitemap-clear"
+            onClick={onClear}
+            title="Clear the site map and all captured history (also empties the Proxy history and Scanner)"
+          >
+            <Trash2 size={12} /> Clear
+          </button>
+        )}
       </div>
       <div className="tree-filter">
         <div className="search">

@@ -1,7 +1,9 @@
+use std::future::Future;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt, ReadBuf};
@@ -13,6 +15,7 @@ use tracing::{error, info, warn};
 use crate::allowlist::{normalize_host, InterceptAllowlist};
 use crate::ca::{CaError, CaStatus};
 use crate::http1::{self, BodyFraming, Capture, Captured, CopyError, FrameError, HeadInfo, Reader};
+use crate::http2;
 use crate::https::{HttpsInterceptConfig, HttpsInterception, TlsError};
 use crate::interception::{HoldError, InterceptAction, InterceptManager, MAX_INTERCEPT_BODY_SIZE};
 use crate::match_replace::MatchReplaceEngine;
@@ -109,9 +112,166 @@ struct ExchangeCtx<'a> {
 type BoxedRead = Box<dyn AsyncRead + Send + Unpin>;
 type BoxedWrite = Box<dyn AsyncWrite + Send + Unpin>;
 
-struct Upstream {
-    reader: Reader<BoxedRead>,
-    writer: BoxedWrite,
+/// Upstream connection. HTTP/2 keeps the TLS stream so the request can be spoken over h2;
+/// HTTP/1.1 is split into the reader/writer pair the relay works with.
+enum Upstream {
+    H1 {
+        reader: Reader<BoxedRead>,
+        writer: BoxedWrite,
+    },
+    H2(Box<tokio_rustls::client::TlsStream<TcpStream>>),
+}
+
+struct H2Reader {
+    response: Option<h2::client::ResponseFuture>,
+    state: Option<H2Body>,
+    driver: tokio::task::JoinHandle<()>,
+}
+
+struct H2Body {
+    prefix: Vec<u8>,
+    pos: usize,
+    stream: h2::RecvStream,
+    chunk: Option<bytes::Bytes>,
+}
+
+impl H2Reader {
+    fn new(response: h2::client::ResponseFuture, driver: tokio::task::JoinHandle<()>) -> Self {
+        H2Reader {
+            response: Some(response),
+            state: None,
+            driver,
+        }
+    }
+
+    /// Turn the h2 response into the HTTP/1.1 head `Reader` expects, then stream its body.
+    fn materialize(&mut self, response: http::Response<h2::RecvStream>) -> H2Body {
+        let (parts, body) = response.into_parts();
+        let mut prefix = Vec::new();
+        let reason = parts.status.canonical_reason().unwrap_or("");
+        prefix.extend_from_slice(
+            format!("HTTP/1.1 {} {}\r\n", parts.status.as_u16(), reason).as_bytes(),
+        );
+        for (name, value) in parts.headers.iter() {
+            prefix.extend_from_slice(name.as_str().as_bytes());
+            prefix.extend_from_slice(b": ");
+            prefix.extend_from_slice(value.as_bytes());
+            prefix.extend_from_slice(b"\r\n");
+        }
+        prefix.extend_from_slice(b"\r\n");
+        H2Body {
+            prefix,
+            pos: 0,
+            stream: body,
+            chunk: None,
+        }
+    }
+}
+
+impl AsyncRead for H2Reader {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        if self.state.is_none() {
+            let Some(mut fut) = self.response.take() else {
+                return Poll::Ready(Ok(()));
+            };
+            match Pin::new(&mut fut).poll(cx) {
+                Poll::Pending => {
+                    self.response = Some(fut);
+                    return Poll::Pending;
+                }
+                Poll::Ready(Err(e)) => {
+                    return Poll::Ready(Err(std::io::Error::other(format!("h2 response: {e}"))))
+                }
+                Poll::Ready(Ok(response)) => {
+                    let body = self.materialize(response);
+                    self.state = Some(body);
+                }
+            }
+        }
+
+        let state = self.state.as_mut().expect("state set above");
+        loop {
+            if state.pos < state.prefix.len() {
+                let take = (state.prefix.len() - state.pos).min(buf.remaining());
+                buf.put_slice(&state.prefix[state.pos..state.pos + take]);
+                state.pos += take;
+                return Poll::Ready(Ok(()));
+            }
+            if let Some(chunk) = state.chunk.take() {
+                if buf.remaining() == 0 {
+                    state.chunk = Some(chunk);
+                    return Poll::Ready(Ok(()));
+                }
+                let take = chunk.len().min(buf.remaining());
+                buf.put_slice(&chunk[..take]);
+                if take < chunk.len() {
+                    state.chunk = Some(chunk.slice(take..));
+                }
+                return Poll::Ready(Ok(()));
+            }
+            match state.stream.poll_data(cx) {
+                Poll::Pending => return Poll::Pending,
+                Poll::Ready(None) => {
+                    self.driver.abort();
+                    return Poll::Ready(Ok(()));
+                }
+                Poll::Ready(Some(Err(e))) => {
+                    return Poll::Ready(Err(std::io::Error::other(format!("h2 body: {e}"))))
+                }
+                // A chunk arrived: loop so it is copied into `buf` before returning.
+                Poll::Ready(Some(Ok(chunk))) => state.chunk = Some(chunk),
+            }
+        }
+    }
+}
+
+/// Sends request body bytes as h2 DATA frames. h2 buffers internally, which is enough for request
+/// bodies; responses stream the other way through `H2Reader`.
+struct H2Writer {
+    stream: h2::SendStream<bytes::Bytes>,
+    ended: bool,
+}
+
+impl H2Writer {
+    fn new(stream: h2::SendStream<bytes::Bytes>) -> Self {
+        H2Writer {
+            stream,
+            ended: false,
+        }
+    }
+}
+
+impl AsyncWrite for H2Writer {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<std::io::Result<usize>> {
+        let take = buf.len().min(16_384);
+        let chunk = bytes::Bytes::copy_from_slice(&buf[..take]);
+        match self.stream.send_data(chunk, false) {
+            Ok(()) => Poll::Ready(Ok(take)),
+            Err(e) => Poll::Ready(Err(std::io::Error::other(format!("h2 write: {e}")))),
+        }
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        if !self.ended {
+            self.ended = true;
+            if let Err(e) = self.stream.send_data(bytes::Bytes::new(), true) {
+                return Poll::Ready(Err(std::io::Error::other(format!("h2 end: {e}"))));
+            }
+        }
+        Poll::Ready(Ok(()))
+    }
 }
 
 struct PrependStream<S> {
@@ -231,6 +391,13 @@ impl ProxyEngine {
 
     pub fn https_status(&self) -> Option<CaStatus> {
         self.https.as_ref().map(|h| h.ca_status())
+    }
+
+    /// ClientHello profile used toward destinations (header presets pick the same one).
+    pub fn set_tls_profile(&self, profile: crate::tls_profile::TlsProfile) {
+        if let Some(h) = &self.https {
+            h.set_tls_profile(profile);
+        }
     }
 
     pub fn set_https_allowlist(&self, list: InterceptAllowlist) {
@@ -1226,12 +1393,28 @@ impl ProxyEngine {
                 }
             };
 
-        let Upstream {
-            reader: mut up_in,
-            writer: mut up_out,
-        } = upstream;
+        // h2 writes its own head during the handshake, so only the h1 path sends it here.
+        let (mut up_in, mut up_out, h2) = match upstream {
+            Upstream::H1 { reader, writer } => (reader, writer, false),
+            Upstream::H2(stream) => {
+                let call = match http2::begin(*stream, &upstream_head, false).await {
+                    Ok(call) => call,
+                    Err(e) => {
+                        warn!("h2 setup with {target_host}:{target_port} failed: {e}");
+                        bad_gateway(client_out).await;
+                        return Next::Close;
+                    }
+                };
+                let (sender, response, driver) = call.split();
+                (
+                    Reader::new(Box::new(H2Reader::new(response, driver)) as BoxedRead),
+                    Box::new(H2Writer::new(sender)) as BoxedWrite,
+                    true,
+                )
+            }
+        };
 
-        if up_out.write_all(&upstream_head).await.is_err() {
+        if !h2 && up_out.write_all(&upstream_head).await.is_err() {
             bad_gateway(client_out).await;
             return Next::Close;
         }
@@ -1252,11 +1435,12 @@ impl ProxyEngine {
         };
 
         let (request_result, response) = if let Some((body, _)) = intercepted_body {
-            if !body.is_empty() {
-                if up_out.write_all(&body).await.is_err() {
-                    bad_gateway(client_out).await;
-                    return Next::Close;
-                }
+            if !body.is_empty() && up_out.write_all(&body).await.is_err() {
+                bad_gateway(client_out).await;
+                return Next::Close;
+            }
+            if h2 {
+                let _ = up_out.shutdown().await;
             }
             let resp = relay_response(
                 &mut up_in,
@@ -1272,8 +1456,16 @@ impl ProxyEngine {
             .await;
             (Some(Ok(body.len() as u64)), Some(resp))
         } else {
-            let request_fut =
-                client_in.copy_body(request_framing, &mut up_out, &mut request_capture);
+            let request_fut = async {
+                let copied = client_in
+                    .copy_body(request_framing, &mut up_out, &mut request_capture)
+                    .await;
+                // h2 needs an explicit end of stream; h1 relies on framing or connection close.
+                if h2 {
+                    let _ = up_out.shutdown().await;
+                }
+                copied
+            };
             let response_fut = relay_response(
                 &mut up_in,
                 client_out,
@@ -1374,7 +1566,7 @@ impl ProxyEngine {
             let _ = shared.tx_events.send(stored_record);
         }
 
-        if response_head.status == 101 && response_complete && request_complete {
+        if response_head.status == 101 && !h2 && response_complete && request_complete {
             return Next::Tunnel(up_in, up_out);
         }
         if request_complete && response_complete && !response_head.client_close {
@@ -1459,9 +1651,9 @@ fn parse_edited_request(
     session: Option<&SessionPin>,
 ) -> Result<EditedRequest, String> {
     let (head_str, body) = if let Some(idx) = wire.find("\r\n\r\n") {
-        (&wire[..idx + 4], wire[idx + 4..].as_bytes().to_vec())
+        (&wire[..idx + 4], wire.as_bytes()[idx + 4..].to_vec())
     } else if let Some(idx) = wire.find("\n\n") {
-        (&wire[..idx + 2], wire[idx + 2..].as_bytes().to_vec())
+        (&wire[..idx + 2], wire.as_bytes()[idx + 2..].to_vec())
     } else {
         (wire, Vec::new())
     };
@@ -1496,11 +1688,10 @@ fn parse_edited_request(
         ),
         None => {
             let authority = if target.starts_with("http://") || target.starts_with("https://") {
-                let rest = if target.starts_with("http://") {
-                    &target[7..]
-                } else {
-                    &target[8..]
-                };
+                let rest = target
+                    .strip_prefix("http://")
+                    .or_else(|| target.strip_prefix("https://"))
+                    .unwrap_or(&target);
                 let auth = &rest[..rest.find(['/', '?', '#']).unwrap_or(rest.len())];
                 auth.rsplit_once('@').map_or(auth, |(_, a)| a).to_string()
             } else if host_headers.len() == 1 {
@@ -1557,14 +1748,14 @@ async fn connect_upstream(
     shared: &Shared,
 ) -> Result<Upstream, String> {
     begin_outbound_connect(shared, targets)?;
-    let (reader, writer): (BoxedRead, BoxedWrite) = match scheme {
+    let (reader, writer, h2): (BoxedRead, BoxedWrite, bool) = match scheme {
         Scheme::Http => {
             let stream = tokio::time::timeout(CONNECT_TIMEOUT, TcpStream::connect(targets))
                 .await
                 .map_err(|_| format!("connect to {host} timed out"))?
                 .map_err(|e| format!("connect to {host}: {e}"))?;
             let (r, w) = stream.into_split();
-            (Box::new(r), Box::new(w))
+            (Box::new(r), Box::new(w), false)
         }
         Scheme::Https => {
             let Some(https) = &shared.https else {
@@ -1576,15 +1767,22 @@ async fn connect_upstream(
                 .connect_upstream_targets(host, targets)
                 .await
                 .map_err(|e| e.to_string())?;
-            (Box::new(upstream.reader), Box::new(upstream.writer))
+            eprintln!("DEBUG upstream alpn h2={}", upstream.h2);
+            if upstream.h2 {
+                return Ok(Upstream::H2(Box::new(upstream.stream)));
+            }
+            let (r, w) = tokio::io::split(upstream.stream);
+            (Box::new(r), Box::new(w), false)
         }
     };
-    Ok(Upstream {
+    let _ = h2;
+    Ok(Upstream::H1 {
         reader: Reader::new(reader),
         writer,
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn relay_response<W: AsyncWrite + Unpin>(
     up_in: &mut Reader<BoxedRead>,
     client_out: &mut W,

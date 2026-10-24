@@ -363,6 +363,12 @@
           "markdownDescription": "Enables the get_transaction command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_transaction_unredacted command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-transaction-unredacted",
+          "markdownDescription": "Enables the get_transaction_unredacted command without any pre-configured scope."
+        },
+        {
           "description": "Enables the import_challenge_cookies command without any pre-configured scope.",
           "type": "string",
           "const": "allow-import-challenge-cookies",
@@ -529,6 +535,12 @@
           "type": "string",
           "const": "allow-set-start-at-login",
           "markdownDescription": "Enables the set_start_at_login command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the start_active_scan command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-active-scan",
+          "markdownDescription": "Enables the start_active_scan command without any pre-configured scope."
         },
         {
           "description": "Enables the start_intruder command without any pre-configured scope.",
@@ -741,6 +753,12 @@
           "markdownDescription": "Denies the get_transaction command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_transaction_unredacted command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-transaction-unredacted",
+          "markdownDescription": "Denies the get_transaction_unredacted command without any pre-configured scope."
+        },
+        {
           "description": "Denies the import_challenge_cookies command without any pre-configured scope.",
           "type": "string",
           "const": "deny-import-challenge-cookies",
@@ -907,6 +925,12 @@
           "type": "string",
           "const": "deny-set-start-at-login",
           "markdownDescription": "Denies the set_start_at_login command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_active_scan command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-active-scan",
+          "markdownDescription": "Denies the start_active_scan command without any pre-configured scope."
         },
         {
           "description": "Denies the start_intruder command without any pre-configured scope.",

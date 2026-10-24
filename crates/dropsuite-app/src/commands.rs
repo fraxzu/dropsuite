@@ -66,6 +66,18 @@ pub fn get_transaction(
         .ok_or_else(|| "DropSuite has no record with this ID.".into())
 }
 
+/// The unredacted copy of a transaction, held in memory for this session only (never written to
+/// disk). Returns null once it has been evicted or after a restart. Lets the UI reveal real
+/// cookie/token values on request without ever persisting them.
+#[tauri::command]
+pub fn get_transaction_unredacted(
+    state: State<'_, EngineState>,
+    id: i64,
+) -> Result<Option<TransactionRecord>, String> {
+    let engine = state.engine()?;
+    Ok(engine.storage.get_full_transaction(id))
+}
+
 #[tauri::command]
 pub async fn start_proxy(state: State<'_, EngineState>) -> Result<ProxyStatus, String> {
     let engine = state.engine()?;
@@ -187,9 +199,8 @@ fn host_of(url: &str) -> Option<String> {
 
 /// Browser preset and jar cookies for one outbound request, from the current settings. The jar
 /// is filtered per host later by the replay/prepare layer.
-///
-/// A host with a live challenge pin overrides the chosen preset: the pinned User-Agent is the
-/// one the clearance cookie is bound to, so reusing it is what makes Replay pass.
+/// A host with a live challenge pin overrides the chosen preset, including the TLS shape,
+/// because the clearance cookie is bound to the fingerprint that solved it.
 fn apply_config(
     engine: &crate::engine::Engine,
     host: Option<&str>,
@@ -205,19 +216,21 @@ fn apply_config(
     } else {
         Vec::new()
     };
+    // A pinned host must reuse the exact handshake and UA that earned the clearance.
+    let preset = if pin.is_some() {
+        dropsuite_core::BrowserPreset::Edge
+    } else {
+        preset
+    };
     dropsuite_core::replay::ApplyConfig {
-        preset: if pin.is_some() {
-            dropsuite_core::BrowserPreset::Edge
-        } else {
-            preset
-        },
+        tls_profile: dropsuite_core::TlsProfile::for_preset(preset),
+        preset,
         cookies,
         attach_cookies: attach,
         force_preset: pin.is_some(),
         pin_user_agent: pin.map(|p| p.user_agent),
     }
 }
-
 /// Send one Replay request, only when the user clicks Send. Nothing is stored; the response
 /// comes back sanitized like history. Only the method, destination, status and size are
 /// logged.
@@ -642,7 +655,7 @@ pub fn get_apply_settings(state: State<'_, EngineState>) -> Result<ApplySettings
 }
 
 #[tauri::command]
-pub fn set_apply_settings(
+pub async fn set_apply_settings(
     state: State<'_, EngineState>,
     preset: dropsuite_core::BrowserPreset,
     cookie_jar: bool,
@@ -654,6 +667,11 @@ pub fn set_apply_settings(
         settings.cookie_jar = cookie_jar;
         settings::save(&engine.data_dir, &settings)?;
     }
+    engine
+        .proxy
+        .lock()
+        .await
+        .set_tls_profile(dropsuite_core::TlsProfile::for_preset(preset));
     Ok(ApplySettings { preset, cookie_jar })
 }
 
@@ -770,6 +788,38 @@ pub fn clear_cookies(state: State<'_, EngineState>) -> Result<(), String> {
 /// instead of terminating it: the page then keeps the WebView2 fingerprint, which is the whole
 /// point. The allowlist is put back when the window closes. Use
 /// [`import_challenge_cookies`] afterwards to move the answer into the jar.
+/// Run the active scan against one request. Sequential and bounded; returns the findings.
+#[tauri::command]
+pub async fn start_active_scan(
+    state: State<'_, EngineState>,
+    request: dropsuite_core::replay::ReplayRequest,
+    max_requests: usize,
+    delay_ms: u64,
+) -> Result<dropsuite_core::active_scan::ScanReport, String> {
+    let engine = state.engine()?;
+    let own_listener = {
+        let proxy = engine.proxy.lock().await;
+        let status = proxy.status();
+        status
+            .is_running
+            .then(|| std::net::SocketAddr::from(([127, 0, 0, 1], status.port)))
+    };
+    let options = dropsuite_core::replay::ReplayOptions {
+        connect_timeout: REPLAY_CONNECT_TIMEOUT,
+        response_timeout: REPLAY_RESPONSE_TIMEOUT,
+        own_listener,
+        tls_roots: Vec::new(),
+        apply: apply_config(engine, host_of(request.url.trim()).as_deref()),
+    };
+    let scan_options = dropsuite_core::active_scan::ScanOptions {
+        delay: std::time::Duration::from_millis(delay_ms.min(5_000)),
+        max_requests: max_requests.clamp(1, 500),
+        ..Default::default()
+    };
+    let apply = options.apply.clone();
+    Ok(dropsuite_core::active_scan::scan(&request, &apply, &options, &scan_options).await)
+}
+
 #[tauri::command]
 pub async fn open_challenge_browser(
     app: tauri::AppHandle,
@@ -1063,6 +1113,7 @@ pub struct IntruderStatus {
 /// Validate and start an attack. Returns the planned number of attempts; a bad config
 /// (no positions, payload-set mismatch, or over the cap) is refused here, before anything runs.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn start_intruder(
     state: State<'_, EngineState>,
     intruder_state: State<'_, IntruderState>,

@@ -71,7 +71,7 @@ export const ChromeBar: React.FC<ChromeBarProps> = ({ workspace, onWorkspace, st
       <div className="brand">
         <BrandMark />
         <span className="brand-name">DropSuite</span>
-        <span className="brand-version">0.1.0</span>
+        <span className="brand-version">0.2.0</span>
       </div>
 
       <nav className="workspaces" aria-label="Workspaces">

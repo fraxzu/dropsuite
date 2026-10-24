@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tokio::spawn(async move {
             let mut buf = [0u8; 8192];
             match socket.read(&mut buf).await {
-                Ok(0) => return,
+                Ok(0) => {}
                 Ok(n) => {
                     let req = String::from_utf8_lossy(&buf[..n]);
                     let first_line = req.lines().next().unwrap_or("");

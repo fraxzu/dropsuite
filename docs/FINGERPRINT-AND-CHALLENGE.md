@@ -61,7 +61,17 @@ Replay and Fuzzer offer `h2` first in ALPN and speak h2 when the destination sel
 the response is captured under the same limits as HTTP/1.1. A destination that answers with
 `http/1.1` is unaffected.
 
-Current scope: the leg **DropSuite to the destination** for Replay and Fuzzer. Intercepted proxy
-traffic still negotiates `http/1.1` upstream, and the browser-to-DropSuite leg stays HTTP/1.1.
-Traffic that goes through the challenge window is tunneled, so it already keeps real browser h2
-end to end.
+Scope: every leg **DropSuite to the destination** — Replay, Fuzzer, and intercepted proxy traffic.
+The proxy speaks h2 to a destination that selects it and still answers the client over HTTP/1.1;
+a destination that answers `http/1.1` is unaffected. The browser-to-DropSuite leg stays HTTP/1.1
+(downstream h2 is not implemented yet). Traffic through the challenge window is tunneled, so it
+keeps real browser h2 end to end already.
+
+## ClientHello shaping
+
+The handshake now follows the chosen preset: Chromium/Edge put AES-128 first and order curves
+X25519, P-256, P-384; Firefox puts ChaCha first; Safari uses the Chromium order. `Off` keeps
+rustls defaults. A pinned host always uses the Chromium shape, matching its pinned User-Agent.
+
+Limit: rustls fixes the extension order and sends no GREASE, so this is JA3 *shaping*, not full
+mimicry. Matching extension order and GREASE needs a BoringSSL/uTLS-style stack.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeResponse, isInfrastructure, looksLikeChallenge } from './findings';
 import { parseWordlist } from './wordlist';
+import { dominantRefusal } from './discovery';
 
 const html = { 'content-type': 'text/html; charset=utf-8' } as const;
 
@@ -126,5 +127,32 @@ describe('wordlist parsing', () => {
   it('normalises, dedupes and skips blanks and comments', () => {
     const paths = parseWordlist('\uFEFF# comment\n/admin\nadmin\n/api/v1/\n  /login  \n');
     expect(paths).toEqual(['admin', 'api/v1', 'login']);
+  });
+});
+
+describe('dominant refusal clustering', () => {
+  const sentinels = new Set(['zz-1', 'zz-2']);
+  const row = (path: string, status: number, length: number) => ({ path, status, length });
+
+  it('flags a repeated block page', () => {
+    const rows = [...Array.from({ length: 20 }, (_, i) => row(`/p${i}`, 403, 715 + (i % 12)))];
+    const hit = dominantRefusal(rows, sentinels);
+    expect(hit?.status).toBe(403);
+    expect(hit?.share).toBe(100);
+  });
+
+  it('stays quiet when results differ', () => {
+    const rows = [
+      ...Array.from({ length: 10 }, (_, i) => row(`/a${i}`, 403, 720)),
+      row('/big', 200, 30_000),
+      row('/x', 404, 300),
+    ];
+    expect(dominantRefusal(rows, sentinels)?.share).toBeLessThan(100);
+    expect(dominantRefusal(rows.slice(0, 6), sentinels)).toBeNull();
+  });
+
+  it('ignores sentinels when counting', () => {
+    const rows = [row('zz-1', 404, 100), row('zz-2', 404, 110), ...Array.from({ length: 8 }, (_, i) => row(`/p${i}`, 403, 720))];
+    expect(dominantRefusal(rows, sentinels)?.status).toBe(403);
   });
 });

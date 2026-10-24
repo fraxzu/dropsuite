@@ -22,9 +22,34 @@ use crate::sanitize::{
     sanitize_header_pairs, sanitize_raw_message, sanitize_record, sanitize_target,
 };
 
+/// Budget for the in-memory unredacted cache (below). Session-only; evicted oldest-first.
+const FULL_CACHE_MAX_BYTES: usize = 48 * 1024 * 1024;
+
+/// Unredacted copies of recently captured transactions, kept in memory for the current session
+/// only so the UI can reveal real cookie/token values on request. These are NEVER written to
+/// disk, and the cache is empty again after a restart.
+#[derive(Default)]
+struct FullCache {
+    map: std::collections::HashMap<i64, TransactionRecord>,
+    order: std::collections::VecDeque<i64>,
+    bytes: usize,
+}
+
 #[derive(Clone)]
 pub struct StorageManager {
     conn: Arc<Mutex<Connection>>,
+    /// Session-only, never persisted. See [`FullCache`].
+    full_cache: Arc<Mutex<FullCache>>,
+}
+
+fn record_bytes(r: &TransactionRecord) -> usize {
+    r.url.len()
+        + r.host.len()
+        + r.path.len()
+        + r.request_body.len()
+        + r.response_body.len()
+        + r.request_headers.iter().map(|(k, v)| k.len() + v.len()).sum::<usize>()
+        + r.response_headers.iter().map(|(k, v)| k.len() + v.len()).sum::<usize>()
 }
 
 /// Counts of stored rows that still hold data the current redaction policy would remove.
@@ -81,6 +106,7 @@ impl StorageManager {
 
         let storage = Self {
             conn: Arc::new(Mutex::new(conn)),
+            full_cache: Default::default(),
         };
 
         storage.init_schema()?;
@@ -96,6 +122,7 @@ impl StorageManager {
         )?;
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
+            full_cache: Default::default(),
         })
     }
 
@@ -104,6 +131,7 @@ impl StorageManager {
         let conn = Connection::open_in_memory()?;
         let storage = Self {
             conn: Arc::new(Mutex::new(conn)),
+            full_cache: Default::default(),
         };
         storage.init_schema()?;
         Ok(storage)
@@ -202,6 +230,7 @@ impl StorageManager {
     /// This is the persistence boundary: the record is always sanitized here, so no caller
     /// can store unredacted headers, raw messages or URLs, whatever it passes in.
     pub fn insert_transaction(&self, record: &TransactionRecord) -> Result<i64> {
+        let full = record.clone(); // unredacted; kept in memory only, for the reveal cache
         let record = sanitize_record(record);
         let conn = self.conn.lock().unwrap();
         let req_headers_json = serde_json::to_string(&record.request_headers).unwrap_or_default();
@@ -232,7 +261,38 @@ impl StorageManager {
 
         let id = conn.last_insert_rowid();
         debug!(id = id, url = %record.url, "Persisted transaction");
+        drop(conn);
+        self.cache_full(id, full);
         Ok(id)
+    }
+
+    /// Keep an unredacted copy in memory for this session only (never written to disk), so the UI
+    /// can reveal real cookie/token values on request. Bounded by bytes, evicted oldest-first.
+    fn cache_full(&self, id: i64, mut record: TransactionRecord) {
+        record.id = id;
+        let sz = record_bytes(&record);
+        let mut c = self.full_cache.lock().unwrap();
+        if let Some(old) = c.map.insert(id, record) {
+            let old_sz = record_bytes(&old);
+            c.bytes = c.bytes.saturating_sub(old_sz);
+        } else {
+            c.order.push_back(id);
+        }
+        c.bytes += sz;
+        while c.bytes > FULL_CACHE_MAX_BYTES && c.order.len() > 1 {
+            if let Some(old_id) = c.order.pop_front() {
+                if let Some(r) = c.map.remove(&old_id) {
+                    let rsz = record_bytes(&r);
+                    c.bytes = c.bytes.saturating_sub(rsz);
+                }
+            }
+        }
+    }
+
+    /// The unredacted copy of a transaction, if it is still in this session's cache. Returns None
+    /// once it has been evicted or after a restart — the real value was never saved to disk.
+    pub fn get_full_transaction(&self, id: i64) -> Option<TransactionRecord> {
+        self.full_cache.lock().unwrap().map.get(&id).cloned()
     }
 
     /// Fetch lightweight summaries matching filter criteria (for virtualized UI table).

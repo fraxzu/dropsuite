@@ -27,6 +27,7 @@ pub enum Provider {
     AnthropicCompatible,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for Provider {
     fn default() -> Self {
         Provider::OpenAiCompatible

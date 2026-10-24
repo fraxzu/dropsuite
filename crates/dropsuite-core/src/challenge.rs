@@ -318,7 +318,7 @@ mod tests {
             "marker past the limit is missed"
         );
         let mut short = b"Just a moment...".to_vec();
-        short.extend(std::iter::repeat(b'a').take(BODY_SCAN_LIMIT));
+        short.extend(std::iter::repeat_n(b'a', BODY_SCAN_LIMIT));
         assert!(detect(403, &h(&[]), &short).is_some());
     }
 

@@ -1,7 +1,8 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, Columns2, Link2, PanelTop, Repeat, RotateCw, Sparkles } from 'lucide-react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { AlertTriangle, Check, Columns2, Eye, EyeOff, Link2, PanelTop, Repeat, RotateCw, Sparkles } from 'lucide-react';
 import { TransactionRecord, TransactionSummary } from '../types';
 import { DetailState } from '../lib/api';
+import { engine } from '../lib/transport';
 import { bytesToText, copyText, displayPath, formatBytes, formatDateTime, formatDuration, statusClass } from '../lib/http';
 import { useStoredState } from '../lib/useStoredState';
 import { MessagePane, Side } from './MessagePane';
@@ -34,6 +35,39 @@ export const Inspector: React.FC<InspectorProps> = ({ summary, detail, onRetry, 
   const [analyze, setAnalyze] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1200);
+  // Reveal real credential values (from the session-only in-memory cache; never saved to disk).
+  const [reveal, setReveal] = useState(false);
+  const [revealed, setRevealed] = useState<TransactionRecord | null>(null);
+  const [revealMissing, setRevealMissing] = useState(false);
+
+  // Reset the reveal when a different request is selected.
+  useEffect(() => {
+    setReveal(false);
+    setRevealed(null);
+    setRevealMissing(false);
+  }, [summary?.id]);
+
+  // Fetch the unredacted copy when reveal is turned on. Null means it is no longer in memory.
+  useEffect(() => {
+    if (!reveal || !summary) return;
+    let live = true;
+    engine
+      .getTransactionUnredacted(summary.id)
+      .then((r) => {
+        if (!live) return;
+        setRevealed(r);
+        setRevealMissing(!r);
+      })
+      .catch(() => {
+        if (live) {
+          setRevealed(null);
+          setRevealMissing(true);
+        }
+      });
+    return () => {
+      live = false;
+    };
+  }, [reveal, summary?.id]);
 
   useLayoutEffect(() => {
     const el = bodyRef.current;
@@ -58,6 +92,9 @@ export const Inspector: React.FC<InspectorProps> = ({ summary, detail, onRetry, 
   }
 
   const record = detail.kind === 'ready' && detail.record.id === summary.id ? detail.record : null;
+  // What the message panes display: the revealed (unredacted) copy when reveal is on and still in
+  // memory, otherwise the redacted record. Analyze and Send to Replay keep using the redacted one.
+  const shownRecord = reveal && revealed && revealed.id === summary.id ? revealed : record;
   const url = record?.url ?? summary.path;
   const tabbed = layout === 'tabs' || width < TABBED_BELOW;
   const reqPx = Math.min(width - MIN_PANE, Math.max(MIN_PANE, width * ratio));
@@ -107,12 +144,12 @@ export const Inspector: React.FC<InspectorProps> = ({ summary, detail, onRetry, 
       </div>
     );
   } else if (tabbed) {
-    body = <MessagePane key={`${record.id}-${side}`} side={side} record={record} title={switcher} onCopied={onCopied} />;
+    body = <MessagePane key={`${record.id}-${side}-${reveal}`} side={side} record={shownRecord ?? record} title={switcher} onCopied={onCopied} />;
   } else {
     body = (
       <>
         <div className="pane" style={{ width: reqPx, flexShrink: 0 }}>
-          <MessagePane key={`${record.id}-req`} side="request" record={record} title={<span className="msg-title">Request</span>} onCopied={onCopied} />
+          <MessagePane key={`${record.id}-req-${reveal}`} side="request" record={shownRecord ?? record} title={<span className="msg-title">Request</span>} onCopied={onCopied} />
         </div>
         <Splitter
           orientation="vertical"
@@ -125,9 +162,9 @@ export const Inspector: React.FC<InspectorProps> = ({ summary, detail, onRetry, 
         />
         <div className="pane" style={{ flex: 1 }}>
           <MessagePane
-            key={`${record.id}-res`}
+            key={`${record.id}-res-${reveal}`}
             side="response"
-            record={record}
+            record={shownRecord ?? record}
             title={
               <span className="msg-title">
                 Response
@@ -176,6 +213,21 @@ export const Inspector: React.FC<InspectorProps> = ({ summary, detail, onRetry, 
               <Repeat size={12} /> Send to Replay
             </button>
           )}
+          {reveal && revealMissing && (
+            <span className="reveal-note" title="The real value was never written to disk, and it is no longer in this session's memory.">
+              real values not in memory
+            </span>
+          )}
+          <button
+            className={`icon-btn${reveal ? ' done' : ''}`}
+            disabled={!record}
+            aria-pressed={reveal}
+            onClick={() => setReveal((v) => !v)}
+            aria-label={reveal ? 'Hide real values' : 'Show real values'}
+            title={reveal ? 'Hide real credential values' : 'Show real credential values (held in memory for this session only, never saved to disk)'}
+          >
+            {reveal ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
           <button className={`icon-btn${urlCopied ? ' done' : ''}`} onClick={copyUrl} aria-label="Copy full URL" title="Copy full URL">
             {urlCopied ? <Check size={14} /> : <Link2 size={14} />}
           </button>

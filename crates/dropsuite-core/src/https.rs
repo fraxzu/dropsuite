@@ -24,7 +24,8 @@ pub struct HttpsInterception {
     allowlist: RwLock<InterceptAllowlist>,
     ca: tokio::sync::RwLock<Option<Arc<CaMaterial>>>,
     leaf_cache: Arc<RwLock<LeafCache>>,
-    connector: TlsConnector,
+    roots: Arc<rustls::RootCertStore>,
+    profile: RwLock<crate::tls_profile::TlsProfile>,
 }
 
 #[derive(Clone)]
@@ -111,8 +112,10 @@ impl LeafCache {
 }
 
 pub struct UpstreamTls {
-    pub reader: tokio::io::ReadHalf<tokio_rustls::client::TlsStream<TcpStream>>,
-    pub writer: tokio::io::WriteHalf<tokio_rustls::client::TlsStream<TcpStream>>,
+    /// Unspliced because h2 needs the whole stream; the caller splits it for HTTP/1.1.
+    pub stream: tokio_rustls::client::TlsStream<TcpStream>,
+    /// Whether the destination selected h2 in ALPN.
+    pub h2: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -142,20 +145,35 @@ impl HttpsInterception {
             }
         }
 
-        let mut client_config = ClientConfig::builder()
-            .with_root_certificates(root_store)
-            .with_no_client_auth();
-        client_config.alpn_protocols = vec![b"http/1.1".to_vec()];
-
-        let connector = TlsConnector::from(Arc::new(client_config));
-
         Ok(HttpsInterception {
             ca_manager,
             allowlist: RwLock::new(config.allowlist),
             ca: tokio::sync::RwLock::new(None),
             leaf_cache: Arc::new(RwLock::new(LeafCache::default())),
-            connector,
+            roots: Arc::new(root_store),
+            profile: RwLock::new(crate::tls_profile::TlsProfile::Off),
         })
+    }
+
+    /// Replace the ClientHello shape used toward destinations.
+    pub fn set_tls_profile(&self, profile: crate::tls_profile::TlsProfile) {
+        if let Ok(mut guard) = self.profile.write() {
+            *guard = profile;
+        }
+    }
+
+    /// Build a connector for the current profile. Cheap: config construction only.
+    fn build_connector(&self) -> TlsConnector {
+        let profile = self.profile.read().map(|p| *p).unwrap_or_default();
+        let mut config = ClientConfig::builder_with_provider(crate::tls_profile::provider(profile))
+            .with_safe_default_protocol_versions()
+            .expect("rustls default protocol versions are supported")
+            .with_root_certificates(self.roots.as_ref().clone())
+            .with_no_client_auth();
+        // Offer h2 first so the destination sees a modern client; the caller branches on the
+        // negotiated protocol and keeps h1 framing when the server refuses h2.
+        config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+        TlsConnector::from(Arc::new(config))
     }
 
     pub fn allowlist(&self) -> InterceptAllowlist {
@@ -288,14 +306,17 @@ impl HttpsInterception {
 
         let tls_stream = tokio::time::timeout(
             std::time::Duration::from_secs(15),
-            self.connector.connect(server_name, stream),
+            self.build_connector().connect(server_name, stream),
         )
         .await
         .map_err(|_| TlsError::Tls(format!("TLS handshake with {host} timed out")))?
         .map_err(|e| TlsError::Tls(format!("TLS handshake with {host} failed: {e}")))?;
 
-        let (reader, writer) = tokio::io::split(tls_stream);
-        Ok(UpstreamTls { reader, writer })
+        let h2 = tls_stream.get_ref().1.alpn_protocol() == Some(b"h2");
+        Ok(UpstreamTls {
+            stream: tls_stream,
+            h2,
+        })
     }
 
     pub async fn connect_upstream(&self, host: &str, port: u16) -> Result<UpstreamTls, TlsError> {

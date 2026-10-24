@@ -425,15 +425,16 @@ impl Drop for CoTaskMemPWSTR {
 }
 
 #[cfg(windows)]
+type CookieSender = std::sync::Arc<
+    std::sync::Mutex<Option<tokio::sync::oneshot::Sender<Result<Vec<HarvestedCookie>, String>>>>,
+>;
+
+#[cfg(windows)]
 #[windows_core::implement(
     webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2GetCookiesCompletedHandler
 )]
 struct GetCookiesHandler {
-    tx: std::sync::Arc<
-        std::sync::Mutex<
-            Option<tokio::sync::oneshot::Sender<Result<Vec<HarvestedCookie>, String>>>,
-        >,
-    >,
+    tx: CookieSender,
 }
 
 #[cfg(windows)]

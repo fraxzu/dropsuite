@@ -91,6 +91,41 @@ export interface ImportOutcome {
   pinned: boolean;
 }
 
+export type ActiveCheck =
+  | 'reflected_xss'
+  | 'sql_error'
+  | 'sql_boolean'
+  | 'sql_time'
+  | 'path_traversal'
+  | 'open_redirect'
+  | 'open_redirect_xss'
+  | 'cors_misconfig'
+  | 'crlf_injection'
+  | 'host_header_injection'
+  | 'method_override';
+export type ActiveConfidence = 'info' | 'low' | 'medium' | 'high';
+
+export interface ActiveFinding {
+  kind: ActiveCheck;
+  confidence: ActiveConfidence;
+  point: string;
+  payload: string;
+  evidence: string;
+  status: number;
+}
+
+export interface ActiveScanReport {
+  findings: ActiveFinding[];
+  requests: number;
+  points: number;
+  stopped: 'blocked' | 'budget' | 'rate_limited' | null;
+  skipped_non_html: boolean;
+  skipped_waf: boolean;
+  blocked_by_waf: boolean;
+  skipped_infrastructure: boolean;
+  waf_vendor: string | null;
+}
+
 export interface CookieRow {
   host: string;
   name: string;
