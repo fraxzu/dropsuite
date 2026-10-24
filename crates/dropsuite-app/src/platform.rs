@@ -86,6 +86,7 @@ pub fn normal_rect(_window: &tauri::WebviewWindow) -> Option<(i32, i32, u32, u32
     None
 }
 
+#[cfg(windows)]
 static BROWSER_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
 /// Why the embedded browser was opened.
@@ -265,6 +266,24 @@ pub async fn spawn_embedded_browser(
             Err("Embedded browser initialization timed out after 5s".into())
         }
     }
+}
+
+/// Non-Windows stub. The embedded browser relies on WebView2 profile isolation and the
+/// `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` proxy wiring, which only exist on Windows in this
+/// build. The rest of the app (proxy, interception, replay, scanner) runs normally; callers
+/// surface this error to the UI so the feature degrades instead of failing to compile.
+#[cfg(not(windows))]
+pub async fn spawn_embedded_browser(
+    _app: &tauri::AppHandle,
+    _proxy_url: url::Url,
+    _data_dir: std::path::PathBuf,
+    _target_url: &str,
+    _leaf_cache: std::sync::Arc<std::sync::RwLock<dropsuite_core::LeafCache>>,
+    _mode: BrowserMode,
+) -> Result<tauri::WebviewWindow, String> {
+    Err("The embedded browser is only available on Windows in this build. \
+         Point your own browser at the proxy (127.0.0.1:8080) instead."
+        .into())
 }
 
 /// Extracts the normalized, pure hostname from a request URI string.
