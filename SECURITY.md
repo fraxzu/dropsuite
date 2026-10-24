@@ -1,46 +1,46 @@
 # Security policy
 
-## Reporting a vulnerability in DropSuite
+## Found a problem?
 
-Use GitHub's **private** vulnerability reporting on this repository (the
-**Security** tab → **Report a vulnerability**), not a public issue. Include what
-an attacker could achieve and the steps to reproduce it. We aim to reply
-quickly and will credit you in the fix unless you ask us not to.
+If you have found a security flaw in DropSuite, tell us in private first. Use
+the **Security** tab on this repository → **Report a vulnerability** (GitHub's
+private reporting) rather than opening a public issue. Describe what someone
+could do with the flaw and how to reproduce it. We will get back to you, and
+you will be credited in the fix unless you would rather stay anonymous.
 
-## Is it a DropSuite bug, or a finding you made *with* DropSuite?
+Please give us a reasonable chance to ship a fix before writing about it
+publicly.
 
-DropSuite is a security tool, so these two get confused a lot:
+## A bug in DropSuite, or something you found with it?
 
-- **A DropSuite vulnerability** is a flaw in the app itself — for example, it
-  leaks a stored credential it was supposed to redact, decrypts a host you never
-  allowlisted, opens a connection the destination policy should have refused, or
-  an installer/auto-update problem. **Report these here.**
-- **A finding you made against some website using DropSuite** is between you and
-  that site's owner. That is not a DropSuite vulnerability — please do not file
-  it here, and only test targets you are authorized to test.
+Because DropSuite is itself a testing tool, it is worth being clear:
 
-## The flaws we care about most
+- If **DropSuite behaves unsafely** — it keeps a secret it was meant to hide,
+  reaches a host it should have refused, mishandles the root CA, or ships a bad
+  installer or update — that is a bug in DropSuite. Report it here.
+- If you **found an issue in some website while using DropSuite**, that belongs
+  to that website's owner, not to this project. Report it to them, and only
+  test things you are allowed to test.
 
-Anything that breaks one of DropSuite's promises:
+## What matters most to us
 
-- captured history or credentials escaping redaction on disk;
-- the root CA private key leaving its DPAPI-protected storage, or trust being
-  installed into any store;
-- an outbound connection the destination policy should refuse (loopback,
-  link-local, cloud metadata such as `169.254.169.254`);
-- the app contacting the network when the operator did not ask it to;
-- installer or auto-update tampering.
+Reports that show DropSuite breaking one of its own rules get priority:
 
-## Using DropSuite responsibly
+- stored history or credentials that should have been masked but were not;
+- the root CA private key leaving its protected storage, or trust being added
+  to any certificate store;
+- traffic going somewhere the destination policy is supposed to block;
+- the app reaching the network when nobody asked it to;
+- a tampered installer or update.
 
-DropSuite does exactly what you tell it. A root CA you generate can decrypt your
-allowlisted HTTPS hosts for as long as it exists — trust it only in a browser
-profile you keep for testing, and remove it when you are done. Drop AI sends
-your prompt to the endpoint you configure, so review the preview before you
-send. Installers are unsigned for now, so verify the published SHA-256 of what
-you download.
+## Your side of it
 
-## Supported versions
+DropSuite only does what you point it at. Remember that a root CA you create can
+read your allowlisted HTTPS traffic until you remove it, that Drop AI sends your
+prompt to whatever endpoint you set, and that an unsigned installer should be
+checked against its published SHA-256.
 
-DropSuite is in early (0.x) development. Fixes land on the newest release;
-please reproduce against it before reporting.
+## Versions
+
+DropSuite is early software (0.x). Please reproduce on the latest release before
+reporting; fixes go there first.
