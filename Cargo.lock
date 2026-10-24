@@ -892,7 +892,7 @@ dependencies = [
 
 [[package]]
 name = "dropsuite-app"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "dropsuite-core",
  "reqwest 0.12.28",
@@ -915,7 +915,7 @@ dependencies = [
 
 [[package]]
 name = "dropsuite-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "dropsuite-core",
@@ -929,7 +929,7 @@ dependencies = [
 
 [[package]]
 name = "dropsuite-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -959,7 +959,7 @@ dependencies = [
 
 [[package]]
 name = "dropsuite-desktop"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "dropsuite-core",

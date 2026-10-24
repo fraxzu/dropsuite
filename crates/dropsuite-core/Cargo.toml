@@ -1,6 +1,6 @@
 [package]
 name = "dropsuite-core"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
 authors = ["Fraxzu"]
 description = "Core asynchronous proxy engine and persistence layer for DropSuite"
