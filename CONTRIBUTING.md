@@ -1,8 +1,8 @@
 # Contributing to DropSuite
 
-Thanks for wanting to help. DropSuite is a local-first, intercepting web
-security testing platform. Contributions of code, docs, tests and bug reports
-are all welcome.
+DropSuite is a free alternative to the workflows other proxies lock behind a
+paid tier, and it stays that way because people pitch in. Code, docs, tests, a
+good bug report, or a better wordlist — all of it helps.
 
 > DropSuite is for authorized testing and education only. Please keep examples,
 > issues and test targets to systems you own or have written permission to test

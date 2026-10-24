@@ -1,54 +1,46 @@
-# Security
+# Security policy
 
-## Reporting a vulnerability
+## Reporting a vulnerability in DropSuite
 
-Please report security problems in DropSuite **privately**, through GitHub's
-private vulnerability reporting (the repository's **Security** tab →
-**Report a vulnerability**), not in a public issue. Tell what an attacker could
-do, and how to reproduce it. You will hear back, and be credited in the fix
-unless you prefer not to.
+Use GitHub's **private** vulnerability reporting on this repository (the
+**Security** tab → **Report a vulnerability**), not a public issue. Include what
+an attacker could achieve and the steps to reproduce it. We aim to reply
+quickly and will credit you in the fix unless you ask us not to.
 
-Note the difference between a flaw *in DropSuite* and a finding you made *with*
-DropSuite against some target: the second is between you and that target's
-owner, not a DropSuite vulnerability.
+## Is it a DropSuite bug, or a finding you made *with* DropSuite?
 
-## What DropSuite protects
+DropSuite is a security tool, so these two get confused a lot:
 
-- **Your captured traffic stays local.** History lives in a local SQLite file.
-  The app makes no analytics or pingback calls; it only talks to a host when
-  you send a request, open the update check, or when you point a tool at it.
-- **Credentials are redacted at the storage boundary.** Passwords, bearer
-  tokens, session cookies and configured secrets are masked before they are
-  written to disk, so the saved history does not keep the real values.
-- **The root CA is explicit and never installed anywhere.** A CA exists only
-  after you click Generate. Its private key is stored encrypted with Windows
-  DPAPI; export returns the public certificate only. DropSuite never writes to
-  the Windows or any browser trust store.
-- **A single destination policy guards every outbound tool.** Proxy, intercept,
-  Replay and Fuzzer all refuse unspecified, multicast and link-local addresses
-  (including cloud metadata endpoints such as `169.254.169.254`), with the host
-  resolved once and the connection pinned to the checked addresses.
-- **API keys for Drop AI are stored protected at rest** and never logged; what
-  is sent to a model is previewed and redacted first.
+- **A DropSuite vulnerability** is a flaw in the app itself — for example, it
+  leaks a stored credential it was supposed to redact, decrypts a host you never
+  allowlisted, opens a connection the destination policy should have refused, or
+  an installer/auto-update problem. **Report these here.**
+- **A finding you made against some website using DropSuite** is between you and
+  that site's owner. That is not a DropSuite vulnerability — please do not file
+  it here, and only test targets you are authorized to test.
 
-See `docs/SECURITY.md` for the detailed model and where each guarantee lives in
-the code.
+## The flaws we care about most
 
-## What it cannot protect
+Anything that breaks one of DropSuite's promises:
 
-- **DropSuite is a testing tool; you are responsible for how you use it.** It
-  will send whatever you tell it to send. Use it only against systems you own
-  or have written permission to test.
-- **A root CA you generate is powerful.** While it exists, DropSuite can decrypt
-  the HTTPS hosts on your allowlist. Trust it only in a browser profile you use
-  for testing, and remove it when you are done.
-- **Drop AI talks to the endpoint you configure.** If you point it at a
-  third-party model, your prompt leaves your machine to that provider — review
-  the preview before you send.
-- **An unsigned installer** will warn on Windows SmartScreen until the release
-  is code-signed. Verify the SHA-256 of what you download.
+- captured history or credentials escaping redaction on disk;
+- the root CA private key leaving its DPAPI-protected storage, or trust being
+  installed into any store;
+- an outbound connection the destination policy should refuse (loopback,
+  link-local, cloud metadata such as `169.254.169.254`);
+- the app contacting the network when the operator did not ask it to;
+- installer or auto-update tampering.
+
+## Using DropSuite responsibly
+
+DropSuite does exactly what you tell it. A root CA you generate can decrypt your
+allowlisted HTTPS hosts for as long as it exists — trust it only in a browser
+profile you keep for testing, and remove it when you are done. Drop AI sends
+your prompt to the endpoint you configure, so review the preview before you
+send. Installers are unsigned for now, so verify the published SHA-256 of what
+you download.
 
 ## Supported versions
 
-DropSuite is in early development (0.x). Fixes land on the latest version;
-please test against the newest release before reporting.
+DropSuite is in early (0.x) development. Fixes land on the newest release;
+please reproduce against it before reporting.

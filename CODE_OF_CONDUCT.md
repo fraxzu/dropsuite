@@ -1,32 +1,33 @@
 # Code of conduct
 
-DropSuite is made by people who care about web security and about doing this
-work the right way. Keep it a place where everyone is glad to take part.
+DropSuite brings together people learning web security and people who do it for
+a living. The aim is a space where asking a basic question and reporting a
+subtle bug are equally welcome.
 
-## Expected
+## The short version
 
-- Be respectful. Assume good faith, disagree about the work and not the person.
-- Help newcomers. Everyone was new to proxies, TLS and HTTP once.
-- Keep it on topic: the tool, the code, the docs, and how to test safely.
-- Report problems privately when they are security issues (see SECURITY.md).
+Be decent. Teach when you can. Test only what you are allowed to.
 
-## Not welcome
+## What we ask
 
-- Harassment, insults, or discrimination of any kind.
-- Sharing other people's private information.
-- Encouraging or bragging about unauthorized testing, intrusion, or any use of
-  DropSuite against systems you do not own or have no written permission to
-  test. DropSuite is for authorized testing and education only; talk about it
-  that way here.
+- Treat people the way you would want a senior researcher to treat you on your
+  first day — patiently, and without ego.
+- Critique the code and the idea, never the person.
+- Keep it useful: reproducible reports, clear pull requests, honest trade-offs.
+- Handle real security flaws privately (see [SECURITY.md](SECURITY.md)), not as
+  public drama.
 
-## Scope and enforcement
+## What gets you removed
 
-This applies in the repository — issues, pull requests, discussions — and
-anywhere someone represents the project. If someone breaks it, the maintainers
-may warn, edit or remove contributions, or block the person from taking part.
+- Harassment, slurs, or discrimination of any kind.
+- Posting anyone's private information.
+- Using DropSuite — or egging others on to use it — against systems you do not
+  own and have no written permission to test, and bragging about it here. This
+  project exists for authorized testing and education; that line is not up for
+  debate.
 
-## Reporting
+## If something goes wrong
 
-Report conduct problems privately to the maintainers through GitHub (open a
-private report, or contact the repository owner). Reports are handled
-discreetly.
+To keep the space usable, maintainers may edit or remove contributions and warn
+or ban people. Report problems privately to the repository owner through GitHub;
+your report is kept confidential.
