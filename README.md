@@ -4,11 +4,10 @@ A local-first, intercepting web security testing platform — a free workspace f
 authorized web application testing. Built in Rust (Tokio) + SQLite with a Tauri 2
 desktop shell and a React UI.
 
-> **Status: alpha / work in progress.** Not yet released. Interfaces and data formats
-> may change.
+> **Status: alpha / work in progress.** Interfaces and data formats may change.
 
-> **License: not yet chosen.** Until a license is added, all rights are reserved — this
-> repository is private and not for redistribution.
+> **License:** [MIT](LICENSE). See also the [code of conduct](CODE_OF_CONDUCT.md),
+> [contributing guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
 
 ## What it does
 
