@@ -67,9 +67,10 @@ jobs:
           npm install
           npm run build
 
+      # Run from the repo root so the CLI finds crates/dropsuite-app/tauri.conf.json; the config
+      # is in a crate folder, not the default src-tauri next to the frontend.
       - name: Build app and bundles
-        working-directory: frontend
-        run: node node_modules/@tauri-apps/cli/tauri.js build --bundles ${{ matrix.bundles }}
+        run: node frontend/node_modules/@tauri-apps/cli/tauri.js build --bundles ${{ matrix.bundles }}
 
       - name: Upload bundles
         if: always()
