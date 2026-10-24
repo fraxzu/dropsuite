@@ -574,3 +574,12 @@ async fn loopback_and_private_destinations_stay_permitted() {
         );
     }
 }
+
+#[test]
+fn port_25_is_refused_like_the_listener() {
+    let err =
+        dropsuite_core::replay::prepare(&req("GET", "http://mail.example:25/".into(), &[], ""))
+            .unwrap_err();
+    assert_eq!(err.kind, "invalid");
+    assert!(err.message.contains("SMTP"), "{}", err.message);
+}

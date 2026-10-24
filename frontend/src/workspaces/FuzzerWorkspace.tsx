@@ -345,6 +345,13 @@ export const FuzzerWorkspace: React.FC<FuzzerWorkspaceProps> = ({ active, onToas
       {/* Results */}
       <section className="fz-results" aria-label="Attack results">
         <div className="fz-results-head">
+        {rows.length > 0 && rows.every((r) => r.status === 403) && (
+          <div className="snapshot-banner" role="status">
+            <strong>All attempts returned 403.</strong> That is usually bot protection, not the payload:
+            solve the challenge once in Replay, press Import cookies, then retry with concurrency 2 and a
+            small delay.
+          </div>
+        )}
           <span className="fz-title">Results</span>
           {status && <span className="fz-count">{progressLabel}</span>}
           {rows.length > 0 && <span className="fz-count" style={{ marginLeft: 'auto' }}>Click a row to open it in Replay</span>}

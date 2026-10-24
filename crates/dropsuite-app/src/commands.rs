@@ -1467,8 +1467,16 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
         Ok(v) => v,
         Err(_) => return Ok(fallback("Could not read GitHub's response.")),
     };
-    let tag = v.get("tag_name").and_then(|t| t.as_str()).unwrap_or("").to_string();
-    let notes = v.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
+    let tag = v
+        .get("tag_name")
+        .and_then(|t| t.as_str())
+        .unwrap_or("")
+        .to_string();
+    let notes = v
+        .get("body")
+        .and_then(|b| b.as_str())
+        .unwrap_or("")
+        .to_string();
     let html = v
         .get("html_url")
         .and_then(|u| u.as_str())

@@ -261,6 +261,14 @@ pub fn prepare_with(req: &ReplayRequest, apply: &ApplyConfig) -> Result<Prepared
     let default_port = if tls { 443 } else { 80 };
     let (host, port) = http1::split_authority(authority, default_port)
         .ok_or_else(|| invalid("The URL has no valid host and port."))?;
+    // The proxy listener refuses SMTP because plain HTTP framing against it is useless; Replay
+    // keeps the same rule so a captured request behaves the same here.
+    if port == 25 {
+        return Err(invalid(
+            "Port 25 is SMTP. The proxy listener refuses it too; use 587 or 465 for mail endpoints."
+                .to_string(),
+        ));
+    }
     let origin = http1::origin_form(method, url);
 
     let body = req.body.as_bytes();

@@ -24,6 +24,7 @@ const FAILURE_TITLE: Record<string, string> = {
   timeout: 'Timed out',
   resolve: 'Host not found',
   connect: "Couldn't connect",
+  tls: 'TLS handshake failed',
   malformed: 'Malformed response',
   interrupted: 'Response incomplete',
   unsupported: 'Not supported',
@@ -40,6 +41,7 @@ const CHALLENGE_VENDOR: Record<string, string> = {
   data_dome: 'DataDome',
   imperva: 'Imperva',
   sucuri: 'Sucuri',
+  edge: 'Edge',
 };
 
 const CHALLENGE_KIND: Record<string, string> = {
@@ -52,7 +54,7 @@ const CHALLENGE_KIND: Record<string, string> = {
 const CHALLENGE_HINT: Record<string, string> = {
   js: 'A browser must run the check. Press Open browser, finish it there, then Import cookies.',
   interactive: 'Press Open browser, finish it there, then Import cookies.',
-  blocked: 'Try a browser preset; if it persists the address or session is refused.',
+  blocked: 'A block page, not a solvable challenge. Try the other host form (www vs apex), open it in the browser, and import any cookie it sets; if it persists, the TLS fingerprint is the gate.',
   rate_limited: 'Wait and retry, or lower Fuzzer concurrency.',
 };
 

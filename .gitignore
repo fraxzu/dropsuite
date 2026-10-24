@@ -37,3 +37,6 @@ node_modules/
 Thumbs.db
 .idea/
 .vscode/
+
+# Unrelated side tool (X/Twitter info), not part of DropSuite
+tools/xinfo/

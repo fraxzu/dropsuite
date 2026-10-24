@@ -6,6 +6,7 @@ import { bytesToText, extractParams, formatBytes, parseMessage, statusClass } fr
 import { ReplayDraft } from '../lib/replay';
 import { AiResultModal } from '../components/AiResultModal';
 import { COMMON_PATHS } from '../lib/pathlist';
+import { MAX_WORDLIST, parseWordlist } from '../lib/wordlist';
 
 interface ScannerWorkspaceProps {
   active: boolean;
@@ -63,6 +64,9 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
   const [derror, setDerror] = useState<string | null>(null);
   const [baseline, setBaseline] = useState<{ status: number; length: number } | null>(null);
   const [catchAll, setCatchAll] = useState(false);
+  // A loaded wordlist replaces the built-in one; empty means "use built-in".
+  const [customPaths, setCustomPaths] = useState<string[]>([]);
+  const [wordlistName, setWordlistName] = useState('');
   // Why a run produced no rows: probes the engine refused to send (Scope) vs. ones that failed to
   // connect. Without this the table just sits empty and the tester can't tell a clean "nothing here"
   // from "nothing was ever sent".
@@ -168,11 +172,12 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
     const rand = Math.random().toString(36).slice(2, 10);
     const sentinels = [`zzdrop-${rand}-404`, `${rand}-does-not-exist-zz`];
     const sentinelSet = new Set(sentinels);
-    setDProgress({ done: 0, total: sentinels.length + COMMON_PATHS.length });
+    const paths = customPaths.length ? customPaths : COMMON_PATHS;
+    setDProgress({ done: 0, total: sentinels.length + paths.length });
     try {
       const request = { method: 'GET', url: `${base}/{{}}`, headers: [] as [string, string][], body: '' };
-      const attack = { type: 'sniper' as const, payloads: { kind: 'list' as const, values: [...sentinels, ...COMMON_PATHS] } };
-      await intruder.start(request, attack, 12, 0, 5000, false);
+      const attack = { type: 'sniper' as const, payloads: { kind: 'list' as const, values: [...sentinels, ...paths] } };
+      await intruder.start(request, attack, 12, 0, Math.min(paths.length + sentinels.length, 25000), false);
       let loaded = 0;
       let failed = 0;
       let sampleErr: string | null = null;
@@ -210,6 +215,22 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
       setDerror(e instanceof Error ? e.message : String(e));
     } finally {
       setDiscovering(false);
+    }
+  };
+
+  const loadWordlist = async (file: File) => {
+    try {
+      const paths = parseWordlist(await file.text());
+      if (!paths.length) {
+        setDerror("That file had no usable paths (one per line, # for comments).");
+        return;
+      }
+      setDerror(null);
+      setCustomPaths(paths);
+      setWordlistName(`${file.name} · ${paths.length} path(s)`);
+      if (paths.length >= MAX_WORDLIST) onToast(`Wordlist capped at ${MAX_WORDLIST} paths.`);
+    } catch (e) {
+      setDerror(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -259,8 +280,8 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
                 </>
               ) : done ? (
                 <>
-                  {scanned} requests scanned � {summaryText()}
-                  {skipped > 0 ? ` � ${skipped} edge/challenge skipped` : ""}
+                  {scanned} requests scanned · {summaryText()}
+                  {skipped > 0 ? ` · ${skipped} edge/challenge skipped` : ""}
                 </>
               ) : (
                 'Reads captured HTTP history and flags security issues. No requests are sent.'
@@ -347,8 +368,32 @@ export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onTo
               {discovering ? <Loader2 size={12} className="spin" /> : <Search size={12} />} {discovering ? `Probing ${dProgress.done}/${dProgress.total}` : 'Discover'}
             </button>
           </div>
+          <div className="scanner-head">
+            <label className="btn">
+              <input
+                type="file"
+                accept=".txt,text/plain"
+                style={{ display: "none" }}
+                disabled={discovering}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void loadWordlist(f);
+                  e.target.value = "";
+                }}
+              />
+              Load wordlist
+            </label>
+            <span className="fz-hint">
+              {wordlistName || `Built-in list · ${COMMON_PATHS.length} paths`}
+            </span>
+            {customPaths.length > 0 && (
+              <button className="btn" disabled={discovering} onClick={() => { setCustomPaths([]); setWordlistName(""); }}>
+                Use built-in
+              </button>
+            )}
+          </div>
           <p className="fz-hint" style={{ padding: '0 10px' }}>
-            Sends GET for {COMMON_PATHS.length} common paths (e.g. /.env, /admin, /.git/config) plus 2 random paths to calibrate. Only paths whose response <strong>differs from the random baseline</strong> are shown, so catch-all / SPA servers don't flood false positives. Active: it sends requests, so only use it on targets you may test.
+            Sends GET for {customPaths.length || COMMON_PATHS.length} paths from {customPaths.length ? "the loaded wordlist" : "the built-in list"} (e.g. /.env, /admin, /.git/config) plus 2 random paths to calibrate. Only paths whose response <strong>differs from the random baseline</strong> are shown, so catch-all / SPA servers don't flood false positives. Active: it sends requests, so only use it on targets you may test.
           </p>
           {baseline && (
             <p className="fz-hint" style={{ padding: '0 10px' }}>

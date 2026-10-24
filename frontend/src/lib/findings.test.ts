@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeResponse, isInfrastructure, looksLikeChallenge } from './findings';
+import { parseWordlist } from './wordlist';
 
 const html = { 'content-type': 'text/html; charset=utf-8' } as const;
 
@@ -118,5 +119,12 @@ describe('infrastructure flag', () => {
     );
     expect(found.map((f) => f.title)).toContain('Possible SQL error leaked');
     expect(found.every((f) => f.aboutTarget === false)).toBe(true);
+  });
+});
+
+describe('wordlist parsing', () => {
+  it('normalises, dedupes and skips blanks and comments', () => {
+    const paths = parseWordlist('\uFEFF# comment\n/admin\nadmin\n/api/v1/\n  /login  \n');
+    expect(paths).toEqual(['admin', 'api/v1', 'login']);
   });
 });

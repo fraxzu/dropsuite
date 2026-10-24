@@ -18,6 +18,8 @@ pub enum ChallengeVendor {
     DataDome,
     Imperva,
     Sucuri,
+    /// A block page with no vendor marker; the edge is identifiable but not the product.
+    Edge,
 }
 
 impl ChallengeVendor {
@@ -28,6 +30,7 @@ impl ChallengeVendor {
             ChallengeVendor::DataDome => "DataDome",
             ChallengeVendor::Imperva => "Imperva",
             ChallengeVendor::Sucuri => "Sucuri",
+            ChallengeVendor::Edge => "Edge",
         }
     }
 }
@@ -114,6 +117,11 @@ fn vendor_from(headers: &[(String, String)], body: &str) -> Option<(ChallengeVen
             return Some((ChallengeVendor::Akamai, format!("server: {v}")));
         }
     }
+    for name in ["akamai-grn", "akamai-request-bc", "akamai-cache-status"] {
+        if header(headers, name).is_some() {
+            return Some((ChallengeVendor::Akamai, format!("{name} present")));
+        }
+    }
     for name in ["cf-ray", "cf-cache-status"] {
         if header(headers, name).is_some() {
             return Some((ChallengeVendor::Cloudflare, format!("{name} present")));
@@ -137,6 +145,12 @@ fn vendor_from(headers: &[(String, String)], body: &str) -> Option<(ChallengeVen
         }
     }
     let lower = body.to_ascii_lowercase();
+    if lower.contains("errors.edgesuite.net") || lower.contains("reference #18.") {
+        return Some((
+            ChallengeVendor::Akamai,
+            "body: Akamai reference page".into(),
+        ));
+    }
     if lower.contains("datadome captcha") {
         return Some((ChallengeVendor::DataDome, "body: datadome captcha".into()));
     }
@@ -199,10 +213,7 @@ pub fn detect(status: u16, headers: &[(String, String)], body: &[u8]) -> Option<
                     "body: browser-check marker".into(),
                 )
             } else if BLOCK_MARKERS.iter().any(|m| lower.contains(m)) {
-                (
-                    ChallengeVendor::Cloudflare,
-                    "body: block-page marker".into(),
-                )
+                (ChallengeVendor::Edge, "body: block-page marker".into())
             } else {
                 return None;
             }
@@ -357,5 +368,54 @@ mod healthy_tests {
     #[test]
     fn a_refusal_from_cloudflare_is_still_reported() {
         assert!(detect(403, &h(&[("server", "cloudflare")]), b"nope").is_some());
+    }
+}
+
+#[cfg(test)]
+mod vendor_tests {
+    use super::*;
+
+    fn h(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn akamai_headers_are_akamai_not_cloudflare() {
+        let sig = detect(
+            403,
+            &h(&[("akamai-grn", "0.bd5f.1792.8d45")]),
+            b"Access Denied",
+        )
+        .unwrap();
+        assert_eq!(sig.vendor, ChallengeVendor::Akamai);
+        assert_eq!(sig.kind, ChallengeKind::Blocked);
+    }
+
+    #[test]
+    fn akamai_reference_page_is_akamai() {
+        let body = b"Access Denied\nReference #18.b65f6276.1792797616.b05a4cce\nhttps://errors.edgesuite.net/18.b65f";
+        assert_eq!(
+            detect(403, &h(&[]), body).unwrap().vendor,
+            ChallengeVendor::Akamai
+        );
+    }
+
+    #[test]
+    fn an_unmarked_block_page_is_edge_not_cloudflare() {
+        let sig = detect(
+            403,
+            &h(&[]),
+            b"Access Denied: you may not access this server",
+        )
+        .unwrap();
+        assert_eq!(sig.vendor, ChallengeVendor::Edge);
+    }
+
+    #[test]
+    fn a_healthy_akamai_page_is_not_a_challenge() {
+        assert!(detect(200, &h(&[("akamai-grn", "x")]), b"<html>ok</html>").is_none());
     }
 }
