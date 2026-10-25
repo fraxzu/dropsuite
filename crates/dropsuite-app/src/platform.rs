@@ -86,6 +86,7 @@ pub fn normal_rect(_window: &tauri::WebviewWindow) -> Option<(i32, i32, u32, u32
     None
 }
 
+#[cfg(windows)]
 static BROWSER_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
 /// Why the embedded browser was opened.
