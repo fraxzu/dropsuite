@@ -91,7 +91,7 @@ const SECTIONS: Section[] = [
 
 export const HelpGuide: React.FC<Props> = ({ onClose }) => {
   return (
-    <div className="fz-modal-backdrop" onMouseDown={onClose}>
+    <div className="fz-modal-backdrop" data-tauri-drag-region="false" onMouseDown={onClose}>
       <div className="fz-modal guide-modal" role="dialog" aria-label="DropSuite guide" onMouseDown={(e) => e.stopPropagation()}>
         <div className="fz-modal-head">
           <span className="fz-title">How to use DropSuite</span>

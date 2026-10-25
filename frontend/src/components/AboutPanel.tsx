@@ -111,7 +111,7 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
   };
 
   return (
-    <div className="fz-modal-backdrop" onMouseDown={onClose}>
+    <div className="fz-modal-backdrop" data-tauri-drag-region="false" onMouseDown={onClose}>
       <div className="fz-modal about-modal" role="dialog" aria-label="Settings and about" onMouseDown={(e) => e.stopPropagation()}>
         <div className="fz-modal-head">
           <span className="fz-title">Settings &amp; about</span>

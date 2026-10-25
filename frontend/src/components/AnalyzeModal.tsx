@@ -78,7 +78,7 @@ export const AnalyzeModal: React.FC<Props> = ({ requestText, responseText, onClo
   const sizeKb = (payload.length / 1024).toFixed(1);
 
   return (
-    <div className="fz-modal-backdrop" onMouseDown={onClose}>
+    <div className="fz-modal-backdrop" data-tauri-drag-region="false" onMouseDown={onClose}>
       <div className="fz-modal" role="dialog" aria-label="Analyze with Drop AI" onMouseDown={(e) => e.stopPropagation()}>
         <div className="fz-modal-head">
           <span className="fz-title">

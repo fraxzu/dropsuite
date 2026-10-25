@@ -562,7 +562,7 @@ const SuggestModal: React.FC<SuggestModalProps> = ({ requestText, onApply, onClo
   const parsed = answer ? cleanPayloads(answer) : [];
 
   return (
-    <div className="fz-modal-backdrop" onMouseDown={onClose}>
+    <div className="fz-modal-backdrop" data-tauri-drag-region="false" onMouseDown={onClose}>
       <div className="fz-modal" role="dialog" aria-label="Suggest payloads with Drop AI" onMouseDown={(e) => e.stopPropagation()}>
         <div className="fz-modal-head">
           <span className="fz-title">

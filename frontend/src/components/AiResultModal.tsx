@@ -49,7 +49,7 @@ export const AiResultModal: React.FC<Props> = ({ title, system, prompt, onClose,
   };
 
   return (
-    <div className="fz-modal-backdrop" onMouseDown={onClose}>
+    <div className="fz-modal-backdrop" data-tauri-drag-region="false" onMouseDown={onClose}>
       <div className="fz-modal" role="dialog" aria-label={title} onMouseDown={(e) => e.stopPropagation()}>
         <div className="fz-modal-head">
           <span className="fz-title">
