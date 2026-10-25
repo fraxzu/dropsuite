@@ -664,14 +664,16 @@ kbd {
   cursor: col-resize;
 }
 
+/* The visible seam is 1px, but the grab zone is widened well past it so the seam is easy to catch
+   even with selectable text panes pressed against both sides. */
 .splitter::before {
   content: '';
   position: absolute;
-  inset: -3px 0;
+  inset: -7px 0;
 }
 
 .splitter.vertical::before {
-  inset: 0 -3px;
+  inset: 0 -7px;
 }
 
 .splitter::after {
@@ -1575,7 +1577,10 @@ body.resizing-col * {
   width: 1%;
   min-width: 140px;
   max-width: 260px;
-  white-space: nowrap;
+  /* Param and header names can be long and space-free (e.g. a cache-busted asset path used as a
+     query key). Wrap inside the column instead of letting nowrap spill the text over the value. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--syn-key);
 }
 
