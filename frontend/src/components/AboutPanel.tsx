@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { X, FolderOpen, Loader2, RefreshCw, ExternalLink } from 'lucide-react';
 import { engine } from '../lib/transport';
 import { AppInfo, UpdateInfo } from '../types';
+import { useStoredState } from '../lib/useStoredState';
+import { applyTheme, DEFAULT_THEME, THEME_KEY, THEMES, ThemeId } from '../lib/theme';
 
 interface Props {
   onClose: () => void;
@@ -43,6 +45,12 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
   const [checkOnLaunch, setCheckOnLaunch] = useState<boolean>(checkOnLaunchEnabled());
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [checking, setChecking] = useState(false);
+  const [theme, setTheme] = useStoredState<ThemeId>(THEME_KEY, DEFAULT_THEME);
+
+  // Keep <html data-theme> in step with the stored choice (also covers storage set elsewhere).
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     let live = true;
@@ -113,6 +121,26 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
         </div>
 
         <div className="about-body">
+          <section className="about-section">
+            <h3>Appearance</h3>
+            <div className="theme-picker" role="radiogroup" aria-label="Theme">
+              {THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === t.id}
+                  className={`theme-option${theme === t.id ? ' on' : ''}`}
+                  onClick={() => setTheme(t.id)}
+                >
+                  <span className={`theme-swatch theme-swatch-${t.id}`} aria-hidden="true" />
+                  <span className="theme-option-label">{t.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="fz-hint">{THEMES.find((t) => t.id === theme)?.hint}</p>
+          </section>
+
           <section className="about-section">
             <h3>Version</h3>
             {info ? (
