@@ -11,7 +11,7 @@ A local-first, intercepting web security testing proxy. Free, with no paywalled 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-3d8bff.svg)](LICENSE)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-e8a43c.svg)
-![Platform: Windows](https://img.shields.io/badge/platform-Windows-6ea8ff.svg)
+![Platform: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-6ea8ff.svg)
 
 </div>
 
@@ -72,10 +72,26 @@ before anything is sent, and requests go straight to your endpoint, never throug
 
 ## Install
 
-1. Download the latest `DropSuite_*_x64-setup.exe` from the releases.
-2. Run it. The installer is per user and does not need admin rights.
-3. The installer is not code signed yet, so Windows SmartScreen will warn on first run. Choose
-   **More info** then **Run anyway**, and verify the published SHA-256 of the file you downloaded.
+Grab the file for your system from the [latest release](https://github.com/fraxzu/dropsuite/releases/latest),
+then check it against the `SHA256SUMS` published next to it. The builds are 64 bit (Apple silicon on
+macOS).
+
+**Windows 10 and 11.** Download `DropSuite_0.1.0_x64-setup.exe` and run it. The installer is per user
+and needs no admin rights. It is not code signed yet, so SmartScreen warns on first run: choose
+**More info**, then **Run anyway**.
+
+**macOS (Apple silicon).** Download `DropSuite_0.1.0_aarch64.dmg`, open it, and drag DropSuite to
+Applications. The app is not notarized yet, so the first time you launch it, right click the app and
+choose **Open** to get past Gatekeeper.
+
+**Debian, Ubuntu and derivatives.** Download `DropSuite_0.1.0_amd64.deb` and install it with
+`sudo apt install ./DropSuite_0.1.0_amd64.deb`.
+
+**Fedora, openSUSE and derivatives.** Download `DropSuite-0.1.0-1.x86_64.rpm` and install it with
+`sudo dnf install ./DropSuite-0.1.0-1.x86_64.rpm`.
+
+**Any Linux, one file.** Download `DropSuite_0.1.0_amd64.AppImage`, make it executable with
+`chmod +x DropSuite_0.1.0_amd64.AppImage`, and run it. No install needed.
 
 ## Build from source
 
