@@ -30,12 +30,22 @@ dependency, so it also runs headless.
   <img src="docs/assets/shots/proxy-history.png" alt="DropSuite proxy history and request inspector" width="900" />
 </div>
 
+## Contents
+
+- [What it does](#what-it-does)
+- [Install](#install)
+- [Getting started](#getting-started)
+- [Build from source](#build-from-source)
+- [Status](#status)
+- [Layout](#layout)
+- [Community](#community)
+
 ## What it does
 
 **Proxy and HTTPS interception.** An HTTP/1.1 forward proxy on `127.0.0.1:8080`. HTTPS is decrypted
 only for the hosts you add to an allowlist; everything else is tunnelled untouched. The root CA
-exists only after you click Generate, its private key is stored encrypted with Windows DPAPI, and
-it is never installed into any trust store.
+exists only after you click Generate, its private key is stored encrypted at rest (Windows DPAPI,
+or owner only file permissions on macOS and Linux), and it is never installed into any trust store.
 
 **HTTP history and inspector.** Every request and response, searchable and filterable, with a
 request and response view that shows headers, body and timing. Credentials are redacted before they
@@ -61,6 +71,9 @@ discovery against a target. An active scanner is in progress (see Status).
 
 **Drop AI.** Bring your own model and key. Secrets are redacted and the exact prompt is previewed
 before anything is sent, and requests go straight to your endpoint, never through the proxy.
+
+**Settings.** A dark and a light theme, optional update checks against GitHub, and one click to the
+local log and data folders, all in one panel.
 
 <div align="center">
   <img src="docs/assets/shots/scanner.png" alt="Passive scanner findings" width="440" />
@@ -92,6 +105,19 @@ choose **Open** to get past Gatekeeper.
 
 **Any Linux, one file.** Download `DropSuite_0.1.0_amd64.AppImage`, make it executable with
 `chmod +x DropSuite_0.1.0_amd64.AppImage`, and run it. No install needed.
+
+## Getting started
+
+1. Press **Start** in the top bar to run the proxy listener on `127.0.0.1:8080`.
+2. For HTTPS, open **Listener** settings to generate the local root CA, then add the hosts you want
+   decrypted to the allowlist. Trust the CA only while you test; plain HTTP needs no CA.
+3. Send traffic through the proxy: click **Open Browser** in the Proxy tab for an isolated browser
+   already wired to the listener, or point your own browser or system proxy at `127.0.0.1:8080`.
+   Then browse your target.
+4. Watch requests land in **HTTP history**. From there, send one to **Replay**, mark positions for
+   the **Fuzzer**, or open **Scanner** to check what you have captured.
+
+Only allowlisted HTTPS hosts are decrypted; everything else is tunnelled untouched.
 
 ## Build from source
 
