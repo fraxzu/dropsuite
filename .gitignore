@@ -62,3 +62,6 @@ docs/P3-*.md
 docs/ROADMAP*.md
 docs/PANDUAN-*.md
 docs/FINGERPRINT-AND-CHALLENGE.md
+
+# Brand design workspace (candidates, renders) - keep local; final logo lives in docs/assets
+brand/
