@@ -16,7 +16,9 @@ use serde::{Deserialize, Serialize};
 
 const KEY_FILE: &str = "drop-ai.key.dpapi";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(90);
+// Generous, because reasoning models (o1 style, Qwen3 thinking, DeepSeek R1) can spend minutes on
+// a heavy prompt. The connectivity Test stays short so it still returns fast.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(240);
 /// A connectivity test should fail fast, not wait as long as a real completion.
 const TEST_TIMEOUT: Duration = Duration::from_secs(25);
 
