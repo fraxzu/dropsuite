@@ -28,6 +28,7 @@ dependency, so it also runs headless.
 
 <div align="center">
   <img src="docs/assets/shots/proxy-history.png" alt="DropSuite proxy history and request inspector" width="900" />
+  <br /><sub>HTTP history with the request and response inspector</sub>
 </div>
 
 ## Contents
@@ -75,13 +76,28 @@ before anything is sent, and requests go straight to your endpoint, never throug
 **Settings.** A dark and a light theme, optional update checks against GitHub, and one click to the
 local log and data folders, all in one panel.
 
-<div align="center">
-  <img src="docs/assets/shots/scanner.png" alt="Passive scanner findings" width="440" />
-  <img src="docs/assets/shots/replay.png" alt="Replay editor and response" width="440" />
-  <br/>
-  <img src="docs/assets/shots/target-sitemap.png" alt="Target site map" width="440" />
-  <img src="docs/assets/shots/fuzzer.png" alt="Fuzzer attack setup" width="440" />
-</div>
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/assets/shots/scanner.png" alt="Passive scanner findings" width="100%" />
+      <br /><sub><b>Scanner</b>: passive findings by type and severity</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/assets/shots/replay.png" alt="Replay editor and response" width="100%" />
+      <br /><sub><b>Replay</b>: edit a request, resend, compare responses</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/assets/shots/target-sitemap.png" alt="Target site map" width="100%" />
+      <br /><sub><b>Target</b>: site map, scope, match and replace</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/assets/shots/fuzzer.png" alt="Fuzzer attack setup" width="100%" />
+      <br /><sub><b>Fuzzer</b>: mark positions, Sniper or Cluster bomb</sub>
+    </td>
+  </tr>
+</table>
 
 ## Install
 
