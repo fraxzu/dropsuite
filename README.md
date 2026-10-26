@@ -163,6 +163,5 @@ Interfaces and data formats can still change.
 ## Community
 
 - [License: MIT](LICENSE)
-- [Code of conduct](CODE_OF_CONDUCT.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
