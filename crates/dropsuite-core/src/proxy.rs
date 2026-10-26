@@ -1531,7 +1531,7 @@ impl ProxyEngine {
             .total_bytes
             .fetch_add((request_bytes + response_bytes) as usize, Ordering::Relaxed);
 
-        let record = sanitize_record(&TransactionRecord {
+        let raw = TransactionRecord {
             id: 0,
             timestamp: chrono::Utc::now().timestamp_millis(),
             duration_ms: start_time.elapsed().as_millis() as u64,
@@ -1558,9 +1558,12 @@ impl ProxyEngine {
             ),
             content_type: response_head.info.content_type.clone(),
             content_length: response_bytes as usize,
-        });
-        if let Ok(id) = shared.storage.insert_transaction(&record) {
-            let mut stored_record = record;
+        };
+        // insert_transaction redacts the copy it writes to disk, and we redact the copy the live UI
+        // sees below, while it keeps one unredacted copy in the session-only reveal cache. Pass the
+        // raw record so the reveal (eye) can recover real cookie and token values this session.
+        if let Ok(id) = shared.storage.insert_transaction(&raw) {
+            let mut stored_record = sanitize_record(&raw);
             stored_record.id = id;
             shared.total_captured.fetch_add(1, Ordering::Relaxed);
             let _ = shared.tx_events.send(stored_record);
