@@ -2662,6 +2662,30 @@ span.ab.b {
   line-height: 1.5;
   margin: -2px 0 2px;
 }
+
+/* Per-position payload suggestions in the Mark positions modal. */
+.fz-mark-result {
+  display: flex;
+  flex-direction: column;
+}
+.fz-pos {
+  margin-bottom: 10px;
+}
+.fz-pos-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.fz-pos-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--accent-text);
+  overflow-wrap: anywhere;
+}
+.fz-pos-head .fz-count {
+  margin-right: auto;
+}
 .fz-row {
   display: flex;
   gap: 6px;

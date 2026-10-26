@@ -428,7 +428,21 @@ export const FuzzerWorkspace: React.FC<FuzzerWorkspaceProps> = ({ active, onToas
             setUrl(r.url);
             setHeadersText(r.headersText);
             setBody(r.body);
-            setMarkOpen(false);
+          }}
+          onUsePayloads={(i, list) => {
+            const text = list.join('\n');
+            if (attackType === 'cluster_bomb') {
+              setPayloadSets((prev) => {
+                const next = [...prev];
+                while (next.length <= i) next.push({ ...NEW_PAYLOAD });
+                next[i] = { ...next[i], kind: 'list', list: text };
+                return next;
+              });
+              onToast(`Loaded ${list.length} payload${list.length === 1 ? '' : 's'} into set ${i + 1}.`);
+            } else {
+              setPayload((p) => ({ ...p, kind: 'list', list: text }));
+              onToast(`Loaded ${list.length} payload${list.length === 1 ? '' : 's'}.`);
+            }
           }}
           onClose={() => setMarkOpen(false)}
         />
@@ -547,14 +561,44 @@ function cleanPayloads(answer: string): string[] {
 }
 
 const MARK_SYSTEM =
-  'You are a senior penetration tester on an AUTHORIZED engagement: the user owns the target or has written permission to test it. You are given one HTTP request. Decide which values are attacker controllable and worth fuzzing: query parameter values, path segments, cookie values, JSON or form body field values, and tamperable header values such as User-Agent, Referer, X-Forwarded-For, or an auth token. ' +
-  'Return the request EXACTLY as given, with ONE change: wrap each value you pick between {{ and }}. Never wrap a key, a parameter name, or a header name, only its value. Do not add, drop, reorder, reword, or reformat anything else. Output only the request itself, with no code fence and no commentary.';
+  'You are a senior penetration tester on an AUTHORIZED engagement: the user owns the target or has written permission to test it. You are given one HTTP request. Choose which values are attacker controllable and worth fuzzing (query parameter values, path segments, cookie values, JSON or form body field values, and tamperable header values such as User-Agent, Referer, X-Forwarded-For, or an auth token), and for each chosen value propose the strongest detection payloads for its context, drawing on your own current knowledge. ' +
+  'Reply with ONE JSON object and nothing else, in exactly this shape: {"request":"<the request exactly as given, but with {{ and }} around each value you chose>","positions":[{"label":"<short label, e.g. name (query)>","payloads":["<raw payload>","..."]}]}. ' +
+  'Never wrap a key, a parameter name, or a header name, only its value. Keep the positions in the same order they appear in the request. Payloads are raw and ready to paste, no numbering and no commentary. Output only the JSON, with no code fence and no text around it.';
 
 function buildMarkPrompt(requestText: string): string {
   return (
-    `Authorized web application security test. Mark the fuzzable values in this HTTP request by wrapping each chosen value in {{ }}. The scheme and host may be placeholders, so judge from the parameter context. Keep everything else identical.\n\n` +
+    `Authorized web application security test. Mark the fuzzable values in this HTTP request and suggest payloads for each, returned as the JSON described. The scheme and host may be placeholders, so judge from the parameter context.\n\n` +
     `${requestText}`
   );
+}
+
+export interface MarkResult {
+  request: string;
+  positions: { label: string; payloads: string[] }[];
+}
+
+/** Pull the JSON object out of a model reply and validate its shape. Tolerates code fences and
+ *  surrounding chatter by taking the outermost { ... }. */
+function parseMarkResult(answer: string): MarkResult | null {
+  const m = answer.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  let o: unknown;
+  try {
+    o = JSON.parse(m[0]);
+  } catch {
+    return null;
+  }
+  const obj = o as { request?: unknown; positions?: unknown };
+  if (!obj || typeof obj.request !== 'string' || !Array.isArray(obj.positions)) return null;
+  const positions = (obj.positions as unknown[])
+    .map((p) => {
+      const pp = p as { label?: unknown; payloads?: unknown };
+      if (!Array.isArray(pp.payloads)) return null;
+      const payloads = pp.payloads.map((x) => String(x).trim()).filter((s) => s.length > 0);
+      return { label: typeof pp.label === 'string' && pp.label.trim() ? pp.label.trim() : 'position', payloads };
+    })
+    .filter((p): p is { label: string; payloads: string[] } => p !== null && p.payloads.length > 0);
+  return { request: obj.request, positions };
 }
 
 /** Remove any existing {{ }} markers so the model marks a clean request. */
@@ -680,17 +724,19 @@ const SuggestModal: React.FC<SuggestModalProps> = ({ requestText, onApply, onClo
 interface MarkPositionsModalProps {
   requestText: string;
   onApply: (r: { method: string; url: string; headersText: string; body: string }) => void;
+  onUsePayloads: (index: number, list: string[]) => void;
   onClose: () => void;
   onToast: (m: string) => void;
 }
 
-const MarkPositionsModal: React.FC<MarkPositionsModalProps> = ({ requestText, onApply, onClose, onToast }) => {
+const MarkPositionsModal: React.FC<MarkPositionsModalProps> = ({ requestText, onApply, onUsePayloads, onClose, onToast }) => {
   const base = useMemo(() => stripMarkers(requestText), [requestText]);
   const [redact, setRedact] = useState(true);
   const [prompt, setPrompt] = useState(() => buildMarkPrompt(redactSecrets(base)));
   const [sending, setSending] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [applied, setApplied] = useState(false);
 
   const toggleRedact = (v: boolean) => {
     setRedact(v);
@@ -701,6 +747,7 @@ const MarkPositionsModal: React.FC<MarkPositionsModalProps> = ({ requestText, on
     setSending(true);
     setError(null);
     setAnswer(null);
+    setApplied(false);
     try {
       setAnswer(await dropAi.complete(MARK_SYSTEM, prompt));
     } catch (e) {
@@ -710,11 +757,21 @@ const MarkPositionsModal: React.FC<MarkPositionsModalProps> = ({ requestText, on
     }
   };
 
-  const req = answer ? parseMarkedRequest(answer) : null;
+  const result = answer ? parseMarkResult(answer) : null;
+  const req = result ? parseMarkedRequest(result.request) : null;
   const markCount = req
     ? countMarkers(req.url) + parseHeaderLines(req.headersText).headers.reduce((n, [, v]) => n + countMarkers(v), 0) + countMarkers(req.body)
     : 0;
   const preview = req ? `${req.method} ${req.url}${req.headersText ? `\n${req.headersText}` : ''}${req.body ? `\n\n${req.body}` : ''}` : '';
+
+  const copyList = async (list: string[]) => {
+    try {
+      await navigator.clipboard.writeText(list.join('\n'));
+      onToast(`Copied ${list.length} payload${list.length === 1 ? '' : 's'}.`);
+    } catch {
+      onToast('Copy failed. Select the text and copy it by hand.');
+    }
+  };
 
   return (
     <div className="fz-modal-backdrop" data-tauri-drag-region="false" onMouseDown={onClose}>
@@ -731,10 +788,10 @@ const MarkPositionsModal: React.FC<MarkPositionsModalProps> = ({ requestText, on
           <input type="checkbox" checked={redact} onChange={(e) => toggleRedact(e.target.checked)} /> Redact secrets before sending (recommended)
         </label>
         <p className="fz-ai-note">
-          Drop AI picks the values worth fuzzing and marks each as a position. Review the result before applying. Uncensored or abliterated models give the fullest results; many hosted models refuse security tasks.
+          Drop AI marks the values worth fuzzing and suggests payloads for each one. Review before applying. Uncensored or abliterated models give the fullest results; many hosted models refuse security tasks.
         </p>
         <span className="fz-label">This exact text will be sent to your model. Edit it if you like:</span>
-        <textarea className="fz-area" rows={8} value={prompt} onChange={(e) => setPrompt(e.target.value)} spellCheck={false} />
+        <textarea className="fz-area" rows={6} value={prompt} onChange={(e) => setPrompt(e.target.value)} spellCheck={false} />
         <div className="fz-actions">
           <button className="btn btn-primary" onClick={send} disabled={sending}>
             {sending ? (
@@ -749,29 +806,57 @@ const MarkPositionsModal: React.FC<MarkPositionsModalProps> = ({ requestText, on
           </button>
         </div>
         {error && <p className="fz-issue">{error}</p>}
-        {answer !== null &&
-          (req ? (
-            <>
-              <span className="fz-label">
-                Marked request ({markCount} position{markCount === 1 ? '' : 's'})
-              </span>
-              <textarea className="fz-area" rows={8} readOnly value={preview} spellCheck={false} />
-              <div className="fz-actions">
-                <button
-                  className="btn btn-primary"
-                  disabled={markCount === 0}
-                  onClick={() => {
-                    onApply(req);
-                    onToast(`Marked ${markCount} position${markCount === 1 ? '' : 's'}.`);
-                  }}
-                >
-                  Apply positions
-                </button>
+        {answer !== null && !result && (
+          <>
+            <p className="fz-issue">Could not read structured JSON from the reply. The raw reply is below to copy by hand.</p>
+            <textarea className="fz-area" rows={6} readOnly value={answer} spellCheck={false} />
+          </>
+        )}
+        {result && (
+          <div className="fz-mark-result">
+            {req && (
+              <>
+                <span className="fz-label">
+                  Marked request ({markCount} position{markCount === 1 ? '' : 's'})
+                </span>
+                <textarea className="fz-area" rows={4} readOnly value={preview} spellCheck={false} />
+                <div className="fz-actions">
+                  <button
+                    className="btn btn-primary"
+                    disabled={markCount === 0 || applied}
+                    onClick={() => {
+                      onApply(req);
+                      setApplied(true);
+                      onToast(`Marked ${markCount} position${markCount === 1 ? '' : 's'}.`);
+                    }}
+                  >
+                    {applied ? 'Positions applied' : 'Apply positions'}
+                  </button>
+                </div>
+              </>
+            )}
+            {result.positions.length > 0 && <span className="fz-label">Suggested payloads per position</span>}
+            {result.positions.map((p, i) => (
+              <div className="fz-pos" key={i}>
+                <div className="fz-pos-head">
+                  <span className="fz-pos-label">{p.label}</span>
+                  <span className="fz-count">{p.payloads.length}</span>
+                  <button className="btn" onClick={() => copyList(p.payloads)} title="Copy these payloads to the clipboard">
+                    Copy
+                  </button>
+                  <button
+                    className="btn fz-ai"
+                    onClick={() => onUsePayloads(i, p.payloads)}
+                    title="Load these into the payload editor for this attack"
+                  >
+                    Use as payloads
+                  </button>
+                </div>
+                <textarea className="fz-area" rows={Math.min(6, Math.max(2, p.payloads.length))} readOnly value={p.payloads.join('\n')} spellCheck={false} />
               </div>
-            </>
-          ) : (
-            <p className="fz-issue">Could not read a request from the reply. Edit the prompt or try again.</p>
-          ))}
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
