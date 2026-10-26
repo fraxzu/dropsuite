@@ -69,6 +69,7 @@ export const FuzzerWorkspace: React.FC<FuzzerWorkspaceProps> = ({ active, onToas
   const [runId, setRunId] = useState(0);
   const loadedRef = useRef(0);
   const [suggestFor, setSuggestFor] = useState<{ apply: (list: string) => void } | null>(null);
+  const [markOpen, setMarkOpen] = useState(false);
 
   const urlRef = useRef<HTMLInputElement>(null);
   const headersRef = useRef<HTMLTextAreaElement>(null);
@@ -225,6 +226,9 @@ export const FuzzerWorkspace: React.FC<FuzzerWorkspaceProps> = ({ active, onToas
             <span className="fz-title">Request</span>
             <button className="btn" onClick={addPosition} disabled={running} title="Wrap the selected text in a {{ }} position">
               <Plus size={12} /> Add position
+            </button>
+            <button className="btn fz-ai" onClick={() => setMarkOpen(true)} disabled={running} title="Let Drop AI mark the values worth fuzzing">
+              <Sparkles size={12} /> AI positions
             </button>
             <span className="fz-count">{positions} position{positions === 1 ? '' : 's'}</span>
           </div>
@@ -414,6 +418,21 @@ export const FuzzerWorkspace: React.FC<FuzzerWorkspaceProps> = ({ active, onToas
           onClose={() => setSuggestFor(null)}
         />
       )}
+
+      {markOpen && (
+        <MarkPositionsModal
+          requestText={requestText}
+          onToast={onToast}
+          onApply={(r) => {
+            setMethod(r.method);
+            setUrl(r.url);
+            setHeadersText(r.headersText);
+            setBody(r.body);
+            setMarkOpen(false);
+          }}
+          onClose={() => setMarkOpen(false)}
+        />
+      )}
     </div>
   );
 };
@@ -501,16 +520,16 @@ const PayloadEditor: React.FC<PayloadEditorProps> = ({ label, value, onChange, d
 };
 
 const SUGGEST_SYSTEM =
-  'You are a senior penetration tester helping on an AUTHORIZED engagement: the user owns the target or has written permission to test it. Build a practical fuzzing wordlist of standard, field-tested detection payloads, the kind published in the OWASP Web Security Testing Guide and the SecLists project, tailored to the exact injection point shown. ' +
-  'Output format is strict and non-negotiable: ONE raw payload per line, ready to paste verbatim. No numbering, no bullets, no comments, no code fences, no blank lines, no explanation before or after. If you cannot comply with the format, output nothing.';
+  'You are a senior penetration tester on an AUTHORIZED engagement: the user owns the target or has written permission to test it. For the injection point shown, produce the strongest, most current detection payloads you know for that exact context. Lean on your own up to date knowledge and judgement, not one fixed published list, and prefer high signal probes a tester would actually reach for first. ' +
+  'Output format is strict and non negotiable: ONE raw payload per line, ready to paste verbatim. No numbering, no bullets, no comments, no code fences, no blank lines, and no text before or after. If you cannot comply with the format, output nothing.';
 
 function buildPrompt(requestText: string): string {
   return (
-    `Authorized web application security test. Below is the HTTP request; every fuzz position is marked with {{ }} and the text inside is the current base value.\n\n` +
+    `Authorized web application security test. Below is one HTTP request. Every fuzz position is marked with {{ }} and the text inside is its current base value. The scheme and host may be placeholders, so judge each position from its parameter context, not from the domain.\n\n` +
     `${requestText}\n\n` +
-    `For each marked position, infer its context (URL query parameter, path segment, header value, cookie, or JSON/form body field) and the parameter's likely purpose from its name, then produce the detection payloads that best probe that specific spot.\n\n` +
-    `Cover the classes that fit the context, weighted toward the most likely: SQL injection (error-based, boolean, time-based), cross-site scripting (reflected and attribute-breakout), path/directory traversal, OS command injection, server-side template injection, LDAP/NoSQL injection, and authentication or logic bypass. Include a few encoding variants (URL, double-URL, unicode) where they matter, and keep the classic high-signal probes.\n\n` +
-    `Return up to 40 payloads, deduplicated, ordered roughly by likelihood of a finding. One raw payload per line, nothing else.`
+    `For each marked position, infer its context (URL query parameter, path segment, header value, cookie, or JSON or form body field) and the parameter's likely purpose from its name, then produce the payloads that best probe that specific spot.\n\n` +
+    `Cover the classes that fit the context, weighted toward the most likely: SQL injection (error based, boolean, time based), cross site scripting (reflected and attribute breakout), path traversal, OS command injection, server side template injection, LDAP or NoSQL injection, and auth or logic bypass. Add encoding variants (URL, double URL, unicode) only where they help. Use modern, effective techniques, not only textbook classics.\n\n` +
+    `Return up to 40 payloads, deduplicated, ordered by likelihood of a finding. One raw payload per line, nothing else.`
   );
 }
 
@@ -525,6 +544,48 @@ function cleanPayloads(answer: string): string[] {
         .trim(),
     )
     .filter((l) => l.length > 0 && !l.startsWith('```'));
+}
+
+const MARK_SYSTEM =
+  'You are a senior penetration tester on an AUTHORIZED engagement: the user owns the target or has written permission to test it. You are given one HTTP request. Decide which values are attacker controllable and worth fuzzing: query parameter values, path segments, cookie values, JSON or form body field values, and tamperable header values such as User-Agent, Referer, X-Forwarded-For, or an auth token. ' +
+  'Return the request EXACTLY as given, with ONE change: wrap each value you pick between {{ and }}. Never wrap a key, a parameter name, or a header name, only its value. Do not add, drop, reorder, reword, or reformat anything else. Output only the request itself, with no code fence and no commentary.';
+
+function buildMarkPrompt(requestText: string): string {
+  return (
+    `Authorized web application security test. Mark the fuzzable values in this HTTP request by wrapping each chosen value in {{ }}. The scheme and host may be placeholders, so judge from the parameter context. Keep everything else identical.\n\n` +
+    `${requestText}`
+  );
+}
+
+/** Remove any existing {{ }} markers so the model marks a clean request. */
+function stripMarkers(text: string): string {
+  return text.replace(/\{\{|\}\}/g, '');
+}
+
+/** Read a model reply back into request fields, mirroring how requestText is built. Null if it is
+ *  not a recognizable request line. */
+function parseMarkedRequest(answer: string): { method: string; url: string; headersText: string; body: string } | null {
+  const lines = answer
+    .replace(/\r/g, '')
+    .split('\n')
+    .filter((l) => !/^\s*```/.test(l));
+  const first = (lines[0] ?? '').trim();
+  const sp = first.indexOf(' ');
+  if (sp <= 0) return null;
+  const method = first.slice(0, sp).trim();
+  const url = first.slice(sp + 1).trim();
+  if (!/^https?:\/\//i.test(stripMarkers(url))) return null;
+  let i = 1;
+  const headerLines: string[] = [];
+  for (; i < lines.length; i++) {
+    if (lines[i].trim() === '') {
+      i++;
+      break;
+    }
+    headerLines.push(lines[i]);
+  }
+  const body = lines.slice(i).join('\n').trim();
+  return { method, url, headersText: headerLines.join('\n'), body };
 }
 
 interface SuggestModalProps {
@@ -575,6 +636,7 @@ const SuggestModal: React.FC<SuggestModalProps> = ({ requestText, onApply, onClo
         <label className="fz-check">
           <input type="checkbox" checked={redact} onChange={(e) => toggleRedact(e.target.checked)} /> Redact secrets before sending (recommended)
         </label>
+        <p className="fz-ai-note">Tip: uncensored or abliterated models give the fullest results. Many hosted models refuse to write security payloads.</p>
         <span className="fz-label">This exact text will be sent to your model. Edit it if you like:</span>
         <textarea className="fz-area" rows={9} value={prompt} onChange={(e) => setPrompt(e.target.value)} spellCheck={false} />
         <div className="fz-actions">
@@ -610,6 +672,106 @@ const SuggestModal: React.FC<SuggestModalProps> = ({ requestText, onApply, onClo
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+};
+
+interface MarkPositionsModalProps {
+  requestText: string;
+  onApply: (r: { method: string; url: string; headersText: string; body: string }) => void;
+  onClose: () => void;
+  onToast: (m: string) => void;
+}
+
+const MarkPositionsModal: React.FC<MarkPositionsModalProps> = ({ requestText, onApply, onClose, onToast }) => {
+  const base = useMemo(() => stripMarkers(requestText), [requestText]);
+  const [redact, setRedact] = useState(true);
+  const [prompt, setPrompt] = useState(() => buildMarkPrompt(redactSecrets(base)));
+  const [sending, setSending] = useState(false);
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggleRedact = (v: boolean) => {
+    setRedact(v);
+    setPrompt(buildMarkPrompt(v ? redactSecrets(base) : base));
+  };
+
+  const send = async () => {
+    setSending(true);
+    setError(null);
+    setAnswer(null);
+    try {
+      setAnswer(await dropAi.complete(MARK_SYSTEM, prompt));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const req = answer ? parseMarkedRequest(answer) : null;
+  const markCount = req
+    ? countMarkers(req.url) + parseHeaderLines(req.headersText).headers.reduce((n, [, v]) => n + countMarkers(v), 0) + countMarkers(req.body)
+    : 0;
+  const preview = req ? `${req.method} ${req.url}${req.headersText ? `\n${req.headersText}` : ''}${req.body ? `\n\n${req.body}` : ''}` : '';
+
+  return (
+    <div className="fz-modal-backdrop" data-tauri-drag-region="false" onMouseDown={onClose}>
+      <div className="fz-modal" role="dialog" aria-label="Mark positions with Drop AI" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="fz-modal-head">
+          <span className="fz-title">
+            <Sparkles size={13} /> Mark positions (Drop AI)
+          </span>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">
+            <X size={14} />
+          </button>
+        </div>
+        <label className="fz-check">
+          <input type="checkbox" checked={redact} onChange={(e) => toggleRedact(e.target.checked)} /> Redact secrets before sending (recommended)
+        </label>
+        <p className="fz-ai-note">
+          Drop AI picks the values worth fuzzing and marks each as a position. Review the result before applying. Uncensored or abliterated models give the fullest results; many hosted models refuse security tasks.
+        </p>
+        <span className="fz-label">This exact text will be sent to your model. Edit it if you like:</span>
+        <textarea className="fz-area" rows={8} value={prompt} onChange={(e) => setPrompt(e.target.value)} spellCheck={false} />
+        <div className="fz-actions">
+          <button className="btn btn-primary" onClick={send} disabled={sending}>
+            {sending ? (
+              <>
+                <Loader2 size={12} className="spin" /> Asking…
+              </>
+            ) : (
+              <>
+                <Sparkles size={12} /> Send to Drop AI
+              </>
+            )}
+          </button>
+        </div>
+        {error && <p className="fz-issue">{error}</p>}
+        {answer !== null &&
+          (req ? (
+            <>
+              <span className="fz-label">
+                Marked request ({markCount} position{markCount === 1 ? '' : 's'})
+              </span>
+              <textarea className="fz-area" rows={8} readOnly value={preview} spellCheck={false} />
+              <div className="fz-actions">
+                <button
+                  className="btn btn-primary"
+                  disabled={markCount === 0}
+                  onClick={() => {
+                    onApply(req);
+                    onToast(`Marked ${markCount} position${markCount === 1 ? '' : 's'}.`);
+                  }}
+                >
+                  Apply positions
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="fz-issue">Could not read a request from the reply. Edit the prompt or try again.</p>
+          ))}
       </div>
     </div>
   );

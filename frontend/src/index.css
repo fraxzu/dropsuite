@@ -2648,7 +2648,20 @@ span.ab.b {
   font-family: var(--font-mono);
 }
 .fz-card-head .btn { margin-left: auto; }
+/* A second button in the head sits next to the first, not pushed apart by another auto margin. */
+.fz-card-head .btn ~ .btn { margin-left: 0; }
 .fz-card-head .fz-count { margin-left: 0; }
+
+/* AI action buttons: a quiet accent tint so they read as the AI entry points. */
+.btn.fz-ai { color: var(--accent-text); }
+.btn.fz-ai:hover:not(:disabled) { border-color: var(--accent); }
+
+.fz-ai-note {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: 1.5;
+  margin: -2px 0 2px;
+}
 .fz-row {
   display: flex;
   gap: 6px;
