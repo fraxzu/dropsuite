@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-listener-settings"
+description = "Enables the get_listener_settings command without any pre-configured scope."
+commands.allow = ["get_listener_settings"]
+
+[[permission]]
+identifier = "deny-get-listener-settings"
+description = "Denies the get_listener_settings command without any pre-configured scope."
+commands.deny = ["get_listener_settings"]

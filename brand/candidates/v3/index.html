@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DropSuite Identity V3</title>
+<link rel="stylesheet" href="../../../frontend/src/index.css" />
+<style>
+  html, body { height: auto; }
+  body { overflow: auto; user-select: text; background: var(--chrome); padding: 0 0 72px; }
+  .sheet { max-width: 1392px; margin: 0 auto; padding: 0 24px; }
+  .head { padding: 28px 0 18px; border-bottom: 1px solid var(--line); }
+  .head h1 { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .head p { color: var(--text-3); font-size: 12px; max-width: 980px; line-height: 1.5; }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .rowlabel { font-size: 11px; color: var(--text-3); margin: 22px 0 8px; }
+  .col-title { padding: 22px 0 0; }
+  .col-title .k { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); font-weight: 700; }
+  .col-title h2 { font-family: var(--font-display); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; margin: 2px 0 2px; }
+  .col-title .terr { font-size: 12px; color: var(--text-3); }
+  .box { background: var(--ground); border: 1px solid var(--line); }
+  .box.light { background: #f4f4f5; border-color: #e4e4e7; }
+  .master { height: 300px; display: grid; place-items: center; position: relative; }
+  .master .grid { position: absolute; inset: 22px 61px; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 32px 32px; opacity: .45; }
+  .master svg { position: relative; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .lockup-box { height: 112px; display: grid; place-items: center; }
+  .lockup { display: flex; align-items: center; gap: 13px; }
+  .wm { font-family: var(--font-display); font-weight: 600; font-size: 26px; letter-spacing: -0.02em; line-height: 1; }
+  .chrome.preview { height: 36px; border: 1px solid var(--line); padding-right: 12px; }
+  .chrome.preview .brand { gap: 9px; padding-right: 12px; }
+  .ladder { display: flex; align-items: flex-end; justify-content: space-between; padding: 16px 18px 12px; }
+  .ladder figure { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ladder figcaption { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); }
+  .box.light figcaption { color: #71717a; }
+  .zoomrow { display: flex; gap: 14px; align-items: flex-end; padding: 12px 18px 14px; border-top: 1px solid var(--line); }
+  .zoomrow canvas { image-rendering: pixelated; border: 1px solid var(--line); }
+  .zoomrow span { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); }
+  .win { display: grid; grid-template-columns: 120px 1fr; }
+  .desktop { background: #2f3a4c; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 120px; font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  .taskbar { height: 60px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .taskbar.dark { background: #1f1f1f; } .taskbar.light { background: #eeeeee; }
+  .tb-slot { width: 40px; height: 40px; border-radius: 4px; display: grid; place-items: center; position: relative; }
+  .tb-slot.active { background: rgba(255,255,255,.08); }
+  .taskbar.light .tb-slot.active { background: rgba(0,0,0,.06); }
+  .tb-slot.active::after { content: ''; position: absolute; bottom: 2px; width: 16px; height: 3px; border-radius: 2px; background: #3d8bff; }
+  .tb-other { width: 24px; height: 24px; border-radius: 5px; background: #6b7280; opacity: .55; }
+  .plate { display: grid; place-items: center; border-radius: 22%; background: #18191c; box-shadow: inset 0 0 0 1px #383a41; }
+  .crit { padding: 14px 16px; font-size: 12.5px; line-height: 1.55; color: var(--text-2); }
+  .crit h4 { font-size: 11px; font-weight: 600; color: var(--text-3); margin: 12px 0 3px; }
+  .crit h4:first-child { margin-top: 0; }
+  .scores { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+  .scores td { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .scores td.v { text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--text); }
+  .scores tr.total td { color: var(--text); font-weight: 600; border-bottom: none; padding-top: 7px; }
+  section.block { padding: 30px 0 6px; border-top: 1px solid var(--line); margin-top: 34px; }
+  section.block h2 { font-family: var(--font-display); font-size: 17px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+  section.block p { color: var(--text-2); font-size: 13px; line-height: 1.6; max-width: 1000px; }
+  section.block p + p { margin-top: 8px; }
+  .passes { display: grid; gap: 14px; margin-top: 14px; }
+  .passes figure { margin: 0; }
+  .passes img { width: 100%; display: block; border: 1px solid var(--line); }
+  .passes figcaption { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-top: 6px; }
+  .passes figcaption b { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="head">
+    <h1>DropSuite identity V3</h1>
+    <p>Three finalists, refined from 24 sketches across four passes (the full exploration and every rejection are below the comparison). Each mark is one real SVG on a 64-unit grid, monochrome first, rendered by the browser at true size. Production branding is unchanged.</p>
+  </header>
+
+  <div class="cols" id="titles"></div>
+  <div class="rowlabel">Master, monochrome, 256 px</div>
+  <div class="cols" id="masters"></div>
+  <div class="rowlabel">Symbol + DropSuite wordmark (Segoe UI Variable Display 600, −0.02 em), dark and light</div>
+  <div class="cols" id="lockups"></div>
+  <div class="rowlabel">Application header (18 px symbol, 14 px wordmark)</div>
+  <div class="cols" id="headers"></div>
+  <div class="rowlabel">16 · 20 · 24 · 32 · 64 px on dark, then the 16 and 20 px rasters enlarged ×6</div>
+  <div class="cols" id="ladders"></div>
+  <div class="rowlabel">16 · 20 · 24 · 32 · 64 px on light</div>
+  <div class="cols" id="laddersLight"></div>
+  <div class="rowlabel">Windows: desktop icon 48 px, taskbar 24 px on dark and light</div>
+  <div class="cols" id="windows"></div>
+  <div class="rowlabel">Critical review (1 to 5; a 3 means it does the job without distinction)</div>
+  <div class="cols" id="crits"></div>
+
+  <section class="block" id="rec"></section>
+
+  <section class="block">
+    <h2>Exploration: 24 sketches, 4 passes</h2>
+    <p>Six concepts per pass across the three territories, each judged at 150 px and at 32, 20 and 16 px. The rejection reason is listed for every sketch that did not advance.</p>
+    <div class="passes">
+      <figure><img src="renders/thumbnails-pass1.png" alt="Pass 1 sketches" /><figcaption><b>Pass 1.</b> Sliced Drop: promising, but the cut fell at the tangent and read as a triangle over a bowl. Re-routed Stream: a toggle or route icon. Round-trip Fold: did not read as a fold. Refraction: reads as Z. Corner Drop: a circle plus a corner, assembled from primitives, and reads as a speech bubble. Arch Slot: reads as a lowercase e.</figcaption></figure>
+      <figure><img src="renders/thumbnails-pass2.png" alt="Pass 2 sketches" /><figcaption><b>Pass 2.</b> Sliced Drop with the low cut and the sheared cut: the drop now reads, and the sheared cut adds tension, so it advanced. Fold variants: collapse into 7 and F. Keel: reads as a lowercase b (mirrored, it became Drop-d). Tracer: an arrow.</figcaption></figure>
+      <figure><img src="renders/thumbnails-pass3.png" alt="Pass 3 sketches" /><figcaption><b>Pass 3.</b> Bold sliced drop: the strongest sketch, became A. Exploded Disc: another slice, and striped circles are common. Pivot: an icon-library route icon. Drop-d: distinctive but soft, became C. Bytes to Curve: the steps read as pixel art. Blade: a stock quarter-ring.</figcaption></figure>
+      <figure><img src="renders/thumbnails-pass4.png" alt="Pass 4 sketches" /><figcaption><b>Pass 4, Territory B only.</b> Hairpin: the one bold, legible transformation form, became B. Torsion: a bow-tie or fish. Interlock: the stock "duplicate" icon. Countercurrent: reads as "=". Turning Stream: a pipe elbow. Drop Formation: a dripping tap.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Limits of this review</h2>
+    <p>The similarity check combined visual knowledge of well-known technology marks, a direct look at Lighter's published mark (two vertical slabs with 45° ends, which none of these candidates shares in construction, angle or arrangement), and text web searches for drop, letter-in-drop and hairpin logos. It did not include a reverse image search, a logo-database sweep or a trademark registry search. Nothing here is a clearance or a guarantee of uniqueness; the chosen mark needs a formal trademark search before it ships.</p>
+  </section>
+</div>
+
+<script src="final.js"></script>
+<script>
+const W = '#ececee', K = '#111214';
+const fill = (id, html) => (document.getElementById(id).innerHTML = html);
+const each = (fn) => V3.map(fn).join('');
+const s = (c, n, f = W) => v3Svg(c, n, f);
+
+fill('titles', each((c) => `<div class="col-title"><span class="k">${c.letter}</span><h2>${c.name}</h2><span class="terr">${c.territory}</span></div>`));
+fill('masters', each((c) => `<div class="box master"><div class="grid"></div>${s(c, 256)}</div>`));
+fill('lockups', each((c) => `<div class="duo">
+  <div class="box lockup-box"><div class="lockup">${s(c, 40)}<span class="wm" style="color:${W}">DropSuite</span></div></div>
+  <div class="box light lockup-box"><div class="lockup">${s(c, 40, K)}<span class="wm" style="color:${K}">DropSuite</span></div></div></div>`));
+fill('headers', each((c) => `<header class="chrome preview"><div class="brand">${s(c, 18)}<span class="wm" style="font-size:14px;color:var(--text)">DropSuite</span><span class="brand-version" style="margin-left:2px">0.1.0</span></div>
+  <nav class="workspaces"><button class="ws-tab" aria-current="page">Proxy</button><button class="ws-tab">Target</button></nav></header>`));
+const sizes = [16, 20, 24, 32, 64];
+fill('ladders', each((c) => `<div class="box"><div class="ladder">${sizes.map((n) => `<figure>${s(c, n)}<figcaption>${n}</figcaption></figure>`).join('')}</div>
+  <div class="zoomrow"><canvas data-c="${c.id}" data-px="16" width="96" height="96"></canvas><canvas data-c="${c.id}" data-px="20" width="120" height="120"></canvas><span>16 and 20 px, ×6</span></div></div>`));
+fill('laddersLight', each((c) => `<div class="box light"><div class="ladder">${sizes.map((n) => `<figure>${s(c, n, K)}<figcaption>${n}</figcaption></figure>`).join('')}</div></div>`));
+const plate = (c, n, inner) => `<div class="plate" style="width:${n}px;height:${n}px">${s(c, inner)}</div>`;
+fill('windows', each((c) => `<div class="box win"><div class="desktop">${plate(c, 48, 30)}<span>DropSuite</span></div>
+  <div><div class="taskbar dark"><div class="tb-slot"><div class="tb-other"></div></div><div class="tb-slot active">${plate(c, 24, 15)}</div><div class="tb-slot"><div class="tb-other"></div></div></div>
+  <div class="taskbar light"><div class="tb-slot"><div class="tb-other"></div></div><div class="tb-slot active">${plate(c, 24, 15)}</div><div class="tb-slot"><div class="tb-other"></div></div></div></div></div>`));
+fill('crits', each((c) => {
+  const total = Object.values(c.scores).reduce((a, b) => a + b, 0);
+  return `<div class="box crit"><h4>Idea</h4>${c.idea}
+    <h4>Scores</h4><table class="scores">${Object.entries(c.scores).map(([k, v]) => `<tr><td>${k}</td><td class="v">${v}</td></tr>`).join('')}<tr class="total"><td>Total / 30</td><td class="v">${total}</td></tr></table>
+    <h4>Real weaknesses</h4>${c.weakness}
+    <h4>Similarity check</h4>${c.similarity}</div>`;
+}));
+
+const [A] = V3;
+fill('rec', `<h2>${s(A, 22)} Recommendation: A · Cut Drop</h2>
+  <p>It is the only finalist that is memorable as a shape rather than as an idea. You can describe it in four words ("the drop with the cut") and redraw it from memory, which is the test a premium identity has to pass. The drop owns the name; the single 15° cut makes it DropSuite's drop rather than everyone's, and says interception without drawing a packet, an arrow or a node. It holds in white on charcoal, black on light and as a 16 px favicon. Its 15° angle and curved body share nothing with Lighter's vertical 45° slabs.</p>
+  <p>B · Round Trip is the credible alternative: more legible at 16 px but less memorable, and close to generic bracket forms. C · Drop-d is included because it was the strongest signature attempt, but I do not recommend it: letter-inside-a-drop is a stock template category, and its soft character works against "bold, precise".</p>
+  <p>If A is approved, the production pass will: tune the apex angle optically against the body, hand-hint 16, 20 and 24 px versions so the cut lands on whole pixels, add favicon, .ico and app-icon exports with light and dark variants, and fit the wordmark lockup. A formal trademark search should happen before release.</p>`);
+
+for (const cv of document.querySelectorAll('canvas[data-c]')) {
+  const c = V3.find((x) => x.id === cv.dataset.c);
+  const px = +cv.dataset.px;
+  const small = document.createElement('canvas');
+  small.width = small.height = px;
+  const img = new Image();
+  img.onload = () => {
+    const g0 = small.getContext('2d');
+    g0.fillStyle = '#18191c';
+    g0.fillRect(0, 0, px, px);
+    g0.drawImage(img, 0, 0, px, px);
+    const g = cv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.drawImage(small, 0, 0, cv.width, cv.height);
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(v3Svg(c, px, W));
+}
+</script>
+</body>
+</html>

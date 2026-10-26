@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-intruder-results"
+description = "Enables the list_intruder_results command without any pre-configured scope."
+commands.allow = ["list_intruder_results"]
+
+[[permission]]
+identifier = "deny-list-intruder-results"
+description = "Denies the list_intruder_results command without any pre-configured scope."
+commands.deny = ["list_intruder_results"]

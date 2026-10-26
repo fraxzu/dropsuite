@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-dropai-key"
+description = "Enables the set_dropai_key command without any pre-configured scope."
+commands.allow = ["set_dropai_key"]
+
+[[permission]]
+identifier = "deny-set-dropai-key"
+description = "Denies the set_dropai_key command without any pre-configured scope."
+commands.deny = ["set_dropai_key"]

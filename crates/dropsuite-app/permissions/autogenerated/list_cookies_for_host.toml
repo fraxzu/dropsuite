@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-cookies-for-host"
+description = "Enables the list_cookies_for_host command without any pre-configured scope."
+commands.allow = ["list_cookies_for_host"]
+
+[[permission]]
+identifier = "deny-list-cookies-for-host"
+description = "Denies the list_cookies_for_host command without any pre-configured scope."
+commands.deny = ["list_cookies_for_host"]

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>DropSuite V5 probe: slab language</title>
+<style>
+  body { margin: 0; padding: 20px; background: #131417; color: #a8abb2; font: 12px 'Segoe UI Variable Text', 'Segoe UI', sans-serif; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .cell { background: #18191c; border: 1px solid #2a2c31; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .cell.ref { border-color: #5c5f66; border-style: dashed; }
+  .row { display: flex; gap: 12px; align-items: flex-end; }
+  h3 { margin: 0; font-size: 12px; color: #e6e7ea; font-weight: 600; text-align: center; }
+</style>
+</head>
+<body>
+<div class="grid" id="g"></div>
+<script>
+// Faceted ("slab") drop: straight edges only, apex up. Cut planes fall to the right at ~29° (9/16).
+const GEM = [[32, 2], [50, 28], [50, 44], [41, 60], [23, 60], [14, 44], [14, 28]];
+let uid = 0;
+const gemPath = (pts = GEM) => 'M' + pts.map((p) => p.join(' ')).join('L') + 'Z';
+const cutPieces = (yAtLeft, gap, slope, upperT = '', lowerT = '') => {
+  const a = 'c' + uid++, b = 'c' + uid++;
+  const y0 = yAtLeft, y1 = yAtLeft + slope * 64;
+  return `<clipPath id="${a}"><path d="M0 0H64V${y1 - gap / 2}L0 ${y0 - gap / 2}Z"/></clipPath>
+    <clipPath id="${b}"><path d="M0 ${y0 + gap / 2}L64 ${y1 + gap / 2}V64H0Z"/></clipPath>
+    <g transform="${upperT}"><path d="${gemPath()}" clip-path="url(#${a})"/></g>
+    <g transform="${lowerT}"><path d="${gemPath()}" clip-path="url(#${b})"/></g>`;
+};
+const slab = (x, w, yTop, yBot, k) => `<path d="M${x} ${yTop}L${x + w} ${yTop + k}V${yBot + k}L${x} ${yBot}Z"/>`;
+const V = {
+  'Referensi: Lighter (bukan milik kita)': { ref: true, body: '<g transform="translate(13 3) scale(2.2)"><path d="M5.989 20.388 0 25.498V5.888L5.989.502zm7.811.012-5.989 5.098V17.85l5.989-5.37z"/></g>' },
+  'Z1 · Slab Drop, potongan jatuh': { body: cutPieces(30, 4, 9 / 16, '', 'translate(0 4)') },
+  'Z2 · Slab Drop, bergeser sepanjang potongan': { body: cutPieces(30, 4, 9 / 16, 'translate(-2 -1.1)', 'translate(3 1.7)') },
+  'Z3 · Slab Drop, engsel': { body: cutPieces(30, 3, 9 / 16, 'rotate(-12 15 31)', '') },
+  'Z4 · Slab Drop, potongan curam': { body: cutPieces(22, 4, 0.9, '', 'translate(2 3)') },
+  'Z5 · S Drawer (rapi)': { body: slab(16, 22, 4, 18, 8) + slab(26, 22, 24, 32, 8) + slab(16, 22, 38, 52, 8) },
+  'S3 · Hinge Slab (diperbaiki)': { body: `<g transform="rotate(-14 24 34)">${slab(24, 16, 3, 28, 9)}</g>` + slab(24, 16, 34, 52, 9) },
+  'Z6 · Slab Drop utuh (tanpa potongan)': { body: `<path d="${gemPath()}"/>` },
+};
+const g = document.getElementById('g');
+for (const [name, v] of Object.entries(V)) {
+  const sv = (n) => `<svg width="${n}" height="${n}" viewBox="0 0 64 64" fill="#ececee">${v.body}</svg>`;
+  g.insertAdjacentHTML('beforeend', `<div class="cell${v.ref ? ' ref' : ''}"><h3>${name}</h3>${sv(140)}<div class="row">${sv(32)}${sv(20)}${sv(16)}</div></div>`);
+}
+</script>
+</body>
+</html>

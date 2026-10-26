@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DropSuite Identity V4</title>
+<link rel="stylesheet" href="../../../frontend/src/index.css" />
+<style>
+  html, body { height: auto; }
+  body { overflow: auto; user-select: text; background: var(--chrome); padding: 0 0 72px; }
+  .sheet { max-width: 1392px; margin: 0 auto; padding: 0 24px; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 26px 0 18px; border-bottom: 1px solid var(--line); }
+  .head h1 { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .head p { color: var(--text-3); font-size: 12px; max-width: 860px; line-height: 1.5; }
+  .ref { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); background: var(--ground); font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .rowlabel { font-size: 11px; color: var(--text-3); margin: 22px 0 8px; }
+  .col-title { padding: 22px 0 0; }
+  .col-title .k { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); font-weight: 700; }
+  .col-title h2 { font-family: var(--font-display); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; margin: 2px 0; }
+  .col-title .sub { font-size: 12px; color: var(--text-3); }
+  .box { background: var(--ground); border: 1px solid var(--line); }
+  .box.light { background: #f4f4f5; border-color: #e4e4e7; }
+  .master { height: 300px; display: grid; place-items: center; position: relative; }
+  .master .grid { position: absolute; inset: 22px 61px; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 32px 32px; opacity: .45; }
+  .master svg { position: relative; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .lockup-box { height: 112px; display: grid; place-items: center; }
+  .lockup { display: flex; align-items: center; gap: 12px; }
+  .wm { font-family: var(--font-display); font-weight: 600; font-size: 26px; letter-spacing: -0.02em; line-height: 1; }
+  .chrome.preview { height: 36px; border: 1px solid var(--line); padding-right: 12px; }
+  .chrome.preview .brand { gap: 9px; padding-right: 12px; }
+  .ladder { display: flex; align-items: flex-end; justify-content: space-between; padding: 16px 18px 12px; }
+  .ladder figure { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ladder figcaption { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); }
+  .box.light figcaption { color: #71717a; }
+  .zoomrow { display: flex; gap: 14px; align-items: flex-end; padding: 12px 18px 14px; border-top: 1px solid var(--line); }
+  .zoomrow canvas { image-rendering: pixelated; border: 1px solid var(--line); }
+  .zoomrow span { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); }
+  .tabs { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+  .tabbar { display: flex; align-items: flex-end; padding: 6px 8px 0; }
+  .tab { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px 8px 0 0; font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 12px; width: 200px; }
+  .tabbar.dark { background: #202124; } .tabbar.dark .tab { background: #35363a; color: #e8eaed; }
+  .tabbar.light { background: #dee1e6; } .tabbar.light .tab { background: #fff; color: #202124; }
+  .win { display: grid; grid-template-columns: 120px 1fr; }
+  .desktop { background: #2f3a4c; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 120px; font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  .taskbar { height: 60px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .taskbar.dark { background: #1f1f1f; } .taskbar.light { background: #eeeeee; }
+  .tb-slot { width: 40px; height: 40px; border-radius: 4px; display: grid; place-items: center; position: relative; }
+  .tb-slot.active { background: rgba(255,255,255,.08); }
+  .taskbar.light .tb-slot.active { background: rgba(0,0,0,.06); }
+  .tb-slot.active::after { content: ''; position: absolute; bottom: 2px; width: 16px; height: 3px; border-radius: 2px; background: #3d8bff; }
+  .tb-other { width: 24px; height: 24px; border-radius: 5px; background: #6b7280; opacity: .55; }
+  .plate { display: grid; place-items: center; border-radius: 22%; background: #18191c; box-shadow: inset 0 0 0 1px #383a41; }
+  .crit { padding: 14px 16px; font-size: 12.5px; line-height: 1.55; color: var(--text-2); }
+  .crit h4 { font-size: 11px; font-weight: 600; color: var(--text-3); margin: 12px 0 3px; }
+  .crit h4:first-child { margin-top: 0; }
+  .verdict { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--text); font-weight: 600; }
+  section.block { padding: 30px 0 6px; border-top: 1px solid var(--line); margin-top: 34px; }
+  section.block h2 { font-family: var(--font-display); font-size: 17px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+  section.block p { color: var(--text-2); font-size: 13px; line-height: 1.6; max-width: 1000px; }
+  section.block p + p { margin-top: 8px; }
+  .probes { display: grid; gap: 14px; margin-top: 14px; }
+  .probes img { width: 100%; display: block; border: 1px solid var(--line); }
+  .probes figure { margin: 0; }
+  .probes figcaption { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-top: 6px; }
+  .probes figcaption b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="head">
+    <div>
+      <h1>DropSuite identity V4: the Cut Drop family</h1>
+      <p>Three evolutions of V3's A, each built around a different kind of break. All share one drop (a circle with tangent lines to the point), so the break alone separates them. Exact vector paths are generated by geometry.cjs, with no clip masks or transforms. Production branding is unchanged.</p>
+    </div>
+    <div class="ref" id="ref"></div>
+  </header>
+
+  <div class="cols" id="titles"></div>
+  <div class="rowlabel">Master, 256 px, monochrome</div>
+  <div class="cols" id="masters"></div>
+  <div class="rowlabel">Symbol + DropSuite wordmark, dark and light</div>
+  <div class="cols" id="lockups"></div>
+  <div class="rowlabel">Application header (18 px symbol, 14 px wordmark)</div>
+  <div class="cols" id="headers"></div>
+  <div class="rowlabel">16 · 20 · 24 · 32 · 64 px on dark, with the 16 and 20 px rasters enlarged ×6</div>
+  <div class="cols" id="ladders"></div>
+  <div class="rowlabel">16 · 20 · 24 · 32 · 64 px on light</div>
+  <div class="cols" id="laddersLight"></div>
+  <div class="rowlabel">Favicon: light and dark tab strips</div>
+  <div class="cols" id="favicons"></div>
+  <div class="rowlabel">Windows: desktop icon 48 px, taskbar 24 px on dark and light</div>
+  <div class="cols" id="windows"></div>
+  <div class="rowlabel">Critical evaluation</div>
+  <div class="cols" id="evals"></div>
+
+  <section class="block" id="rec"></section>
+
+  <section class="block">
+    <h2>How the three were found</h2>
+    <p>Twenty break treatments were probed on the same drop, each judged at 140 px and at 32, 20 and 16 px.</p>
+    <div class="probes">
+      <figure><img src="renders/probe-1.png" alt="Probe round 1" /><figcaption><b>Round 1.</b> The hinge (A2a, A2b) and the tapered blade (A3b) were the breakthroughs. The stepped seams looked broken; that turned out to be a geometry bug, fixed in round 3. The straight kerf read as a coin slot, the square-ended kerf as a slider, and the kerf from the tip as a pen nib.</figcaption></figure>
+      <figure><img src="renders/probe-2.png" alt="Probe round 2" /><figcaption><b>Round 2.</b> Fault lines with a sheared offset (A1f–A1h) collapsed into "cone over bowl" or into V3's A, so they were rejected. Hinge with an inset pivot (A2d) and the wide-entry blade (A3e) were chosen.</figcaption></figure>
+      <figure><img src="renders/probe-3.png" alt="Probe round 3" /><figcaption><b>Round 3.</b> With the step geometry fixed, the Z-seam reads as one continuous machined joint (A1i, chosen). The tall step drifts towards a "2", and the chevron seam reads as a smile.</figcaption></figure>
+    </div>
+  </section>
+</div>
+
+<script src="paths.js"></script>
+<script>
+const W = '#ececee', K = '#111214';
+const C = [V4_PATHS.a1, V4_PATHS.a2, V4_PATHS.a3];
+const svg = (c, n, f = W) => `<svg xmlns="http://www.w3.org/2000/svg" width="${n}" height="${n}" viewBox="0 0 64 64" fill="${f}">${c.paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
+const V3A = { paths: ['M29.59 2L47.52 27.26A22 22 0 0 1 49.02 29.69L7.6 40.79A22 22 0 0 1 11.65 27.26Z', 'M55.92 34.05A22 22 0 0 1 13.47 45.42Z'] };
+const fill = (id, html) => (document.getElementById(id).innerHTML = html);
+const each = (fn) => C.map(fn).join('');
+
+const EVAL = {
+  a1: {
+    concept: 'The drop is cut by a Z-shaped seam, like a machined lap joint, and nothing is displaced. The silhouette is intact and only the path of the cut is designed. It reads as engineered, not broken: interception as a precise, deliberate operation.',
+    strengths: 'The most ownable break of the three. A Z-seam inside a drop is not a stock device, and the step gives it a crafted, tooled character no water or weather brand would use. The outline stays a perfect drop, so the name holds.',
+    weaknesses: 'The step takes a moment to read as one seam, and some viewers may see an S or a 2 in it. It is the busiest of the three, with three gap segments where the others have one.',
+    small: 'Better than expected. In the enlarged 16 px raster the seam still shows as a stepped dark line, though the step softens; from 20 px up the Z reads clearly. It is the most detailed of the three at favicon size.',
+    generic: 'Low. The drop is common, but this seam is not a stock treatment.',
+    verdict: 'The most ownable and crafted; a strong alternative if distinctiveness outranks instant clarity.',
+  },
+  a2: {
+    concept: 'The top of the drop is cut and hinged open by 12°, so the gap becomes a wedge: wide on one side and closing to a point on the other. A request is held open mid-flight; the redirection is a change of angle, not a slide.',
+    strengths: 'The clearest action of the three: you see the drop being opened. The wedge is a confident, singular gesture and holds a strong silhouette in white, black and as an app icon. The clearest step up from V3’s A.',
+    weaknesses: 'The open wedge brings a faint "mouth" or Pac-Man echo at large sizes. The lifted point makes the mark asymmetric and slightly top-heavy to the left, so it needs a little more space in lockups. The whole mark is scaled to 94% to fit the frame.',
+    small: 'Excellent. The wedge is widest where it matters and stays visible down to 16 px, where it reads as a tilted cap on a drop.',
+    generic: 'Low to moderate. Sliced and tilted shapes appear in stock templates, but a hinged drop with a wedge gap is not a common one.',
+    verdict: 'Recommended: the best balance of meaning, silhouette and small-size strength.',
+  },
+  a3: {
+    concept: 'A tapered blade enters the drop from the side and stops just past the centre. The drop is never separated; the interception exists only as negative space. The quietest and least literal of the three.',
+    strengths: 'The most premium and restrained. The silhouette stays whole, and the blade suggests something precise: the moment of interception rather than its result. It is very elegant at 64 px and above.',
+    weaknesses: 'Quietness is also the risk: at a glance it is "a drop with a notch", and its ownership depends on one thin wedge. Close to the original "droplet with a cut" feedback, only more refined.',
+    small: 'Weakest. At 16 px the blade is only 1 to 2 px at its mouth and tapers into the body, so it reads as a plain drop with a nick.',
+    generic: 'Moderate. A drop with a notch sits closest to generic droplet marks.',
+    verdict: 'Beautiful at large sizes, but too dependent on detail for a 16 px app icon.',
+  },
+};
+
+fill('ref', `${svg(V3A, 28)}<span>V3 · A for reference</span>`);
+fill('titles', each((c, i) => `<div class="col-title"><span class="k">A${i + 1}</span><h2>${c.name}</h2><span class="sub">${c.sub}</span></div>`));
+fill('masters', each((c) => `<div class="box master"><div class="grid"></div>${svg(c, 256)}</div>`));
+fill('lockups', each((c) => `<div class="duo">
+  <div class="box lockup-box"><div class="lockup">${svg(c, 40)}<span class="wm" style="color:${W}">DropSuite</span></div></div>
+  <div class="box light lockup-box"><div class="lockup">${svg(c, 40, K)}<span class="wm" style="color:${K}">DropSuite</span></div></div></div>`));
+fill('headers', each((c) => `<header class="chrome preview"><div class="brand">${svg(c, 18)}<span class="wm" style="font-size:14px;color:var(--text)">DropSuite</span><span class="brand-version" style="margin-left:2px">0.1.0</span></div>
+  <nav class="workspaces"><button class="ws-tab" aria-current="page">Proxy</button><button class="ws-tab">Target</button></nav></header>`));
+const sizes = [16, 20, 24, 32, 64];
+fill('ladders', each((c) => `<div class="box"><div class="ladder">${sizes.map((n) => `<figure>${svg(c, n)}<figcaption>${n}</figcaption></figure>`).join('')}</div>
+  <div class="zoomrow"><canvas data-c="${c.id}" data-px="16" width="96" height="96"></canvas><canvas data-c="${c.id}" data-px="20" width="120" height="120"></canvas><span>16 and 20 px, ×6</span></div></div>`));
+fill('laddersLight', each((c) => `<div class="box light"><div class="ladder">${sizes.map((n) => `<figure>${svg(c, n, K)}<figcaption>${n}</figcaption></figure>`).join('')}</div></div>`));
+fill('favicons', each((c) => `<div class="box tabs"><div class="tabbar light"><div class="tab">${svg(c, 16, K)}DropSuite</div></div><div class="tabbar dark"><div class="tab">${svg(c, 16, '#e8eaed')}DropSuite</div></div></div>`));
+const plate = (c, n, inner) => `<div class="plate" style="width:${n}px;height:${n}px">${svg(c, inner)}</div>`;
+fill('windows', each((c) => `<div class="box win"><div class="desktop">${plate(c, 48, 32)}<span>DropSuite</span></div>
+  <div><div class="taskbar dark"><div class="tb-slot"><div class="tb-other"></div></div><div class="tb-slot active">${plate(c, 24, 16)}</div><div class="tb-slot"><div class="tb-other"></div></div></div>
+  <div class="taskbar light"><div class="tb-slot"><div class="tb-other"></div></div><div class="tb-slot active">${plate(c, 24, 16)}</div><div class="tb-slot"><div class="tb-other"></div></div></div></div></div>`));
+fill('evals', each((c) => {
+  const e = EVAL[c.id];
+  return `<div class="box crit"><h4>Concept</h4>${e.concept}<h4>Strengths</h4>${e.strengths}<h4>Weaknesses</h4>${e.weaknesses}
+    <h4>Small-size performance</h4>${e.small}<h4>Risk of looking generic or stock</h4>${e.generic}<div class="verdict">${e.verdict}</div></div>`;
+}));
+fill('rec', `<h2>${svg(C[1], 22)} Recommendation: A2 · Intercepted Offset (the Hinge)</h2>
+  <p>It is the only one of the three where the break is an action you can see: the drop has been opened. That makes the interception the defining feature rather than a detail, which was the brief. It is clearly stronger than V3's A (top right): A slid a slice sideways, while A2 changes the angle and opens a wedge, a shape that belongs to DropSuite rather than to droplets in general. It is also the best performer at 16 px, the size the app icon and favicon live at.</p>
+  <p>A1 (the Lap Joint) is the most crafted and the most ownable on paper, and it is the right choice if large-format brand use matters more than the favicon. A3 (the Blade) is the most refined but too quiet at small sizes; it is closest to the "droplet with a cut" problem.</p>
+  <p>Honest caveat: all three are still drops at heart. The break is what makes them DropSuite's, so whichever is chosen, the break must never be dropped or simplified in any application.</p>`);
+
+for (const cv of document.querySelectorAll('canvas[data-c]')) {
+  const c = C.find((x) => x.id === cv.dataset.c);
+  const px = +cv.dataset.px;
+  const small = document.createElement('canvas');
+  small.width = small.height = px;
+  const img = new Image();
+  img.onload = () => {
+    const g0 = small.getContext('2d');
+    g0.fillStyle = '#18191c';
+    g0.fillRect(0, 0, px, px);
+    g0.drawImage(img, 0, 0, px, px);
+    const g = cv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.drawImage(small, 0, 0, cv.width, cv.height);
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg(c, px));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-repeater-tabs"
+description = "Enables the get_repeater_tabs command without any pre-configured scope."
+commands.allow = ["get_repeater_tabs"]
+
+[[permission]]
+identifier = "deny-get-repeater-tabs"
+description = "Denies the get_repeater_tabs command without any pre-configured scope."
+commands.deny = ["get_repeater_tabs"]

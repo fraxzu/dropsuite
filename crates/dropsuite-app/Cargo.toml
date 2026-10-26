@@ -1,0 +1,36 @@
+[package]
+name = "dropsuite-app"
+version = "0.1.0"
+edition = "2021"
+authors = ["Fraxzu"]
+description = "DropSuite desktop application: the Tauri 2 shell around the in-process capture engine"
+
+[[bin]]
+name = "dropsuite"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dropsuite-core = { path = "../dropsuite-core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+url = "2"
+sha2 = "0.10"
+rustls-pemfile = { workspace = true }
+# Drop AI (BYOK) calls the user's own model endpoint directly, never through the proxy listener.
+reqwest = { workspace = true, features = ["rustls-tls", "gzip", "brotli", "deflate"] }
+
+[target.'cfg(windows)'.dependencies]
+# Already in the dependency tree through Tauri; used for DPI-correct window icons and, with the
+# Cryptography feature, DPAPI protection of the Drop AI key (same scheme as the root CA key).
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_LibraryLoader", "Win32_UI_HiDpi", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_Security_Cryptography"] }
+webview2-com = "=0.39.1"
+windows-core = "0.62"

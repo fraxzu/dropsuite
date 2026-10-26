@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-cookie"
+description = "Enables the save_cookie command without any pre-configured scope."
+commands.allow = ["save_cookie"]
+
+[[permission]]
+identifier = "deny-save-cookie"
+description = "Denies the save_cookie command without any pre-configured scope."
+commands.deny = ["save_cookie"]

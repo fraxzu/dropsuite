@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-start-proxy"
+description = "Enables the start_proxy command without any pre-configured scope."
+commands.allow = ["start_proxy"]
+
+[[permission]]
+identifier = "deny-start-proxy"
+description = "Denies the start_proxy command without any pre-configured scope."
+commands.deny = ["start_proxy"]

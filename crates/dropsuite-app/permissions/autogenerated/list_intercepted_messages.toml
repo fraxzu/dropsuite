@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-intercepted-messages"
+description = "Enables the list_intercepted_messages command without any pre-configured scope."
+commands.allow = ["list_intercepted_messages"]
+
+[[permission]]
+identifier = "deny-list-intercepted-messages"
+description = "Denies the list_intercepted_messages command without any pre-configured scope."
+commands.deny = ["list_intercepted_messages"]

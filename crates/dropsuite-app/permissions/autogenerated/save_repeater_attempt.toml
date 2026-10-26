@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-repeater-attempt"
+description = "Enables the save_repeater_attempt command without any pre-configured scope."
+commands.allow = ["save_repeater_attempt"]
+
+[[permission]]
+identifier = "deny-save-repeater-attempt"
+description = "Denies the save_repeater_attempt command without any pre-configured scope."
+commands.deny = ["save_repeater_attempt"]

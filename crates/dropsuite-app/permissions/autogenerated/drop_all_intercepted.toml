@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-drop-all-intercepted"
+description = "Enables the drop_all_intercepted command without any pre-configured scope."
+commands.allow = ["drop_all_intercepted"]
+
+[[permission]]
+identifier = "deny-drop-all-intercepted"
+description = "Denies the drop_all_intercepted command without any pre-configured scope."
+commands.deny = ["drop_all_intercepted"]

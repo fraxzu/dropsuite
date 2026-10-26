@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-repeater-tab"
+description = "Enables the save_repeater_tab command without any pre-configured scope."
+commands.allow = ["save_repeater_tab"]
+
+[[permission]]
+identifier = "deny-save-repeater-tab"
+description = "Denies the save_repeater_tab command without any pre-configured scope."
+commands.deny = ["save_repeater_tab"]

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>DropSuite V4 probe</title>
+<style>
+  body { margin: 0; padding: 20px; background: #131417; color: #a8abb2; font: 12px 'Segoe UI Variable Text', 'Segoe UI', sans-serif; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .cell { background: #18191c; border: 1px solid #2a2c31; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .row { display: flex; gap: 12px; align-items: flex-end; }
+  h3 { margin: 0; font-size: 12px; color: #e6e7ea; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="grid" id="g"></div>
+<script>
+// Base drop: circle (32,40) r22 with tangent lines to the apex (32,2). Convex, so every piece
+// below is the drop clipped to a region; kerfs are the drop with a region masked out.
+const DROP = (() => {
+  const r = 22, cx = 32, cy = 40, ay = 2, d = cy - ay, phi = Math.acos(r / d);
+  const tx = r * Math.sin(phi), ty = cy - r * Math.cos(phi);
+  return `M32 ${ay}L${(cx + tx).toFixed(2)} ${ty.toFixed(2)}A${r} ${r} 0 1 1 ${(cx - tx).toFixed(2)} ${ty.toFixed(2)}Z`;
+})();
+let uid = 0;
+const piece = (clip, transform = '') => {
+  const id = 'k' + uid++;
+  return `<clipPath id="${id}"><path d="${clip}"/></clipPath><g transform="${transform}"><path d="${DROP}" clip-path="url(#${id})"/></g>`;
+};
+const kerf = (hole, transform = '') => {
+  const id = 'm' + uid++;
+  return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect width="64" height="64" fill="#fff"/><path d="${hole}" fill="#000"/></mask><g transform="${transform}"><path d="${DROP}" mask="url(#${id})"/></g>`;
+};
+// Stepped seam: left half at y1, right half at y2, step at x; 4-unit gap everywhere.
+const step = (x, y1, y2, g = 2) => [
+  `M0 0H64V${y2 - g}H${x + g}V${y1 - g}H0Z`,
+  `M0 ${y1 + g}H${x - g}V${y2 + g}H64V64H0Z`,
+];
+const V = {
+  'A1a · step, centred': () => { const [u, l] = step(32, 34, 44); return piece(u) + piece(l); },
+  'A1b · step, off-axis': () => { const [u, l] = step(38, 33, 45); return piece(u) + piece(l); },
+  'A1c · step + 15° bias': () => { const [u, l] = step(34, 33, 44); return `<g transform="rotate(-15 32 40)">${piece(u, 'rotate(15 32 40)')}${piece(l, 'rotate(15 32 40)')}</g>`; },
+  'A2a · hinge 10°': () => {
+    const u = 'M0 0H64V30L0 39Z', l = 'M0 41L64 32V64H0Z';
+    return piece(u, 'rotate(-10 8 40)') + piece(l);
+  },
+  'A2b · hinge 14°, lower pivot': () => {
+    const u = 'M0 0H64V34L0 40Z', l = 'M0 42L64 36V64H0Z';
+    return piece(u, 'rotate(-14 9 41)') + piece(l);
+  },
+  'A3a · straight kerf': () => kerf('M20 38H64V42H20Z'),
+  'A3b · blade kerf 15°': () => kerf('M64 30L18 42.5L64 36Z'),
+  'A3c · kerf, square end, 15°': () => kerf('M64 30.5L22 41.75L23.04 45.61L64 34.64Z'),
+  'A3d · kerf from apex': () => kerf('M30.5 0H33.5V36H30.5Z'),
+  'A2c · hinge, opposite': () => {
+    const u = 'M0 0H64V39L0 30Z', l = 'M0 32L64 41V64H0Z';
+    return piece(u, 'rotate(10 56 40)') + piece(l);
+  },
+};
+const g = document.getElementById('g');
+for (const [name, body] of Object.entries(V)) {
+  const sv = (n) => `<svg width="${n}" height="${n}" viewBox="0 0 64 64" fill="#ececee">${body()}</svg>`;
+  g.insertAdjacentHTML('beforeend', `<div class="cell"><h3>${name}</h3>${sv(140)}<div class="row">${sv(32)}${sv(20)}${sv(16)}</div></div>`);
+}
+</script>
+</body>
+</html>
