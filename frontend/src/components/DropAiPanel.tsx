@@ -9,7 +9,7 @@ interface Props {
 }
 
 const BASE_HINT: Record<DropAiProvider, string> = {
-  'openai-compatible': 'e.g. https://api.openai.com/v1 · http://localhost:11434/v1 (Ollama) · OpenRouter, Groq, Together',
+  'open-ai-compatible': 'e.g. https://api.openai.com/v1 · http://localhost:11434/v1 (Ollama) · OpenRouter, Groq, Together',
   'anthropic-compatible': 'e.g. https://api.anthropic.com (no /v1; DropSuite adds /v1/messages)',
 };
 
@@ -159,7 +159,7 @@ export const DropAiPanel: React.FC<Props> = ({ onClose, onToast }) => {
           <label className="field" style={{ gridTemplateColumns: '92px 1fr' }}>
             <span className="field-label">Provider</span>
             <select value={cfg.provider} disabled={busy} onChange={(e) => set({ provider: e.target.value as DropAiProvider })}>
-              <option value="openai-compatible">OpenAI-compatible</option>
+              <option value="open-ai-compatible">OpenAI-compatible</option>
               <option value="anthropic-compatible">Anthropic-compatible</option>
             </select>
           </label>

@@ -269,7 +269,7 @@ export interface MatchReplaceConfig {
 }
 
 /** Drop AI (BYOK) - mirrors dropsuite-app::dropai. The key is never carried in these types. */
-export type DropAiProvider = 'openai-compatible' | 'anthropic-compatible';
+export type DropAiProvider = 'open-ai-compatible' | 'anthropic-compatible';
 
 export interface DropAiConfig {
   provider: DropAiProvider;
