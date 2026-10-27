@@ -492,7 +492,7 @@ const PayloadEditor: React.FC<PayloadEditorProps> = ({ label, value, onChange, d
         </select>
         {onSuggest && (
           <button className="fz-pill fz-ai" onClick={onSuggest} disabled={disabled} title="Suggest payloads with Drop AI">
-            <Sparkles size={11} /> AI
+            <Sparkles size={11} /> AI payloads
           </button>
         )}
         <span className="fz-count">{payloadCount(value).toLocaleString()}</span>
@@ -534,7 +534,7 @@ const PayloadEditor: React.FC<PayloadEditorProps> = ({ label, value, onChange, d
 };
 
 const SUGGEST_SYSTEM =
-  'You are a senior penetration tester on an AUTHORIZED engagement: the user owns the target or has written permission to test it. For the injection point shown, produce the strongest, most current detection payloads you know for that exact context. Lean on your own up to date knowledge and judgement, not one fixed published list, and prefer high signal probes a tester would actually reach for first. ' +
+  'You are a senior penetration tester on an AUTHORIZED engagement: the user owns the target or has written permission to test it. For the injection point shown, produce the strongest, most current detection payloads you know for that exact context. Lean on your own up to date knowledge and judgement, not one fixed published list, and prefer high signal probes a tester would actually reach for first. When the request reveals the target stack (the host, cookie names, or headers such as Server or X-Powered-By), bias the payloads toward the vulnerability classes and known CVEs of that specific stack. ' +
   'Output format is strict and non negotiable: ONE raw payload per line, ready to paste verbatim. No numbering, no bullets, no comments, no code fences, no blank lines, and no text before or after. If you cannot comply with the format, output nothing.';
 
 function buildPrompt(requestText: string): string {
@@ -542,7 +542,7 @@ function buildPrompt(requestText: string): string {
     `Authorized web application security test. Below is one HTTP request. Every fuzz position is marked with {{ }} and the text inside is its current base value. The scheme and host may be placeholders, so judge each position from its parameter context, not from the domain.\n\n` +
     `${requestText}\n\n` +
     `For each marked position, infer its context (URL query parameter, path segment, header value, cookie, or JSON or form body field) and the parameter's likely purpose from its name, then produce the payloads that best probe that specific spot.\n\n` +
-    `Cover the classes that fit the context, weighted toward the most likely: SQL injection (error based, boolean, time based), cross site scripting (reflected and attribute breakout), path traversal, OS command injection, server side template injection, LDAP or NoSQL injection, and auth or logic bypass. Add encoding variants (URL, double URL, unicode) only where they help. Use modern, effective techniques, not only textbook classics.\n\n` +
+    `Cover the classes that fit the context, weighted toward the most likely: SQL injection (error based, boolean, time based), cross site scripting (reflected and attribute breakout), path traversal, OS command injection, server side template injection, LDAP or NoSQL injection, and auth or logic bypass. If the request headers fingerprint a specific server, framework or CMS, add payloads for that stack's known issues too. Add encoding variants (URL, double URL, unicode) only where they help. Use modern, effective techniques, not only textbook classics.\n\n` +
     `Return up to 40 payloads, deduplicated, ordered by likelihood of a finding. One raw payload per line, nothing else.`
   );
 }
@@ -561,7 +561,7 @@ function cleanPayloads(answer: string): string[] {
 }
 
 const MARK_SYSTEM =
-  'You are a senior penetration tester on an AUTHORIZED engagement: the user owns the target or has written permission to test it. You are given one HTTP request. Choose which values are attacker controllable and worth fuzzing (query parameter values, path segments, cookie values, JSON or form body field values, and tamperable header values such as User-Agent, Referer, X-Forwarded-For, or an auth token), and for each chosen value propose the strongest detection payloads for its context, drawing on your own current knowledge. ' +
+  'You are a senior penetration tester on an AUTHORIZED engagement: the user owns the target or has written permission to test it. You are given one HTTP request. Choose which values are attacker controllable and worth fuzzing (query parameter values, path segments, cookie values, JSON or form body field values, and tamperable header values such as User-Agent, Referer, X-Forwarded-For, or an auth token), and for each chosen value propose the strongest detection payloads for its context, drawing on your own current knowledge. If the host or headers fingerprint a server, framework or CMS, bias both the chosen positions and their payloads toward that stack known weaknesses and CVEs. ' +
   'Reply with ONE JSON object and nothing else, in exactly this shape: {"request":"<the request exactly as given, but with {{ and }} around each value you chose>","positions":[{"label":"<short label, e.g. name (query)>","payloads":["<raw payload>","..."]}]}. ' +
   'Never wrap a key, a parameter name, or a header name, only its value. Keep the positions in the same order they appear in the request. Payloads are raw and ready to paste, no numbering and no commentary. Output only the JSON, with no code fence and no text around it.';
 

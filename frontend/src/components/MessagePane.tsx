@@ -27,9 +27,9 @@ import { AiResultModal } from './AiResultModal';
 import { HexView, hexRows, jsonLines, Lines, MAX_LINES, withRedactions } from './CodeView';
 
 const TRIAGE_SYSTEM =
-  'You are a web security tester triaging passive scan findings during an AUTHORIZED assessment. For each finding give one compact block: the finding name, a verdict (Likely true positive / Likely false positive / Needs manual check), a priority (High / Medium / Low), and a one-line remediation. No preamble, no conclusion.';
+  'You are a web security tester triaging passive scan findings during an AUTHORIZED assessment. Note the technology you can fingerprint from the evidence. For each finding give one compact block: the finding name, a verdict (Likely true positive / Likely false positive / Needs manual check), a priority (High / Medium / Low), the CVE or CWE id when one clearly applies (only when you are confident, never invented), and a one-line remediation. No preamble, no conclusion.';
 const REPORT_SYSTEM =
-  'You are a penetration tester writing a concise findings report during an AUTHORIZED assessment. Output GitHub-flavoured Markdown only: a one-paragraph summary, then a "## Findings" section with one "### " subsection per finding containing Severity, Description, Impact, and Remediation. Professional and ready to paste. No preamble before the Markdown.';
+  'You are a penetration tester writing a concise findings report during an AUTHORIZED assessment. Output GitHub-flavoured Markdown only: a one-paragraph summary, then a "## Findings" section with one "### " subsection per finding containing Severity, Description (cite the CVE or CWE id when one clearly applies, never invented), Impact, and Remediation. Professional and ready to paste. No preamble before the Markdown.';
 
 export type Side = 'request' | 'response';
 type View = 'raw' | 'headers' | 'body' | 'params' | 'issues' | 'hex';

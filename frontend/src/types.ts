@@ -277,6 +277,9 @@ export interface DropAiConfig {
   model: string;
   temperature: number;
   max_tokens: number;
+  /** OpenAI-compatible reasoning effort; empty or omitted sends nothing. Set "none"/"low" for
+   *  reasoning models so they return an answer instead of spending the budget thinking. */
+  reasoning_effort?: string | null;
 }
 
 export interface DropAiStatus extends DropAiConfig {

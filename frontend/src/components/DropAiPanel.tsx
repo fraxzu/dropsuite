@@ -26,7 +26,7 @@ export const DropAiPanel: React.FC<Props> = ({ onClose, onToast }) => {
   const root = useRef<HTMLDivElement>(null);
 
   const apply = (s: DropAiStatus) => {
-    setCfg({ provider: s.provider, base_url: s.base_url, model: s.model, temperature: s.temperature, max_tokens: s.max_tokens });
+    setCfg({ provider: s.provider, base_url: s.base_url, model: s.model, temperature: s.temperature, max_tokens: s.max_tokens, reasoning_effort: s.reasoning_effort });
     setHasKey(s.has_key);
     setProtection(s.key_protection);
   };
@@ -54,7 +54,7 @@ export const DropAiPanel: React.FC<Props> = ({ onClose, onToast }) => {
       .then((s) => {
         apply(s);
         if (s.has_key && s.base_url.trim()) {
-          fetchModels({ provider: s.provider, base_url: s.base_url, model: s.model, temperature: s.temperature, max_tokens: s.max_tokens });
+          fetchModels({ provider: s.provider, base_url: s.base_url, model: s.model, temperature: s.temperature, max_tokens: s.max_tokens, reasoning_effort: s.reasoning_effort });
         }
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
@@ -209,6 +209,16 @@ export const DropAiPanel: React.FC<Props> = ({ onClose, onToast }) => {
               </datalist>
             </label>
           </div>
+          <label className="field" style={{ gridTemplateColumns: '92px 1fr' }}>
+            <span className="field-label" title="For reasoning models (o-series, DeepSeek R1 and V4, GLM, Qwen thinking). Pick None or Low, or they spend the whole token budget thinking and return nothing. Leave Auto for normal chat models.">Reasoning</span>
+            <select value={cfg.reasoning_effort ?? ''} disabled={busy} onChange={(e) => set({ reasoning_effort: e.target.value || null })}>
+              <option value="">Auto (send nothing)</option>
+              <option value="none">None (fastest, direct answer)</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
           <div className="maxtok-presets-row">
             <span className="field-hint">Max tokens presets:</span>
             {[1024, 2048, 4096, 8192, 16384].map((n) => (

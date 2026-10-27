@@ -39,9 +39,9 @@ const SEV_RANK: Record<Severity, number> = { high: 0, medium: 1, low: 2, info: 3
 const MAX_SCAN = 500;
 
 const TRIAGE_SYSTEM =
-  'You are a web security tester triaging aggregated passive scan findings from an AUTHORIZED assessment. For each finding give one compact block: the finding name, a verdict (Likely true positive / Likely false positive / Needs manual check), a priority (High / Medium / Low), and a one-line remediation. No preamble.';
+  'You are a web security tester triaging aggregated passive scan findings from an AUTHORIZED assessment. Note the technology you can fingerprint from the evidence. For each finding give one compact block: the finding name, a verdict (Likely true positive / Likely false positive / Needs manual check), a priority (High / Medium / Low), the CVE or CWE id when one clearly applies (only when you are confident, never invented), and a one-line remediation. No preamble.';
 const REPORT_SYSTEM =
-  'You are a penetration tester writing a passive scan report for an AUTHORIZED assessment. Output GitHub-flavoured Markdown only: a short summary with counts by severity, then a "## Findings" section with one "### " subsection per finding (Severity, Affected hosts, Description, Impact, Remediation). Ready to paste. No preamble before the Markdown.';
+  'You are a penetration tester writing a passive scan report for an AUTHORIZED assessment. Output GitHub-flavoured Markdown only: a short summary with counts by severity, then a "## Findings" section with one "### " subsection per finding (Severity, Affected hosts, Description with the CVE or CWE id when one clearly applies and never invented, Impact, Remediation). Ready to paste. No preamble before the Markdown.';
 
 export const ScannerWorkspace: React.FC<ScannerWorkspaceProps> = ({ active, onToast, onSendToReplay }) => {
   const [mode, setMode] = useState<Mode>('passive');

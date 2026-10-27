@@ -46,6 +46,11 @@ pub struct DropAiConfig {
     pub model: String,
     pub temperature: f32,
     pub max_tokens: u32,
+    /// OpenAI-compatible reasoning effort ("none" / "low" / "medium" / "high"). Sent only when set.
+    /// Reasoning models otherwise spend the whole token budget thinking and return empty content, so
+    /// "none" or "low" is what makes them usable here. Empty or None omits the field entirely.
+    #[serde(default)]
+    pub reasoning_effort: Option<String>,
 }
 
 impl Default for DropAiConfig {
@@ -56,6 +61,7 @@ impl Default for DropAiConfig {
             model: "gpt-4o-mini".into(),
             temperature: 0.2,
             max_tokens: 1024,
+            reasoning_effort: None,
         }
     }
 }
@@ -68,6 +74,7 @@ pub struct DropAiStatus {
     pub model: String,
     pub temperature: f32,
     pub max_tokens: u32,
+    pub reasoning_effort: Option<String>,
     pub has_key: bool,
     pub key_protection: &'static str,
 }
@@ -80,6 +87,7 @@ impl DropAiStatus {
             model: cfg.model.clone(),
             temperature: cfg.temperature,
             max_tokens: cfg.max_tokens,
+            reasoning_effort: cfg.reasoning_effort.clone(),
             has_key: has_key(dir),
             key_protection: key_protection(),
         }
@@ -245,7 +253,7 @@ async fn openai_complete(
     user: &str,
     max_tokens: u32,
 ) -> Result<String, String> {
-    let body = serde_json::json!({
+    let mut body = serde_json::json!({
         "model": cfg.model,
         "temperature": cfg.temperature,
         "max_tokens": max_tokens,
@@ -255,6 +263,11 @@ async fn openai_complete(
             { "role": "user", "content": user },
         ],
     });
+    // Reasoning models burn the whole budget thinking and return empty content without this; only
+    // sent when the user set it, so plain chat endpoints are unaffected.
+    if let Some(effort) = cfg.reasoning_effort.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        body["reasoning_effort"] = serde_json::Value::String(effort.to_string());
+    }
     let resp = client
         .post(format!("{base}/chat/completions"))
         .bearer_auth(key)
