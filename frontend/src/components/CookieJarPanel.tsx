@@ -154,11 +154,8 @@ export const CookieJarPanel: React.FC<Props> = ({ onToast }) => {
       {cookies.length > 0 && (
         <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, maxHeight: 140, overflowY: 'auto' }}>
           {cookies.map((c) => (
-            <li
-              key={`${c.host}|${c.name}|${c.path}`}
-              style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '2px 0' }}
-            >
-              <span className="mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <li key={`${c.host}|${c.name}|${c.path}`} className="cookie-row">
+              <span className="mono cookie-name">
                 {c.name}
                 <span className="field-hint"> @ {c.host}{c.path}</span>
               </span>

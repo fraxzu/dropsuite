@@ -87,7 +87,7 @@
 
   --text: #1b1c20;
   --text-2: #595c63;
-  --text-3: #83868e;
+  --text-3: #6b6e77;
   --text-disabled: #aeb1b8;
 
   --accent: #2f7ff0;
@@ -391,6 +391,16 @@ kbd {
 .listener-state .addr {
   font-family: var(--font-mono);
   color: var(--text);
+  /* The host:port is the one value the hunter must verify; never let it be the part that clips. */
+  flex-shrink: 0;
+}
+
+/* When the bar is tight, the "Listening on" label yields first, so the address stays whole. */
+.listener-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
 }
 
 .listener {
@@ -407,7 +417,8 @@ kbd {
    planned tabs keep their tooltip. */
 @media (max-width: 1120px) {
   .brand-version,
-  .ws-tab .planned {
+  .ws-tab .planned,
+  .listener-label {
     display: none;
   }
 
@@ -510,6 +521,36 @@ kbd {
   grid-column: 2;
   font-size: var(--fs-xs);
   color: var(--text-3);
+}
+
+/* Cookie jar: the checkbox, the add-cookie form and the saved-cookie list are full-width blocks,
+   not crushed into the 64px label column of the surrounding .field grid. */
+[data-cookie-panel] > label,
+[data-cookie-panel] > form,
+[data-cookie-panel] > ul {
+  grid-column: 1 / -1;
+}
+[data-cookie-panel] > label {
+  margin-top: 10px;
+}
+[data-cookie-panel] > ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+[data-cookie-panel] .cookie-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 1px 0;
+}
+[data-cookie-panel] .cookie-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .text-input {

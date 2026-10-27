@@ -52,7 +52,7 @@ export const ChromeBar: React.FC<ChromeBarProps> = ({ workspace, onWorkspace, st
     state = (
       <>
         <span className="dot live" />
-        Listening on <span className="addr">{addr}</span>
+        <span className="listener-label">Listening on</span> <span className="addr">{addr}</span>
       </>
     );
   } else {
