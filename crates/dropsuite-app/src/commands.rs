@@ -1377,19 +1377,20 @@ pub fn open_app_folder(app: tauri::AppHandle, which: String) -> Result<(), Strin
     };
     std::fs::create_dir_all(&path)
         .map_err(|e| format!("could not create {}: {e}", path.display()))?;
+    // Hand the folder to the platform's file manager: Explorer on Windows, Finder via `open` on
+    // macOS, and the freedesktop handler via `xdg-open` on Linux and other unixes.
     #[cfg(windows)]
-    {
-        std::process::Command::new("explorer")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| format!("could not open the folder: {e}"))?;
-        Ok(())
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = path;
-        Err("opening a folder is only supported on Windows.".into())
-    }
+    let launcher = "explorer";
+    #[cfg(target_os = "macos")]
+    let launcher = "open";
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let launcher = "xdg-open";
+
+    std::process::Command::new(launcher)
+        .arg(&path)
+        .spawn()
+        .map_err(|e| format!("could not open the folder: {e}"))?;
+    Ok(())
 }
 
 #[cfg(windows)]
