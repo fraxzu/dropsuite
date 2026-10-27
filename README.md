@@ -43,38 +43,18 @@ dependency, so it also runs headless.
 
 ## What it does
 
-**Proxy and HTTPS interception.** An HTTP/1.1 forward proxy on `127.0.0.1:8080`. HTTPS is decrypted
-only for the hosts you add to an allowlist; everything else is tunnelled untouched. The root CA
-exists only after you click Generate, its private key is stored encrypted at rest (Windows DPAPI,
-or owner only file permissions on macOS and Linux), and it is never installed into any trust store.
-
-**HTTP history and inspector.** Every request and response, searchable and filterable, with a
-request and response view that shows headers, body and timing. Credentials are redacted before they
-are written to disk, so the saved history never keeps the real token. You can reveal the real value
-in the app when you need it, held in memory for the session only and never saved.
-
-**Intercept.** Hold a request or response, edit it, then forward or drop it.
-
-**Target tools.** A site map built from captured traffic, scope rules, and match and replace rules
-applied to requests and responses in flight.
-
-**Replay.** Edit one request and resend it. Each tab keeps its own attempt history, and you can
-compare two responses side by side.
-
-**Fuzzer.** Mark positions in a request and run Sniper or Cluster bomb with your own payload lists
-or a loaded wordlist. Out of scope and restricted targets are refused, not sent.
-
-**Decoder and Comparer.** Encode and decode Base64, URL, Hex, HTML and JWT, all locally. Diff two
-texts line by line.
-
-**Scanner.** Passive checks across the captured history, grouped by type and severity, plus content
-discovery against a target. An active scanner is in progress (see Status).
-
-**Drop AI.** Bring your own model and key. Secrets are redacted and the exact prompt is previewed
-before anything is sent, and requests go straight to your endpoint, never through the proxy.
-
-**Settings.** A dark and a light theme, optional update checks against GitHub, and one click to the
-local log and data folders, all in one panel.
+| Capability | What it does |
+| --- | --- |
+| **Proxy and HTTPS interception** | An HTTP/1.1 forward proxy on `127.0.0.1:8080`. HTTPS is decrypted only for hosts you allowlist; everything else is tunnelled untouched. The root CA key is stored encrypted at rest (Windows DPAPI, or owner only file permissions on macOS and Linux) and is never installed into any trust store. |
+| **HTTP history and inspector** | Every request and response, searchable and filterable, with headers, body and timing. Credentials are redacted before they are written to disk; reveal the real value in the app when you need it, held in memory for the session only and never saved. |
+| **Intercept** | Hold a request or response, edit it, then forward or drop it. |
+| **Target tools** | A site map built from captured traffic, scope rules, and match and replace applied to requests and responses in flight. |
+| **Replay** | Edit one request and resend it. Each tab keeps its own attempt history, and you can compare two responses side by side. |
+| **Fuzzer** | Mark positions and run Sniper or Cluster bomb with your own payload lists or a loaded wordlist. Out of scope and restricted targets are refused, not sent. |
+| **Decoder and Comparer** | Encode and decode Base64, URL, Hex, HTML and JWT, all locally. Diff two texts line by line. |
+| **Scanner** | Passive checks across the captured history, grouped by type and severity, plus content discovery against a target. An active scanner is in progress (see Status). |
+| **Drop AI** | Bring your own model and key. Secrets are redacted and the exact prompt is previewed before anything is sent, and requests go straight to your endpoint, never through the proxy. The key is stored at rest the same way as the CA key (Windows DPAPI, or owner only file permissions on macOS and Linux) and never reaches the frontend, the logs or version control. |
+| **Settings** | A dark and a light theme, optional update checks against GitHub, and one click to the local log and data folders, all in one panel. |
 
 <table>
   <tr>
@@ -172,9 +152,9 @@ Interfaces and data formats can still change.
   cookies, challenge detection, storage). No GUI dependency.
 - `crates/dropsuite-app`: the Tauri desktop app (IPC commands, engine setup).
 - `crates/dropsuite-desktop`: a headless dev daemon with an HTTP bridge.
-- `crates/dropsuite-cli`: CLI tools, including a local mock upstream.
+- `crates/dropsuite-cli`: a verification suite with a local mock upstream.
 - `frontend/`: the React and Vite UI.
-- `docs/`: architecture, the security model, and testing guides.
+- `docs/`: architecture notes and the screenshots used in this README.
 
 ## Community
 
