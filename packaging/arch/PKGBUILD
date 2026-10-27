@@ -1,0 +1,26 @@
+# Maintainer: Fraxzu
+# A binary package: it repackages the official .deb release asset into a pacman
+# package, so there is no compile step. The app binary is prebuilt; only the
+# WebKitGTK and GTK runtime are taken from the system.
+pkgname=dropsuite-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Local-first intercepting web security testing proxy for bug bounty"
+arch=('x86_64')
+url="https://github.com/fraxzu/dropsuite"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3')
+provides=('dropsuite')
+conflicts=('dropsuite')
+options=('!strip' '!debug')
+source=("DropSuite_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/DropSuite_${pkgver}_amd64.deb")
+noextract=("DropSuite_${pkgver}_amd64.deb")
+sha256sums=('88364d8f380e867ddc9ee8840ed443c0bdcd33ef281623010c4b91bb53c84264')
+
+package() {
+  cd "$srcdir"
+  # A .deb is an `ar` archive; bsdtar (libarchive, in base) reads it directly.
+  bsdtar -xf "DropSuite_${pkgver}_amd64.deb" data.tar.gz
+  # The data tarball already lays the files out under usr/, so unpack it as-is.
+  bsdtar -xpf data.tar.gz -C "$pkgdir"
+}
