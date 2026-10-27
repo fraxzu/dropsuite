@@ -99,15 +99,15 @@ Konfigurasi yang user isi di UI Settings:
 
 | Field | Contoh | Catatan |
 | --- | --- | --- |
-| Provider | `openai-compatible` / `anthropic-compatible` | Memilih adaptor |
+| Provider | `open-ai-compatible` / `anthropic-compatible` | Memilih adaptor |
 | Base URL | `https://api.openai.com/v1` atau `http://localhost:11434/v1` | Bisa endpoint lokal |
 | Model | `gpt-4o`, `claude-sonnet-4-5`, `llama-3.1-70b` | String bebas |
-| API key | `sk-...` | Disimpan terenkripsi |
+| API key | `sk-...` | Windows: DPAPI; macOS/Linux: file `0600`. Tak pernah ke log/repo |
 | Parameter | suhu, max tokens | Opsional |
 
 ### Penyimpanan key (penting)
 
-Ikuti pola CA yang sudah ada: **key disimpan DPAPI-protected di mesin user** (seperti `root-ca.key.dpapi`), tidak pernah ditulis ke log, History, atau snapshot. Redaksi rahasia yang sudah ada di engine harus mencakup header `Authorization`/`x-api-key` agar key tak bocor ke diagnostik. Panggilan keluar ke endpoint AI lewat jalur jaringan normal — tapi karena endpoint lokal (`localhost`, `127.0.0.1`) diizinkan oleh destination policy sementara endpoint cloud publik juga perlu diizinkan, panggilan AI harus lewat klien HTTP terpisah, bukan lewat proxy listener (persis seperti Replay yang mengirim langsung).
+Ikuti pola CA yang sudah ada: **key disimpan terlindungi di mesin user** — Windows DPAPI (seperti `root-ca.key.dpapi`), atau file ber-permission `0600` di macOS/Linux (tanpa DPAPI, byte disimpan apa adanya di balik izin file) — tidak pernah ditulis ke log, History, atau snapshot. Redaksi rahasia yang sudah ada di engine harus mencakup header `Authorization`/`x-api-key` agar key tak bocor ke diagnostik. Panggilan keluar ke endpoint AI lewat jalur jaringan normal — tapi karena endpoint lokal (`localhost`, `127.0.0.1`) diizinkan oleh destination policy sementara endpoint cloud publik juga perlu diizinkan, panggilan AI harus lewat klien HTTP terpisah, bukan lewat proxy listener (persis seperti Replay yang mengirim langsung).
 
 ### Fitur Drop AI (bertahap)
 

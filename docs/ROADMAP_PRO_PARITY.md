@@ -167,7 +167,7 @@ graph TD
   - Provider Abstraction (`AiProvider` trait):
     - OpenAI-Compatible (`/v1/chat/completions`): OpenAI, Ollama (local offline), vLLM, DeepSeek, Groq, OpenRouter.
     - Anthropic-Compatible (`/v1/messages`): Claude 3.5 Sonnet / Haiku.
-  - Secret Protection: API keys encrypted at rest using Windows DPAPI (`CurrentUser` scope) or secure OS keychain. Keys never touch frontend source or unencrypted logs.
+  - Secret Protection: API keys protected at rest with Windows DPAPI (`CurrentUser` scope) on Windows, or an owner-only `0600` file on macOS and Linux (no DPAPI there, so the bytes sit behind file permissions, not encryption). Keys never touch frontend source or unencrypted logs.
   - Sanitization Gate: Pre-egress redaction filter replacing session cookies, bearer tokens, and configured secrets with `[REDACTED_BY_DROPSUITE]` before sending context to external models.
   - Confirmation Dialog: UI explicitly displays exact raw prompt text and token count to the operator before transmission.
   - Security Workflows: Contextual anomaly explanation, bypass payload suggestions, Python PoC script generation, and structured vulnerability report drafting.
@@ -214,7 +214,7 @@ To establish a solid operational foundation before building Multi-Tab Repeater o
 | Risk Category | Identified Hazard | Severity | Mitigation Strategy |
 |---|---|---|---|
 | **Security** | SSRF or cloud metadata access via Scanner/Intruder automation | **CRITICAL** | Mandate that all active tools route traffic exclusively through the verified destination policy (`is_restricted_destination`). Deny 169.254.0.0/16, metadata IPs, and loopback aliases at the resolved IP stage. |
-| **Security** | Plaintext API key exposure in Drop AI settings | **HIGH** | Encrypt API keys using Windows DPAPI (`CryptProtectData`). Never include API keys in frontend logs, diagnostic files, or crash dumps. |
+| **Security** | Plaintext API key exposure in Drop AI settings | **HIGH** | Protect API keys with Windows DPAPI (`CryptProtectData`) on Windows and an owner-only `0600` file on macOS/Linux. Never include API keys in frontend logs, diagnostic files, or crash dumps. |
 | **Privacy** | Sensitive customer session tokens transmitted to cloud AI providers | **HIGH** | Implement automated pre-flight redaction gate. Enforce local-first rule by default (Ollama recommendation). Require explicit user confirmation showing exact prompt before egress. |
 | **Performance** | Memory exhaustion from massive Intruder attacks or giant HTTP History | **HIGH** | Bounded queues for all channels. Virtualized table rendering in frontend. Disk-backed SQLite storage for transaction bodies rather than unbounded in-memory heaps. |
 | **Compatibility** | Upstream server TLS fingerprinting or HTTP/2 protocol anomalies | **MEDIUM** | Strict adherence to RFC 9110/9112 and standard ALPN negotiation. Allow per-target TLS configuration options. |
