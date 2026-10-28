@@ -80,6 +80,7 @@ jobs:
             target/release/bundle/dmg/*.dmg
             target/release/bundle/nsis/*-setup.exe
           fail_on_unmatched_files: false
+          clobber: true
 
   checksums:
     name: SHA256SUMS
