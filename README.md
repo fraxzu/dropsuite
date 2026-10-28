@@ -128,7 +128,24 @@ Everything captured stays inside your local SQLite database (`history.db`). The 
 Download the installer or pre-compiled binary for your operating system from the
 [**latest GitHub Release**](https://github.com/fraxzu/dropsuite2/releases/latest).
 
-Verify the downloaded file against the published `SHA256SUMS` checksums:
+### Supported Packages
+
+| Platform | Format | Package Name | Installation Guide |
+|---|---|---|---|
+| **Windows 10 / 11** (64-bit) | **Installer (.exe)** | [`DropSuite_0.1.0_x64-setup.exe`](https://github.com/fraxzu/dropsuite2/releases/latest) | Run installer (per-user installation, no admin privileges required).<br />*Unsigned alpha: select **More info** → **Run anyway**.* |
+| **Windows 10 / 11** (64-bit) | **Portable (.exe)** | [`DropSuite-portable.exe`](https://github.com/fraxzu/dropsuite2/releases/latest) | Standalone single executable. No installation required. |
+| **Linux (Universal)** | **AppImage** | [`DropSuite_0.1.0_amd64.AppImage`](https://github.com/fraxzu/dropsuite2/releases/latest) | `chmod +x DropSuite_0.1.0_amd64.AppImage && ./DropSuite_0.1.0_amd64.AppImage` |
+| **Debian / Ubuntu / Kali** | **.deb** | [`DropSuite_0.1.0_amd64.deb`](https://github.com/fraxzu/dropsuite2/releases/latest) | `sudo apt install ./DropSuite_0.1.0_amd64.deb` |
+| **Arch Linux / Manjaro** | **PKGBUILD** | `dropsuite-bin` | `cd packaging/arch && makepkg -si` *(see [Arch Packaging Guide](packaging/arch/README.md))* |
+| **Fedora / RHEL / openSUSE** | **.rpm** | [`DropSuite-0.1.0-1.x86_64.rpm`](https://github.com/fraxzu/dropsuite2/releases/latest) | `sudo dnf install ./DropSuite-0.1.0-1.x86_64.rpm` |
+| **macOS (Apple Silicon)** | **.dmg** | [`DropSuite_0.1.0_aarch64.dmg`](https://github.com/fraxzu/dropsuite2/releases/latest) | Open DMG, drag to Applications.<br />*Unnotarized alpha: right-click app → choose **Open**.* |
+
+<details>
+<summary><b>Verify Checksums (Optional)</b></summary>
+
+<br />
+
+You can optionally verify the integrity of downloaded files against the published `SHA256SUMS` file:
 
 ```sh
 # Linux / macOS
@@ -138,17 +155,7 @@ sha256sum -c SHA256SUMS
 Get-FileHash DropSuite_0.1.0_x64-setup.exe -Algorithm SHA256
 ```
 
-### Supported Packages
-
-| Platform | Format | Package Name | Installation Guide |
-|---|---|---|---|
-| **Windows 10 / 11** (64-bit) | NSIS Setup | [`DropSuite_0.1.0_x64-setup.exe`](https://github.com/fraxzu/dropsuite2/releases/latest) | Run installer (per-user installation, no admin privileges required).<br />*Unsigned alpha: select **More info** → **Run anyway**.* |
-| **Windows 10 / 11** (64-bit) | Portable Exe | [`DropSuite-portable.exe`](https://github.com/fraxzu/dropsuite2/releases/latest) | Standalone single executable. No installation required. |
-| **Linux (Universal)** | AppImage | [`DropSuite_0.1.0_amd64.AppImage`](https://github.com/fraxzu/dropsuite2/releases/latest) | `chmod +x DropSuite_0.1.0_amd64.AppImage && ./DropSuite_0.1.0_amd64.AppImage` |
-| **Debian / Ubuntu / Kali** | `.deb` | [`DropSuite_0.1.0_amd64.deb`](https://github.com/fraxzu/dropsuite2/releases/latest) | `sudo apt install ./DropSuite_0.1.0_amd64.deb` |
-| **Arch Linux / Manjaro** | PKGBUILD | `dropsuite-bin` | `cd packaging/arch && makepkg -si` *(see [Arch Packaging Guide](packaging/arch/README.md))* |
-| **Fedora / RHEL / openSUSE** | `.rpm` | [`DropSuite-0.1.0-1.x86_64.rpm`](https://github.com/fraxzu/dropsuite2/releases/latest) | `sudo dnf install ./DropSuite-0.1.0-1.x86_64.rpm` |
-| **macOS (Apple Silicon)** | `.dmg` | [`DropSuite_0.1.0_aarch64.dmg`](https://github.com/fraxzu/dropsuite2/releases/latest) | Open DMG, drag to Applications.<br />*Unnotarized alpha: right-click app → choose **Open**.* |
+</details>
 
 ---
 

@@ -172,3 +172,4 @@ export const UpdateModal: React.FC<Props> = ({ update, onClose, onToast }) => {
     </div>
   );
 };
+
