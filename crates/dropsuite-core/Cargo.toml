@@ -26,6 +26,8 @@ rcgen = { workspace = true }
 webpki-roots = { workspace = true }
 time = { workspace = true }
 regex = "1.11"
+flate2 = { workspace = true }
+brotli = { workspace = true }
 h2 = "0.4"
 bytes = "1"
 http = "1"

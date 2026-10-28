@@ -38,5 +38,20 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Local agent & verification scratch
+target-check/
+.kilo/
+deepseek/
+drop-ai-proof.md
+AGENTS.md
+.claude/
+.gemini/
+.github/hooks/
+*.local.json
+.impeccable/config.json
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/critique/
+
 # Unrelated side tool (X/Twitter info), not part of DropSuite
 tools/xinfo/

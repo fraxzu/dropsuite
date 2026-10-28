@@ -86,7 +86,7 @@ pub fn normal_rect(_window: &tauri::WebviewWindow) -> Option<(i32, i32, u32, u32
     None
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 static BROWSER_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
 /// Why the embedded browser was opened.
@@ -537,7 +537,7 @@ fn set_cookie_from(
 }
 
 /// `Sun, 06 Nov 1994 08:49:37 GMT` for unix seconds.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn http_date(unix: i64) -> String {
     const DAYS: [&str; 7] = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
     const MONTHS: [&str; 12] = [
@@ -559,7 +559,7 @@ pub fn http_date(unix: i64) -> String {
 }
 
 /// Inverse of the day-count algorithm used by the jar: days since epoch to a civil date.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn civil_from_days(days: i64) -> (i64, i64, i64) {
     let z = days + 719_468;
     let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
@@ -644,7 +644,158 @@ impl webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2ServerCertifica
     }
 }
 
-#[cfg(not(windows))]
+/// Maps WebKitGTK's TLS error flags onto the same status codes `cert_decision` reasons about on
+/// Windows (1 = host/CN mismatch, 2 = expired/not-yet-valid, 4 = revoked, 5 = untrusted root).
+/// Anything else is reported as 0 so the shared decision fails closed.
+#[cfg(target_os = "linux")]
+fn tls_flags_to_status(flags: gio::TlsCertificateFlags) -> i32 {
+    use gio::TlsCertificateFlags;
+    if flags.contains(TlsCertificateFlags::BAD_IDENTITY) {
+        1
+    } else if flags.contains(TlsCertificateFlags::EXPIRED)
+        || flags.contains(TlsCertificateFlags::NOT_ACTIVATED)
+    {
+        2
+    } else if flags.contains(TlsCertificateFlags::REVOKED) {
+        4
+    } else if flags.contains(TlsCertificateFlags::UNKNOWN_CA) {
+        // The expected status for a DropSuite-minted leaf: its issuer is not in any trust store.
+        5
+    } else {
+        0
+    }
+}
+
+/// Spawns an isolated embedded browser window connected to the DropSuite proxy (WebKitGTK).
+///
+/// The Linux counterpart of the Windows WebView2 path: the window routes through the loopback
+/// proxy and trusts a server certificate only when it is a leaf DropSuite actively minted for that
+/// exact host. It does this through WebKit's `load-failed-with-tls-errors` signal rather than any
+/// blanket ignore-certificate flag, so upstream validation stays honest for everything else.
+#[cfg(target_os = "linux")]
+pub async fn spawn_embedded_browser(
+    app: &tauri::AppHandle,
+    proxy_url: url::Url,
+    data_dir: std::path::PathBuf,
+    target_url: &str,
+    leaf_cache: std::sync::Arc<std::sync::RwLock<dropsuite_core::LeafCache>>,
+    mode: BrowserMode,
+) -> Result<tauri::WebviewWindow, String> {
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+
+    // 1. Only http/https, same contract as the Windows path.
+    let parsed_url: url::Url = target_url
+        .parse()
+        .map_err(|e| format!("Invalid URL '{target_url}': {e}"))?;
+    if parsed_url.scheme() != "http" && parsed_url.scheme() != "https" {
+        return Err(format!(
+            "Invalid URL scheme '{}'. Only 'http' and 'https' are allowed.",
+            parsed_url.scheme()
+        ));
+    }
+    let navigate_target = parsed_url.to_string();
+
+    // 2. Close any previous embedded/challenge windows.
+    for (label, window) in app.webview_windows() {
+        if label.starts_with("embedded-browser") || label.starts_with("challenge-browser") {
+            let _ = window.close();
+        }
+    }
+
+    // 3. Unique monotonic label.
+    let window_label = format!(
+        "{}-{}",
+        mode.label_prefix(),
+        BROWSER_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    );
+
+    let _ = std::fs::create_dir_all(&data_dir);
+
+    // 4. Start at about:blank so the TLS-error handler is attached before the first HTTPS request.
+    tracing::info!(
+        "Spawning embedded browser: target='{navigate_target}', proxy='{proxy_url}', data_dir='{}'",
+        data_dir.display()
+    );
+    let blank_url: url::Url = "about:blank".parse().unwrap();
+    let window = WebviewWindowBuilder::new(app, &window_label, WebviewUrl::External(blank_url))
+        .title(mode.title())
+        .inner_size(1200.0, 800.0)
+        .proxy_url(proxy_url)
+        .data_directory(data_dir)
+        .build()
+        .map_err(|e| format!("Failed to create embedded browser window: {e}"))?;
+
+    // 5. Attach the cert hook and navigate, all on the GTK main thread.
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let target_for_closure = navigate_target.clone();
+    let cache_for_closure = leaf_cache.clone();
+
+    let dispatch_result = window.with_webview(move |wv| {
+        use gio::prelude::TlsCertificateExt;
+        use webkit2gtk::{WebContextExt, WebViewExt};
+
+        let webview: webkit2gtk::WebView = wv.inner();
+
+        // Trust only DropSuite-minted leaves, and only for the host they were minted for. Every
+        // other certificate error keeps WebKit's default (the load fails), mirroring the Windows
+        // ServerCertificateErrorDetected hook.
+        let cache = cache_for_closure.clone();
+        webview.connect_load_failed_with_tls_errors(move |view, uri, certificate, errors| {
+            let Some(host) = extract_host_from_uri(uri) else {
+                return false;
+            };
+            let Some(der) = certificate.certificate().map(|b| Vec::from(&b[..])) else {
+                return false;
+            };
+            let status = tls_flags_to_status(errors);
+            match evaluate_leaf(&der, &host, status, &cache) {
+                CertDecision::Allow => {
+                    tracing::info!(
+                        "Embedded browser: trusting DropSuite-minted leaf for host '{host}' (tls flags {errors:?}) - reloading"
+                    );
+                    if let Some(context) = view.context() {
+                        context.allow_tls_certificate_for_host(certificate, &host);
+                    }
+                    view.load_uri(uri);
+                    true
+                }
+                CertDecision::Cancel => {
+                    tracing::warn!(
+                        "Embedded browser: rejecting certificate for host '{host}' (status {status}, tls flags {errors:?})"
+                    );
+                    false
+                }
+            }
+        });
+
+        webview.load_uri(&target_for_closure);
+        let _ = tx.send(Ok::<(), String>(()));
+    });
+
+    if let Err(e) = dispatch_result {
+        let _ = window.close();
+        return Err(format!("Failed to dispatch to webview: {e}"));
+    }
+
+    // 6. Same bounded wait as Windows.
+    match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
+        Ok(Ok(Ok(()))) => Ok(window),
+        Ok(Ok(Err(err))) => {
+            let _ = window.close();
+            Err(err)
+        }
+        Ok(Err(_closed)) => {
+            let _ = window.close();
+            Err("Embedded browser webview channel closed unexpectedly".into())
+        }
+        Err(_elapsed) => {
+            let _ = window.close();
+            Err("Embedded browser initialization timed out after 5s".into())
+        }
+    }
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
 pub async fn spawn_embedded_browser(
     _app: &tauri::AppHandle,
     _proxy_url: url::Url,
@@ -653,7 +804,7 @@ pub async fn spawn_embedded_browser(
     _leaf_cache: std::sync::Arc<std::sync::RwLock<dropsuite_core::LeafCache>>,
     _mode: BrowserMode,
 ) -> Result<tauri::WebviewWindow, String> {
-    Err("Embedded browser is currently supported on Windows with WebView2.".into())
+    Err("Embedded browser is currently supported on Windows and Linux.".into())
 }
 
 /// One cookie read out of the challenge window, in `Set-Cookie` shape so the jar's own parser
@@ -717,7 +868,87 @@ pub async fn harvest_cookies(
     }
 }
 
-#[cfg(not(windows))]
+/// Build `name=value; Domain=...; Path=...; Secure; HttpOnly; Expires=...` from a WebKit cookie,
+/// the same shape `set_cookie_from` produces on Windows so the jar parser validates it identically.
+#[cfg(target_os = "linux")]
+fn set_cookie_from_soup(cookie: &mut soup::Cookie) -> Option<String> {
+    let name = cookie.name()?;
+    if name.is_empty() {
+        return None;
+    }
+    let value = cookie.value().unwrap_or_default();
+    let mut raw = format!("{name}={value}");
+    if let Some(domain) = cookie.domain() {
+        if !domain.is_empty() {
+            raw.push_str(&format!("; Domain={domain}"));
+        }
+    }
+    if let Some(path) = cookie.path() {
+        if path.starts_with('/') {
+            raw.push_str(&format!("; Path={path}"));
+        }
+    }
+    if cookie.is_secure() {
+        raw.push_str("; Secure");
+    }
+    if cookie.is_http_only() {
+        raw.push_str("; HttpOnly");
+    }
+    if let Some(expires) = cookie.expires() {
+        let unix = expires.to_unix();
+        if unix > 0 {
+            raw.push_str(&format!("; Expires={}", http_date(unix)));
+        }
+    }
+    Some(raw)
+}
+
+#[cfg(target_os = "linux")]
+pub async fn harvest_cookies(
+    window: &tauri::WebviewWindow,
+    url: &str,
+) -> Result<Vec<HarvestedCookie>, String> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let url_owned = url.to_string();
+
+    window
+        .with_webview(move |wv| {
+            use webkit2gtk::{CookieManagerExt, WebViewExt, WebsiteDataManagerExt};
+            let webview: webkit2gtk::WebView = wv.inner();
+            let Some(manager) = webview.website_data_manager().and_then(|m| m.cookie_manager())
+            else {
+                let _ = tx.send(Err("WebKit exposed no cookie manager".to_string()));
+                return;
+            };
+            // The async callback fires on the GTK main loop; the slot lets whichever path runs
+            // first own the one-shot sender.
+            let slot = std::sync::Arc::new(std::sync::Mutex::new(Some(tx)));
+            manager.cookies(&url_owned, gio::Cancellable::NONE, move |res| {
+                let out = match res {
+                    Ok(mut cookies) => Ok(cookies
+                        .iter_mut()
+                        .filter_map(set_cookie_from_soup)
+                        .map(|raw| HarvestedCookie { raw })
+                        .collect()),
+                    Err(e) => Err(format!("CookieManager returned: {e}")),
+                };
+                if let Ok(mut guard) = slot.lock() {
+                    if let Some(tx) = guard.take() {
+                        let _ = tx.send(out);
+                    }
+                }
+            });
+        })
+        .map_err(|e| format!("Failed to reach the challenge window: {e}"))?;
+
+    match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
+        Ok(Ok(result)) => result,
+        Ok(Err(_)) => Err("The challenge window closed before cookies were read.".into()),
+        Err(_) => Err("Reading cookies from the challenge window timed out.".into()),
+    }
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
 pub async fn harvest_cookies(
     _window: &tauri::WebviewWindow,
     _url: &str,
@@ -760,7 +991,30 @@ pub async fn window_user_agent(window: &tauri::WebviewWindow) -> Result<String, 
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
+pub async fn window_user_agent(window: &tauri::WebviewWindow) -> Result<String, String> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    window
+        .with_webview(move |wv| {
+            use webkit2gtk::{SettingsExt, WebViewExt};
+            let webview: webkit2gtk::WebView = wv.inner();
+            let ua = webview
+                .settings()
+                .and_then(|s| s.user_agent())
+                .map(|g| g.to_string())
+                .filter(|s| !s.trim().is_empty())
+                .ok_or_else(|| "the window reports an empty User-Agent".to_string());
+            let _ = tx.send(ua);
+        })
+        .map_err(|e| format!("Failed to reach the challenge window: {e}"))?;
+    match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
+        Ok(Ok(result)) => result,
+        Ok(Err(_)) => Err("The challenge window closed before the User-Agent was read.".into()),
+        Err(_) => Err("Reading the User-Agent timed out.".into()),
+    }
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
 pub async fn window_user_agent(_window: &tauri::WebviewWindow) -> Result<String, String> {
     Err("The User-Agent can only be read on Windows with WebView2.".into())
 }
@@ -1020,5 +1274,52 @@ mod tests {
         assert_eq!(after_removal_decision, CertDecision::Cancel);
 
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_linux_tls_flags_to_status_mapping() {
+        use gio::TlsCertificateFlags;
+        assert_eq!(
+            tls_flags_to_status(TlsCertificateFlags::UNKNOWN_CA),
+            UNTRUSTED_ROOT_STATUS
+        );
+        assert_eq!(
+            tls_flags_to_status(TlsCertificateFlags::UNKNOWN_CA | TlsCertificateFlags::BAD_IDENTITY),
+            CN_MISMATCH_STATUS
+        );
+        assert_eq!(
+            tls_flags_to_status(TlsCertificateFlags::UNKNOWN_CA | TlsCertificateFlags::EXPIRED),
+            EXPIRED_STATUS
+        );
+        assert_eq!(
+            tls_flags_to_status(TlsCertificateFlags::UNKNOWN_CA | TlsCertificateFlags::NOT_ACTIVATED),
+            EXPIRED_STATUS
+        );
+        assert_eq!(
+            tls_flags_to_status(TlsCertificateFlags::UNKNOWN_CA | TlsCertificateFlags::REVOKED),
+            REVOKED_STATUS
+        );
+        assert_eq!(tls_flags_to_status(TlsCertificateFlags::GENERIC_ERROR), 0);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_linux_set_cookie_from_soup_round_trip() {
+        let mut c = soup::Cookie::new("cf_clearance", "tok123", ".lumens.my.id", "/", 3600);
+        c.set_secure(true);
+        c.set_http_only(true);
+        let raw = set_cookie_from_soup(&mut c).expect("valid soup cookie");
+        assert!(raw.contains("cf_clearance=tok123"), "{raw}");
+        assert!(raw.contains("Domain=.lumens.my.id"), "{raw}");
+        assert!(raw.contains("Path=/"), "{raw}");
+        assert!(raw.contains("Secure"), "{raw}");
+        assert!(raw.contains("HttpOnly"), "{raw}");
+        let parsed = dropsuite_core::cookies::parse_set_cookie("lumens.my.id", &raw, 1_700_000_000)
+            .expect("jar parser must accept soup cookie output");
+        assert_eq!(parsed.name, "cf_clearance");
+        assert_eq!(parsed.value, "tok123");
+        assert!(parsed.secure);
+        assert!(parsed.http_only);
     }
 }

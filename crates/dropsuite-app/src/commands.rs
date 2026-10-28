@@ -217,10 +217,19 @@ fn apply_config(
         Vec::new()
     };
     // A pinned host must reuse the exact handshake and UA that earned the clearance.
-    let preset = if pin.is_some() {
-        dropsuite_core::BrowserPreset::Edge
-    } else {
-        preset
+    let preset = match pin.as_ref().map(|p| p.preset.as_str()) {
+        Some("safari") => dropsuite_core::BrowserPreset::Safari,
+        Some("firefox") => dropsuite_core::BrowserPreset::Firefox,
+        Some("chrome") => dropsuite_core::BrowserPreset::Chrome,
+        Some("edge") => dropsuite_core::BrowserPreset::Edge,
+        Some(_) => {
+            if cfg!(target_os = "windows") {
+                dropsuite_core::BrowserPreset::Edge
+            } else {
+                dropsuite_core::BrowserPreset::Safari
+            }
+        }
+        None => preset,
     };
     dropsuite_core::replay::ApplyConfig {
         tls_profile: dropsuite_core::TlsProfile::for_preset(preset),
@@ -885,6 +894,8 @@ pub async fn open_challenge_browser(
     )
     .await?;
 
+    spawn_cookie_sync(app.clone(), window.clone(), host.clone());
+
     // Put the entry back once the window is gone, so normal interception resumes.
     let restore_app = app.clone();
     let restore = full_allowlist.clone();
@@ -904,6 +915,62 @@ pub async fn open_challenge_browser(
     });
 
     Ok(())
+}
+
+/// Periodically harvest cookies and pin the window's User-Agent while an embedded/challenge
+/// browser window is open, so Replay and Fuzzer automatically use the matching cookies and UA.
+fn spawn_cookie_sync(app: tauri::AppHandle, window: tauri::WebviewWindow, host: String) {
+    let label = window.label().to_string();
+    tauri::async_runtime::spawn(async move {
+        let url = format!("https://{host}/");
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            if app.get_webview_window(&label).is_none() {
+                break;
+            }
+            let Some(state) = app.try_state::<EngineState>() else {
+                break;
+            };
+            let Ok(engine) = state.engine() else {
+                break;
+            };
+            let Ok(harvested) = crate::platform::harvest_cookies(&window, &url).await else {
+                continue;
+            };
+            let now = now_secs();
+            let mut count = 0usize;
+            for cookie in &harvested {
+                let Some(raw) = crate::platform::harvested_to_set_cookie(cookie) else {
+                    continue;
+                };
+                let Some(parsed) = dropsuite_core::cookies::parse_set_cookie(&host, &raw, now)
+                else {
+                    continue;
+                };
+                if engine.storage.upsert_cookie(&parsed).is_ok() {
+                    count += 1;
+                }
+            }
+            if count > 0 {
+                if let Ok(ua) = crate::platform::window_user_agent(&window).await {
+                    if !ua.trim().is_empty() {
+                        let pin_preset = if cfg!(target_os = "windows") {
+                            "edge"
+                        } else {
+                            "safari"
+                        };
+                        let pin = dropsuite_core::storage::ChallengePin {
+                            host: host.clone(),
+                            user_agent: ua,
+                            preset: pin_preset.to_string(),
+                            expires_at: now + 3600,
+                        };
+                        let _ = engine.storage.upsert_challenge_pin(&pin);
+                    }
+                }
+            }
+        }
+    });
 }
 
 /// What an import actually collected, so the interface can name it instead of just counting.
@@ -932,7 +999,9 @@ pub async fn import_challenge_cookies(
     let window = app
         .webview_windows()
         .into_iter()
-        .filter(|(label, _)| label.starts_with("challenge-browser-"))
+        .filter(|(label, _)| {
+            label.starts_with("challenge-browser-") || label.starts_with("embedded-browser-")
+        })
         .max_by_key(|(label, _)| label.clone())
         .map(|(_, w)| w)
         .ok_or_else(|| "No challenge window is open. Open one first.".to_string())?;
@@ -963,13 +1032,18 @@ pub async fn import_challenge_cookies(
     // The clearance is bound to the solving window User-Agent. Record it so Replay sends the
     // same value instead of the editor placeholder UA.
     let mut pinned = false;
-    if has_clearance {
+    if !imported.is_empty() {
         if let Ok(ua) = crate::platform::window_user_agent(&window).await {
             if !ua.trim().is_empty() {
+                let pin_preset = if cfg!(target_os = "windows") {
+                    "edge"
+                } else {
+                    "safari"
+                };
                 let pin = dropsuite_core::storage::ChallengePin {
                     host: host.clone(),
                     user_agent: ua,
-                    preset: "edge".to_string(),
+                    preset: pin_preset.to_string(),
                     expires_at: now + 3600,
                 };
                 pinned = engine.storage.upsert_challenge_pin(&pin).is_ok();
@@ -1012,7 +1086,7 @@ pub async fn open_embedded_browser(
         .filter(|s| !s.trim().is_empty())
         .unwrap_or("https://lumens.my.id/");
 
-    crate::platform::spawn_embedded_browser(
+    let window = crate::platform::spawn_embedded_browser(
         &app,
         proxy_url,
         browser_dir,
@@ -1021,6 +1095,9 @@ pub async fn open_embedded_browser(
         crate::platform::BrowserMode::Intercept,
     )
     .await?;
+    if let Some(host) = host_of(target_url) {
+        spawn_cookie_sync(app, window, host);
+    }
     Ok(())
 }
 
@@ -1398,6 +1475,19 @@ const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
 #[cfg(windows)]
 const RUN_VALUE: &str = "DropSuite";
 
+/// Path to the freedesktop autostart entry (`$XDG_CONFIG_HOME/autostart/dropsuite.desktop`, or
+/// `~/.config/autostart/...`). Its mere presence is what makes the desktop launch DropSuite at
+/// sign-in, so "start at login" maps to writing or removing this one file.
+#[cfg(all(unix, not(target_os = "macos")))]
+fn autostart_desktop_path() -> Result<std::path::PathBuf, String> {
+    let config_home = std::env::var_os("XDG_CONFIG_HOME")
+        .map(std::path::PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
+        .ok_or_else(|| "could not locate the config directory (no HOME set)".to_string())?;
+    Ok(config_home.join("autostart").join("dropsuite.desktop"))
+}
+
 /// Whether DropSuite is set to launch when the user signs in (Windows per-user Run key).
 #[tauri::command]
 pub fn get_start_at_login() -> Result<bool, String> {
@@ -1409,7 +1499,11 @@ pub fn get_start_at_login() -> Result<bool, String> {
             .map_err(|e| format!("could not read startup setting: {e}"))?;
         Ok(out.status.success())
     }
-    #[cfg(not(windows))]
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        Ok(autostart_desktop_path().map(|p| p.exists()).unwrap_or(false))
+    }
+    #[cfg(target_os = "macos")]
     {
         Ok(false)
     }
@@ -1441,15 +1535,56 @@ pub fn set_start_at_login(enabled: bool) -> Result<(), String> {
         }
         Ok(())
     }
-    #[cfg(not(windows))]
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let path = autostart_desktop_path()?;
+        if enabled {
+            // When launched from an AppImage, `current_exe()` points to an ephemeral mount point
+            // like `/tmp/.mount_DropSXXXXX/usr/bin/dropsuite`. The AppImage runtime exports the
+            // persistent path in `$APPIMAGE`, which must be used for autostart across reboots.
+            let exe = std::env::var_os("APPIMAGE")
+                .map(std::path::PathBuf::from)
+                .or_else(|| std::env::current_exe().ok())
+                .ok_or_else(|| "could not find the app's path".to_string())?;
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("could not create the autostart folder: {e}"))?;
+            }
+            let entry = format!(
+                "[Desktop Entry]\n\
+                 Type=Application\n\
+                 Name=DropSuite\n\
+                 Exec=\"{}\"\n\
+                 Terminal=false\n\
+                 X-GNOME-Autostart-enabled=true\n",
+                exe.display()
+            );
+            std::fs::write(&path, entry)
+                .map_err(|e| format!("could not write the startup setting: {e}"))?;
+        } else {
+            // Removing a file that is not there is fine: the end state is "off".
+            if let Err(e) = std::fs::remove_file(&path) {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    return Err(format!("could not remove the startup setting: {e}"));
+                }
+            }
+        }
+        Ok(())
+    }
+    #[cfg(target_os = "macos")]
     {
         let _ = enabled;
-        Err("start at login is only supported on Windows.".into())
+        Err("start at login is not supported on macOS yet.".into())
     }
 }
 
-/// The GitHub repository the update check looks at. Must match the repo you publish releases to.
-const UPDATE_REPO: &str = "Fraxzu/dropsuite";
+/// Public JSON manifest the update check reads. The source repository stays private, so the
+/// unauthenticated GitHub API would answer 404 for it; only this small manifest is public.
+const UPDATE_FEED: &str =
+    "https://raw.githubusercontent.com/fraxzu/dropsuite-updates/main/latest.json";
+
+/// Where "What's new" points. Kept apart from the feed so either can change alone.
+const RELEASES_PAGE: &str = "https://github.com/fraxzu/dropsuite/releases";
 
 #[derive(Serialize)]
 pub struct UpdateInfo {
@@ -1472,14 +1607,13 @@ fn parse_semver(tag: &str) -> Option<(u64, u64, u64)> {
     Some((a, b, c))
 }
 
-/// Ask GitHub Releases whether a newer DropSuite is published. Read-only, goes only to GitHub's
-/// public API, and sends no user data. Network problems or "no releases yet" return `checked: false`
-/// with a short message instead of an error, so a check on launch never disrupts the app.
+/// Ask the public update feed whether a newer DropSuite is published. Read-only, sends no user
+/// data. Network problems or a missing feed return `checked: false` with a short message instead
+/// of an error, so a check on launch never disrupts the app.
 #[tauri::command]
 pub async fn check_for_update() -> Result<UpdateInfo, String> {
     let current = env!("CARGO_PKG_VERSION").to_string();
-    let releases_url = format!("https://github.com/{UPDATE_REPO}/releases");
-    let api = format!("https://api.github.com/repos/{UPDATE_REPO}/releases/latest");
+    let releases_url = RELEASES_PAGE.to_string();
 
     let fallback = |message: &str| UpdateInfo {
         current: current.clone(),
@@ -1501,36 +1635,38 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
     };
 
     let resp = match client
-        .get(&api)
-        .header("Accept", "application/vnd.github+json")
+        .get(UPDATE_FEED)
+        .header("Accept", "application/json")
         .send()
         .await
     {
         Ok(r) => r,
-        Err(_) => return Ok(fallback("Could not reach GitHub to check for updates.")),
+        Err(_) => return Ok(fallback("Could not reach the update feed.")),
     };
     if resp.status() == reqwest::StatusCode::NOT_FOUND {
-        return Ok(fallback("No releases are published on GitHub yet."));
+        return Ok(fallback("The update feed is not published yet."));
     }
     if !resp.status().is_success() {
-        return Ok(fallback("GitHub did not return a release."));
+        return Ok(fallback("The update feed did not return a release."));
     }
     let v: serde_json::Value = match resp.json().await {
         Ok(v) => v,
-        Err(_) => return Ok(fallback("Could not read GitHub's response.")),
+        Err(_) => return Ok(fallback("Could not read the update feed.")),
     };
     let tag = v
-        .get("tag_name")
+        .get("version")
+        .or_else(|| v.get("tag_name"))
         .and_then(|t| t.as_str())
         .unwrap_or("")
         .to_string();
     let notes = v
-        .get("body")
+        .get("notes")
+        .or_else(|| v.get("body"))
         .and_then(|b| b.as_str())
         .unwrap_or("")
         .to_string();
     let html = v
-        .get("html_url")
+        .get("url")
         .and_then(|u| u.as_str())
         .unwrap_or(&releases_url)
         .to_string();
@@ -1551,22 +1687,74 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
     })
 }
 
-/// Open the GitHub releases page ("What's new") in the default browser. The URL is fixed here, so
-/// the frontend can never ask to open an arbitrary address.
+/// Open the releases page ("What's new") in the default browser. The URL is fixed here, so the
+/// frontend can never ask to open an arbitrary address.
 #[tauri::command]
 pub fn open_release_page() -> Result<(), String> {
-    let url = format!("https://github.com/{UPDATE_REPO}/releases");
+    let url = RELEASES_PAGE.to_string();
+    // Hand the fixed URL to the platform's default browser: `start` on Windows, `open` on macOS,
+    // and the freedesktop handler via `xdg-open` on Linux and other unixes.
     #[cfg(windows)]
     {
         std::process::Command::new("cmd")
             .args(["/C", "start", "", &url])
             .spawn()
             .map_err(|e| format!("could not open the browser: {e}"))?;
-        Ok(())
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
     {
-        let _ = url;
-        Err("opening a link is only supported on Windows.".into())
+        std::process::Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("could not open the browser: {e}"))?;
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("could not open the browser: {e}"))?;
+    }
+    Ok(())
+}
+
+#[cfg(all(test, unix, not(target_os = "macos")))]
+mod linux_autostart_tests {
+    use super::{get_start_at_login, set_start_at_login};
+
+    // Points autostart at a throwaway XDG_CONFIG_HOME so the test never touches the real
+    // ~/.config/autostart, and exercises the enable -> query -> disable round trip.
+    #[test]
+    fn start_at_login_round_trip() {
+        let tmp = std::env::temp_dir().join(format!("dropsuite-autostart-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::env::set_var("XDG_CONFIG_HOME", &tmp);
+
+        assert!(!get_start_at_login().unwrap(), "clean state is off");
+
+        set_start_at_login(true).unwrap();
+        let desktop = tmp.join("autostart").join("dropsuite.desktop");
+        assert!(desktop.exists(), "enabling writes the .desktop entry");
+        let body = std::fs::read_to_string(&desktop).unwrap();
+        assert!(body.contains("[Desktop Entry]"));
+        assert!(body.contains("Exec="));
+        assert!(get_start_at_login().unwrap(), "enabled is reported on");
+
+        set_start_at_login(false).unwrap();
+        assert!(!desktop.exists(), "disabling removes the entry");
+        assert!(!get_start_at_login().unwrap(), "disabled is reported off");
+
+        // Disabling again is a no-op, not an error.
+        set_start_at_login(false).unwrap();
+
+        // When APPIMAGE is present, autostart records the AppImage binary path
+        std::env::set_var("APPIMAGE", "/opt/DropSuite/DropSuite.AppImage");
+        set_start_at_login(true).unwrap();
+        let body_appimage = std::fs::read_to_string(&desktop).unwrap();
+        assert!(body_appimage.contains("Exec=\"/opt/DropSuite/DropSuite.AppImage\""));
+        std::env::remove_var("APPIMAGE");
+        set_start_at_login(false).unwrap();
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }

@@ -14,6 +14,7 @@
 //! formats, or inside unsupported encodings; see `docs/SECURITY.md` for the residual risks.
 
 use crate::models::TransactionRecord;
+use std::io::Read;
 
 /// Replacement for every redacted value.
 pub const REDACTED: &str = "[REDACTED]";
@@ -1088,6 +1089,48 @@ fn dechunk(body: &[u8]) -> Option<Vec<u8>> {
     }
 }
 
+/// Largest decoded body kept for inspection, so a compression bomb cannot exhaust memory.
+const MAX_DECODED: u64 = 8 * 1024 * 1024;
+
+fn read_limited(reader: &mut dyn Read, out: &mut Vec<u8>) -> Option<()> {
+    reader.take(MAX_DECODED).read_to_end(out).ok()?;
+    Some(())
+}
+
+/// Decode a `Content-Encoding` body so the capture stays inspectable. Codings are applied in
+/// reverse order. `None` when a coding is unknown or the stream is corrupt, so the caller can
+/// still fail closed and store an omission record instead of unreadable bytes.
+fn decode_body(body: &[u8], encoding: &str) -> Option<Vec<u8>> {
+    let codings: Vec<&str> = encoding
+        .split(',')
+        .map(|c| c.trim())
+        .filter(|c| !c.is_empty() && !c.eq_ignore_ascii_case("identity"))
+        .collect();
+    let mut current = body.to_vec();
+    for coding in codings.iter().rev() {
+        let mut out = Vec::new();
+        match *coding {
+            c if c.eq_ignore_ascii_case("gzip") || c.eq_ignore_ascii_case("x-gzip") => {
+                read_limited(&mut flate2::read::GzDecoder::new(&current[..]), &mut out)?
+            }
+            c if c.eq_ignore_ascii_case("deflate") => {
+                // Some servers send raw deflate, others zlib-wrapped.
+                if read_limited(&mut flate2::read::ZlibDecoder::new(&current[..]), &mut out).is_none()
+                {
+                    out.clear();
+                    read_limited(&mut flate2::read::DeflateDecoder::new(&current[..]), &mut out)?
+                }
+            }
+            c if c.eq_ignore_ascii_case("br") => {
+                read_limited(&mut brotli::Decompressor::new(&current[..], 4096), &mut out)?
+            }
+            _ => return None,
+        }
+        current = out;
+    }
+    Some(current)
+}
+
 fn sanitize_message_body(
     body: &[u8],
     content_type: Option<&str>,
@@ -1097,10 +1140,14 @@ fn sanitize_message_body(
     if body.is_empty() || is_omission(body) {
         return body.to_vec();
     }
-    // Compressed bodies are not decoded in this phase, so they cannot be inspected: fail closed.
+    // Decode first so the body can be inspected and redacted; an undecodable coding still fails
+    // closed with an omission record.
     if let Some(enc) = encoding {
-        let reason = format!("content-encoding {} is not decoded", enc.replace(';', ","));
-        return omitted_body(&reason, content_type, body);
+        let Some(decoded) = decode_body(body, enc) else {
+            let reason = format!("content-encoding {} is not decoded", enc.replace(';', ","));
+            return omitted_body(&reason, content_type, body);
+        };
+        return sanitize_message_body(&decoded, content_type, chunked, None);
     }
     if chunked {
         match dechunk(body) {
@@ -1413,8 +1460,56 @@ mod tests {
     }
 
     #[test]
-    fn binary_media_and_multipart_fail_closed() {
-        let mut png = b"\x89PNG\r\n\x1a\n\x00\x00".to_vec();
+    fn gzip_bodies_are_decoded_then_redacted() {
+        use flate2::write::GzEncoder;
+        use flate2::Compression;
+        use std::io::Write;
+
+        let body = format!(
+            "{{\"access_token\":\"{MARK}\",\"padding\":\"{}\"}}",
+            "x".repeat(80)
+        );
+        let mut enc = GzEncoder::new(Vec::new(), Compression::default());
+        enc.write_all(body.as_bytes()).unwrap();
+        let gz = enc.finish().unwrap();
+        let raw = [
+            b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Encoding: gzip\r\n\r\n"
+                .as_slice(),
+            &gz,
+        ]
+        .concat();
+        let (_head, stored) = head_and_body(&raw);
+        let stored = String::from_utf8(stored).unwrap();
+        assert!(stored.contains("access_token"), "{stored}");
+        assert!(!stored.contains(MARK), "decoded token must be redacted");
+    }
+
+    #[test]
+    fn brotli_bodies_are_decoded() {
+        use std::io::Write;
+
+        let body = format!(
+            "{{\"code\":\"rest_forbidden\",\"padding\":\"{}\"}}",
+            "x".repeat(80)
+        );
+        let mut br = Vec::new();
+        {
+            let mut w = brotli::CompressorWriter::new(&mut br, 4096, 5, 22);
+            w.write_all(body.as_bytes()).unwrap();
+        }
+        let raw = [
+            b"HTTP/1.1 403 Forbidden\r\nContent-Type: application/json\r\nContent-Encoding: br\r\n\r\n"
+                .as_slice(),
+            &br,
+        ]
+        .concat();
+        let (_head, stored) = head_and_body(&raw);
+        let stored = String::from_utf8(stored).unwrap();
+        assert!(stored.contains("rest_forbidden"), "{stored}");
+    }
+
+    #[test]
+    fn binary_media_and_multipart_fail_closed() {        let mut png = b"\x89PNG\r\n\x1a\n\x00\x00".to_vec();
         png.extend_from_slice(MARK.as_bytes());
         png.extend_from_slice(&[0xff, 0xfe, 0x00]);
         let raw = [

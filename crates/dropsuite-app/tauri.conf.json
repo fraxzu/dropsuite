@@ -32,7 +32,10 @@
   "bundle": {
     "active": true,
     "targets": [
-      "nsis"
+      "nsis",
+      "deb",
+      "rpm",
+      "appimage"
     ],
     "publisher": "Fraxzu",
     "shortDescription": "Local-first web security testing proxy",
@@ -51,6 +54,13 @@
         "headerImage": "icons/header.bmp",
         "sidebarImage": "icons/sidebar.bmp",
         "uninstallerHeaderImage": "icons/header.bmp"
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "xdg-utils"
+        ]
       }
     }
   }

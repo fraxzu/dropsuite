@@ -243,13 +243,21 @@ fn with_payload(req: &ReplayRequest, point: &Point, payload: &str) -> ReplayRequ
     match point {
         Point::Query(name) => {
             let (base, query) = out.url.split_once('?').unwrap_or((out.url.as_str(), ""));
-            let rebuilt: Vec<String> = query
+            let mut replaced = false;
+            let mut rebuilt: Vec<String> = query
                 .split('&')
+                .filter(|pair| !pair.is_empty())
                 .map(|pair| match pair.split_once('=') {
-                    Some((n, _)) if n.trim() == name => format!("{n}={}", encode_query(payload)),
+                    Some((n, _)) if n.trim() == name => {
+                        replaced = true;
+                        format!("{n}={}", encode_query(payload))
+                    }
                     _ => pair.to_string(),
                 })
                 .collect();
+            if !replaced {
+                rebuilt.push(format!("{name}={}", encode_query(payload)));
+            }
             out.url = format!("{base}?{}", rebuilt.join("&"));
         }
         Point::Body(name) => {
@@ -453,6 +461,65 @@ fn is_html(headers: &[(String, String)]) -> bool {
         .unwrap_or(false)
 }
 
+/// Discover query/form parameter names from baseline HTML (`name="..."` on form controls and
+/// `?param=` in links/actions), falling back to standard query parameters when a bare URL has no
+/// explicit insertion points.
+fn discover_html_points(html: &str) -> Vec<Point> {
+    static INPUT_NAME: OnceLock<regex::Regex> = OnceLock::new();
+    static HREF_QUERY: OnceLock<regex::Regex> = OnceLock::new();
+    let input_re = INPUT_NAME.get_or_init(|| {
+        regex::Regex::new(r#"(?i)<(?:input|select|textarea)\b[^>]*?\bname\s*=\s*["']([a-zA-Z0-9_\-\.]{1,48})["']"#)
+            .expect("static regex")
+    });
+    let href_re = HREF_QUERY.get_or_init(|| {
+        regex::Regex::new(r#"(?i)(?:href|action)\s*=\s*["'][^"'#?]*\?([^"'#]+)["']"#)
+            .expect("static regex")
+    });
+
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+
+    for cap in href_re.captures_iter(html) {
+        if let Some(q) = cap.get(1) {
+            for pair in q.as_str().split(&['&', ';'][..]) {
+                let name = pair.split('=').next().unwrap_or("").trim();
+                if !name.is_empty()
+                    && !name.starts_with("amp;")
+                    && !SKIP_PARAMS.contains(&name.to_ascii_lowercase().as_str())
+                    && seen.insert(name.to_ascii_lowercase())
+                {
+                    out.push(Point::Query(name.to_string()));
+                    if out.len() >= 6 {
+                        return out;
+                    }
+                }
+            }
+        }
+    }
+
+    for cap in input_re.captures_iter(html) {
+        if let Some(m) = cap.get(1) {
+            let name = m.as_str().trim();
+            if !name.is_empty()
+                && !SKIP_PARAMS.contains(&name.to_ascii_lowercase().as_str())
+                && seen.insert(name.to_ascii_lowercase())
+            {
+                out.push(Point::Query(name.to_string()));
+                if out.len() >= 6 {
+                    return out;
+                }
+            }
+        }
+    }
+
+    if out.is_empty() {
+        for fallback in ["s", "q", "id", "page", "url"] {
+            out.push(Point::Query(fallback.to_string()));
+        }
+    }
+    out
+}
+
 /// Run the active scan. Sequential, bounded, and stops when the target starts refusing.
 pub async fn scan(
     req: &ReplayRequest,
@@ -460,14 +527,11 @@ pub async fn scan(
     replay_opts: &ReplayOptions,
     opts: &ScanOptions,
 ) -> ScanReport {
-    let points = insertion_points(req);
+    let mut points = insertion_points(req);
     let mut report = ScanReport {
         points: points.len(),
         ..Default::default()
     };
-    if points.is_empty() {
-        return report;
-    }
 
     if waf_detect::is_infrastructure_path(&req.url) {
         report.skipped_infrastructure = true;
@@ -510,6 +574,11 @@ pub async fn scan(
 
     let skipped_non_html = !is_html(&baseline.headers);
     report.skipped_non_html = skipped_non_html;
+
+    if points.is_empty() && !is_refusal(&baseline) {
+        points = discover_html_points(&baseline_text);
+        report.points = points.len();
+    }
 
     let mut blocks = 0usize;
     let mut retries = 0usize;

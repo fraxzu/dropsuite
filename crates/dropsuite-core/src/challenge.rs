@@ -202,7 +202,24 @@ pub fn detect(status: u16, headers: &[(String, String)], body: &[u8]) -> Option<
         return None;
     }
     let (vendor, evidence) = match vendor {
-        Some(v) if refusal || body_challenge || mitigated => v,
+        Some(v) if refusal || body_challenge || mitigated => {
+            // `server:` and `cf-ray`/`cf-cache-status` are on every response that merely passes
+            // through a CDN. On a refusal they alone do not prove edge interference: the
+            // application's own 403 (a WordPress REST JSON error, for example) looks the same.
+            // Demand a body marker, or an undecoded HTML error page.
+            let weak = v.1.starts_with("server: ")
+                || v.1 == "cf-ray present"
+                || v.1 == "cf-cache-status present";
+            if weak && !body_challenge && !mitigated {
+                let json = header(headers, "content-type")
+                    .is_some_and(|c| c.to_ascii_lowercase().contains("json"));
+                let marked = BLOCK_MARKERS.iter().any(|m| lower_body.contains(m));
+                if json && !marked {
+                    return None;
+                }
+            }
+            v
+        }
         Some(_) => return None,
         None if refusal => {
             // No vendor: only the strong shared markers count, so an app's own 403 stays clean.
@@ -368,6 +385,17 @@ mod healthy_tests {
     #[test]
     fn a_refusal_from_cloudflare_is_still_reported() {
         assert!(detect(403, &h(&[("server", "cloudflare")]), b"nope").is_some());
+    }
+
+    #[test]
+    fn an_application_json_403_behind_cloudflare_is_not_a_challenge() {
+        let headers = h(&[
+            ("server", "cloudflare"),
+            ("content-type", "application/json; charset=UTF-8"),
+            ("cf-ray", "a517647ebe3a5fe5-SIN"),
+        ]);
+        let body = br#"{"code":"rest_forbidden","message":"Sorry.","data":{"status":403}}"#;
+        assert!(detect(403, &headers, body).is_none());
     }
 }
 

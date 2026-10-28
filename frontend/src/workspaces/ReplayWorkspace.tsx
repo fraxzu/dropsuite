@@ -58,7 +58,7 @@ const CHALLENGE_HINT: Record<string, string> = {
   rate_limited: 'Wait and retry, or lower Fuzzer concurrency.',
 };
 
-const clock = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const clock = (t: number) => new Date(t).toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 export const ReplayWorkspace: React.FC<ReplayWorkspaceProps> = ({ active, sessions, onToast }) => {
   const tab = sessions.tabs.find((t) => t.id === sessions.activeId) ?? sessions.tabs[0];

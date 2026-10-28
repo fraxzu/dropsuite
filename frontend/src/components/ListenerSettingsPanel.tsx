@@ -10,6 +10,14 @@ interface Props {
   onToast?: (msg: string) => void;
 }
 
+/** Which trust-store instructions to show. The webview User-Agent is stable for the app's life. */
+const HOST_OS = (() => {
+  const ua = navigator.userAgent;
+  if (/Windows/i.test(ua)) return 'windows';
+  if (/Mac OS X|Macintosh/i.test(ua)) return 'macos';
+  return 'linux';
+})();
+
 export const ListenerSettingsPanel: React.FC<Props> = ({ running, onClose, onSaved, onToast }) => {
   const [settings, setSettings] = useState<ListenerSettings | null>(null);
   const [https, setHttps] = useState<HttpsSettings | null>(null);
@@ -308,7 +316,14 @@ export const ListenerSettingsPanel: React.FC<Props> = ({ running, onClose, onSav
                 Trusting this CA allows DropSuite to impersonate allowlisted HTTPS hosts while the proxy is running.
               </p>
               <p style={{ margin: '0 0 4px 0' }}>
-                <strong>Windows (Edge/Chrome):</strong> Run in PowerShell:
+                <strong>
+                  {HOST_OS === 'windows'
+                    ? 'Windows (Edge/Chrome):'
+                    : HOST_OS === 'macos'
+                      ? 'macOS (Keychain):'
+                      : 'Linux (system trust):'}
+                </strong>{' '}
+                Run in a terminal:
               </p>
               <pre
                 className="mono selectable"
@@ -320,11 +335,23 @@ export const ListenerSettingsPanel: React.FC<Props> = ({ running, onClose, onSav
                   overflowX: 'auto',
                 }}
               >
-                certutil -user -addstore Root root-ca.pem
+                {HOST_OS === 'windows'
+                  ? 'certutil -user -addstore Root root-ca.pem'
+                  : HOST_OS === 'macos'
+                    ? 'sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain root-ca.pem'
+                    : 'sudo trust anchor --store root-ca.pem   # Arch, Fedora\nsudo cp root-ca.pem /usr/local/share/ca-certificates/dropsuite.crt && sudo update-ca-certificates   # Debian, Ubuntu'}
               </pre>
               <p style={{ margin: '0 0 4px 0' }}>
                 <strong>Firefox:</strong> Settings → Privacy & Security → Certificates → View Certificates → Authorities → Import → select exported root-ca.pem → check &quot;Trust this CA to identify websites&quot;.
               </p>
+              {HOST_OS === 'linux' && (
+                <p style={{ margin: '0 0 4px 0' }}>
+                  <strong>Chrome/Chromium (NSS):</strong>{' '}
+                  <code className="mono selectable">
+                    certutil -d sql:$HOME/.pki/nssdb -A -t &quot;C,,&quot; -n DropSuite -i root-ca.pem
+                  </code>
+                </p>
+              )}
               <p style={{ margin: '0', color: 'var(--text-3)' }}>
                 To revoke: remove the certificate from your user store, or click Remove CA above.
               </p>

@@ -9,13 +9,16 @@ pkgdesc="Local-first intercepting web security testing proxy for bug bounty"
 arch=('x86_64')
 url="https://github.com/fraxzu/dropsuite"
 license=('MIT')
-depends=('webkit2gtk-4.1' 'gtk3')
+depends=('webkit2gtk-4.1' 'gtk3' 'xdg-utils')
 provides=('dropsuite')
 conflicts=('dropsuite')
 options=('!strip' '!debug')
-source=("DropSuite_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/DropSuite_${pkgver}_amd64.deb")
+# Online release asset:
+# source=("DropSuite_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/DropSuite_${pkgver}_amd64.deb")
+# Local asset (uses the .deb sitting next to this file, offline):
+source=("DropSuite_${pkgver}_amd64.deb")
 noextract=("DropSuite_${pkgver}_amd64.deb")
-sha256sums=('88364d8f380e867ddc9ee8840ed443c0bdcd33ef281623010c4b91bb53c84264')
+sha256sums=('605250947320d3399e9c985917eed387939edbf0ebb404e8a4cb5831a9cf0119')
 
 package() {
   cd "$srcdir"

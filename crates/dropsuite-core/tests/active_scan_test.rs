@@ -303,3 +303,23 @@ async fn a_url_without_points_reports_nothing() {
     assert_eq!(report.points, 0);
     assert!(report.findings.is_empty());
 }
+
+#[tokio::test]
+async fn bare_url_without_query_discovers_and_scans_points() {
+    let port = origin().await;
+    let report = scan(
+        &req(format!("http://127.0.0.1:{port}/echo")),
+        &ApplyConfig::default(),
+        &opts(),
+        &fast(),
+    )
+    .await;
+    assert!(report.points > 0, "bare URL should auto-discover/probe points");
+    assert!(report.requests > 1, "bare URL should send baseline + probes");
+    let hit = report
+        .findings
+        .iter()
+        .find(|f| f.kind == CheckKind::ReflectedXss)
+        .expect("reflection on bare /echo via auto-probed ?q= must be reported");
+    assert_eq!(hit.point, "query:q");
+}

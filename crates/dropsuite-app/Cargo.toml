@@ -28,6 +28,16 @@ rustls-pemfile = { workspace = true }
 # Drop AI (BYOK) calls the user's own model endpoint directly, never through the proxy listener.
 reqwest = { workspace = true, features = ["rustls-tls", "gzip", "brotli", "deflate"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# Embedded browser on Linux is WebKitGTK, the same engine wry drives, so the window built by Tauri
+# hands back a `webkit2gtk::WebView` through `with_webview`. Pin the version wry resolves (0.57 -> 2.0.2)
+# so that handle type matches; the gtk/gio/glib/soup3 versions follow the same 0.18 / 0.5 line.
+webkit2gtk = "=2.0.2"
+gtk = "0.18"
+gio = "0.18"
+glib = "0.18"
+soup3 = "0.5"
+
 [target.'cfg(windows)'.dependencies]
 # Already in the dependency tree through Tauri; used for DPI-correct window icons and, with the
 # Cryptography feature, DPAPI protection of the Drop AI key (same scheme as the root CA key).

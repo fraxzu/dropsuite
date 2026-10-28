@@ -7,38 +7,23 @@ the self-contained AppImage (~87 MB).
 
 ## Install
 
+### Mode 1: Local package (offline, recommended during development)
+
+If you have `DropSuite_0.1.0_amd64.deb` sitting in this directory (e.g. copied from Windows partition or built locally):
+
 ```sh
 cd packaging/arch
 makepkg -si
 ```
 
-`makepkg` downloads the `.deb` named in `source`, verifies its `sha256sums`,
-then unpacks it into the package. `-si` installs it (and pulls `webkit2gtk-4.1`
-and `gtk3` if missing). Run `dropsuite` afterwards, or launch it from the app
-menu.
+`makepkg` verifies the local `.deb` with SHA-256, unpacks it, and installs it via `pacman` without downloading.
 
-## Updating for a new release
+### Mode 2: From GitHub Releases (once published)
 
-After publishing a new release, bump `pkgver` and refresh the checksum against
-the actual uploaded asset:
+Uncomment the online URL in `PKGBUILD`:
 
 ```sh
-updpkgsums        # rewrites sha256sums from the real release .deb
-makepkg -si
+source=("DropSuite_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/DropSuite_${pkgver}_amd64.deb")
 ```
 
-The checksum must match the released `.deb` byte for byte; builds are not
-perfectly reproducible, so never assume an old sum still holds.
-
-## Installing from a local .deb (offline)
-
-To build against a `.deb` you already have instead of downloading, drop it next
-to a copy of this PKGBUILD, change the `source` line to the bare filename, and
-drop the `noextract` URL form:
-
-```sh
-source=("DropSuite_${pkgver}_amd64.deb")
-```
-
-Then `makepkg -si` in that folder. (Regenerate `sha256sums` with
-`updpkgsums` if that local file differs from the released one.)
+Then run `makepkg -si`. (Run `updpkgsums` if the release asset was rebuilt).

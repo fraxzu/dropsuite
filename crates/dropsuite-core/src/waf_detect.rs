@@ -81,8 +81,28 @@ pub fn detect(headers: &[(String, String)], body: &str, status: u16) -> WafSigna
     if refusal && (lower.contains("challenges.cloudflare.com") || lower.contains("cf-chl")) {
         return WafSignal::Challenge(WafVendor::Cloudflare);
     }
+    // A block page carries its own markers. `server: cloudflare` alone only means a CDN sits in
+    // front of the application, so an application 403 (for example a WordPress REST JSON error)
+    // is not mistaken for an edge block.
+    const CF_BLOCK_MARKERS: &[&str] = &[
+        "cf-error-details",
+        "cf-wrapper",
+        "attention required",
+        "you have been blocked",
+        "error 1020",
+        "cloudflare ray id",
+        "cf-error-overview",
+        "cf-browser-verification",
+    ];
+    if refusal && CF_BLOCK_MARKERS.iter().any(|m| lower.contains(m)) {
+        return WafSignal::Block(WafVendor::Cloudflare);
+    }
+    // Undecoded body: fall back to the CDN header, but only for an HTML error page.
     if refusal
+        && lower.trim().is_empty()
         && header(headers, "server").is_some_and(|s| s.to_ascii_lowercase().contains("cloudflare"))
+        && header(headers, "content-type")
+            .is_some_and(|c| c.to_ascii_lowercase().contains("text/html"))
     {
         return WafSignal::Block(WafVendor::Cloudflare);
     }
@@ -227,6 +247,37 @@ mod tests {
         assert_eq!(
             detect(&h(&[("server", "nginx")]), "forbidden", 403),
             WafSignal::None
+        );
+    }
+
+    #[test]
+    fn application_json_403_behind_cloudflare_is_not_a_block() {
+        let headers = h(&[
+            ("server", "cloudflare"),
+            ("content-type", "application/json; charset=UTF-8"),
+            ("cf-ray", "a517647ebe3a5fe5-SIN"),
+            ("allow", "GET"),
+        ]);
+        let body = r#"{"code":"rest_forbidden","message":"Sorry.","data":{"status":403}}"#;
+        assert_eq!(detect(&headers, body, 403), WafSignal::None);
+    }
+
+    #[test]
+    fn cloudflare_block_page_is_still_a_block() {
+        let headers = h(&[("server", "cloudflare"), ("content-type", "text/html")]);
+        let body = "<div id=\"cf-wrapper\"><h1>Attention Required! | Cloudflare</h1></div>";
+        assert_eq!(
+            detect(&headers, body, 403),
+            WafSignal::Block(WafVendor::Cloudflare)
+        );
+    }
+
+    #[test]
+    fn undecoded_html_403_from_cloudflare_still_blocks() {
+        let headers = h(&[("server", "cloudflare"), ("content-type", "text/html")]);
+        assert_eq!(
+            detect(&headers, "", 403),
+            WafSignal::Block(WafVendor::Cloudflare)
         );
     }
 

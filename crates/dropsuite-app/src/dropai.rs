@@ -566,7 +566,38 @@ mod dpapi {
 
 #[cfg(test)]
 mod tests {
-    use super::{extract_anthropic, extract_openai};
+    use super::{extract_anthropic, extract_openai, DropAiConfig, Provider};
+
+    #[test]
+    fn dropai_config_reasoning_effort_serde_round_trip() {
+        let json_with_effort = r#"{
+            "provider": "open-ai-compatible",
+            "base_url": "https://api.example.com/v1",
+            "model": "deepseek-r1",
+            "temperature": 0.6,
+            "max_tokens": 4096,
+            "reasoning_effort": "low"
+        }"#;
+
+        let parsed: DropAiConfig = serde_json::from_str(json_with_effort).unwrap();
+        assert_eq!(parsed.reasoning_effort.as_deref(), Some("low"));
+        assert_eq!(parsed.provider, Provider::OpenAiCompatible);
+
+        let reserialized = serde_json::to_string(&parsed).unwrap();
+        let reparsed: DropAiConfig = serde_json::from_str(&reserialized).unwrap();
+        assert_eq!(reparsed.reasoning_effort.as_deref(), Some("low"));
+
+        // Omitted reasoning_effort defaults to None cleanly
+        let json_without_effort = r#"{
+            "provider": "anthropic-compatible",
+            "base_url": "https://api.anthropic.com",
+            "model": "claude-3-5-sonnet-20241022",
+            "temperature": 0.2,
+            "max_tokens": 1024
+        }"#;
+        let default_parsed: DropAiConfig = serde_json::from_str(json_without_effort).unwrap();
+        assert_eq!(default_parsed.reasoning_effort, None);
+    }
 
     #[test]
     fn openai_string_content() {
