@@ -9,7 +9,7 @@
 
 ### A local-first, intercepting web security testing proxy.<br />Free, open source, with no paywalled core.
 
-[![Release](https://img.shields.io/badge/release-v0.1.0-4cc38a.svg?style=flat-square&logo=github)](https://github.com/fraxzu/dropsuite2/releases/latest)
+[![Release](https://img.shields.io/badge/release-v0.1.0-4cc38a.svg?style=flat-square&logo=github)](https://github.com/fraxzu/dropsuite/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3d8bff.svg?style=flat-square)](LICENSE)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-e8a43c.svg?style=flat-square)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-6ea8ff.svg?style=flat-square)](#supported-packages)
@@ -17,7 +17,7 @@
 
 <br />
 
-<a href="https://github.com/fraxzu/dropsuite2/releases/latest">
+<a href="https://github.com/fraxzu/dropsuite/releases/latest">
   <img src="https://img.shields.io/badge/Download%20Latest%20Release-v0.1.0-238636?style=for-the-badge" alt="Download DropSuite">
 </a>
 
@@ -126,19 +126,19 @@ Everything captured stays inside your local SQLite database (`history.db`). The 
 ## Install
 
 Download the installer or pre-compiled binary for your operating system from the
-[**latest GitHub Release**](https://github.com/fraxzu/dropsuite2/releases/latest).
+[**latest GitHub Release**](https://github.com/fraxzu/dropsuite/releases/latest).
 
 ### Supported Packages
 
 | Platform | Format | Package Name | Installation Guide |
 |---|---|---|---|
-| **Windows 10 / 11** (64-bit) | **Installer (.exe)** | [`DropSuite_0.1.0_x64-setup.exe`](https://github.com/fraxzu/dropsuite2/releases/latest) | Run installer (per-user installation, no admin privileges required).<br />*Unsigned alpha: select **More info** → **Run anyway**.* |
-| **Windows 10 / 11** (64-bit) | **Portable (.exe)** | [`DropSuite-portable.exe`](https://github.com/fraxzu/dropsuite2/releases/latest) | Standalone single executable. No installation required. |
-| **Linux (Universal)** | **AppImage** | [`DropSuite_0.1.0_amd64.AppImage`](https://github.com/fraxzu/dropsuite2/releases/latest) | `chmod +x DropSuite_0.1.0_amd64.AppImage && ./DropSuite_0.1.0_amd64.AppImage` |
-| **Debian / Ubuntu / Kali** | **.deb** | [`DropSuite_0.1.0_amd64.deb`](https://github.com/fraxzu/dropsuite2/releases/latest) | `sudo apt install ./DropSuite_0.1.0_amd64.deb` |
+| **Windows 10 / 11** (64-bit) | **Installer (.exe)** | [`DropSuite_0.1.0_x64-setup.exe`](https://github.com/fraxzu/dropsuite/releases/latest) | Run installer (per-user installation, no admin privileges required).<br />*Unsigned alpha: select **More info** → **Run anyway**.* |
+| **Windows 10 / 11** (64-bit) | **Portable (.exe)** | [`DropSuite-portable.exe`](https://github.com/fraxzu/dropsuite/releases/latest) | Standalone single executable. No installation required. |
+| **Linux (Universal)** | **AppImage** | [`DropSuite_0.1.0_amd64.AppImage`](https://github.com/fraxzu/dropsuite/releases/latest) | `chmod +x DropSuite_0.1.0_amd64.AppImage && ./DropSuite_0.1.0_amd64.AppImage` |
+| **Debian / Ubuntu / Kali** | **.deb** | [`DropSuite_0.1.0_amd64.deb`](https://github.com/fraxzu/dropsuite/releases/latest) | `sudo apt install ./DropSuite_0.1.0_amd64.deb` |
 | **Arch Linux / Manjaro** | **PKGBUILD** | `dropsuite-bin` | `cd packaging/arch && makepkg -si` *(see [Arch Packaging Guide](packaging/arch/README.md))* |
-| **Fedora / RHEL / openSUSE** | **.rpm** | [`DropSuite-0.1.0-1.x86_64.rpm`](https://github.com/fraxzu/dropsuite2/releases/latest) | `sudo dnf install ./DropSuite-0.1.0-1.x86_64.rpm` |
-| **macOS (Apple Silicon)** | **.dmg** | [`DropSuite_0.1.0_aarch64.dmg`](https://github.com/fraxzu/dropsuite2/releases/latest) | Open DMG, drag to Applications.<br />*Unnotarized alpha: right-click app → choose **Open**.* |
+| **Fedora / RHEL / openSUSE** | **.rpm** | [`DropSuite-0.1.0-1.x86_64.rpm`](https://github.com/fraxzu/dropsuite/releases/latest) | `sudo dnf install ./DropSuite-0.1.0-1.x86_64.rpm` |
+| **macOS (Apple Silicon)** | **.dmg** | [`DropSuite_0.1.0_aarch64.dmg`](https://github.com/fraxzu/dropsuite/releases/latest) | Open DMG, drag to Applications.<br />*Unnotarized alpha: right-click app → choose **Open**.* |
 
 <details>
 <summary><b>Verify Checksums (Optional)</b></summary>
@@ -240,4 +240,4 @@ dropsuite/
 - [License: MIT](LICENSE)
 - [Security Policy](SECURITY.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
-- [Issue Tracker & Discussions](https://github.com/fraxzu/dropsuite2/issues)
+- [Issue Tracker & Discussions](https://github.com/fraxzu/dropsuite/issues)

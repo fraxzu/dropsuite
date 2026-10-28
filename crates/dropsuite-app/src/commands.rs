@@ -1714,7 +1714,7 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
                 None
             } else {
                 Some(format!(
-                    "https://github.com/fraxzu/dropsuite2/releases/download/v{tag}/{asset_name}"
+                    "https://github.com/fraxzu/dropsuite/releases/download/v{tag}/{asset_name}"
                 ))
             }
         });
@@ -1783,7 +1783,7 @@ pub async fn download_update(
 
     let target_url = match download_url.filter(|u| !u.trim().is_empty()) {
         Some(u) => u,
-        None => format!("https://github.com/fraxzu/dropsuite2/releases/download/v{v}/{asset_name}"),
+        None => format!("https://github.com/fraxzu/dropsuite/releases/download/v{v}/{asset_name}"),
     };
 
     let client = reqwest::Client::builder()
