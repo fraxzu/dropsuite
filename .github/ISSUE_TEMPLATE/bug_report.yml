@@ -1,0 +1,165 @@
+name: Bug report
+description: Report a problem in DropSuite with observations or source evidence
+title: "[Bug] "
+labels:
+  - bug
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report one primary behavior per issue. Keep answers concise and grounded
+        in available evidence. Distinguish observed behavior, source-derived
+        reasoning, and suspected causes; do not claim a reproduction you did not run.
+        If a narrative answer is not known, write `NOT_ENOUGH_INFO` and describe
+        what is missing. Intermittent failures and clearly labeled source-only
+        reports are welcome. Do not include credentials, secrets, or sensitive target data.
+
+  - type: checkboxes
+    id: before-submitting
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the open and closed issues for a related report.
+          required: true
+        - label: I removed credentials, tokens, private paths, and sensitive target data.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Setup, packaging, or installation (.exe, AppImage, .deb, .rpm, PKGBUILD)
+        - Proxy engine & HTTPS interception (TLS, Certificate, HTTP/1.1, HTTP/2)
+        - Embedded browser & bot challenge solver
+        - HTTP history & request inspector (decompression, filtering, search)
+        - Interactive intercept & queue
+        - Target & scope control (site map, match and replace)
+        - Replay (Repeater) & response diffing
+        - Fuzzer (Intruder) & payload processing
+        - Active & passive scanner (vulnerability checks, WAF backoff)
+        - Drop AI security assistant (BYOK, streaming)
+        - Decoder, Comparer, or JWT analyzer
+        - Listener settings, Root CA, or diagnostics
+        - UI, layout, or window controls (Tauri desktop)
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed-behavior
+    attributes:
+      label: Observed behavior
+      description: Describe the actual result, including the relevant target or workflow, and supporting evidence below. Label source-only findings instead of claiming execution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Give the shortest steps you actually ran, with the relevant input or configuration. State how often they reproduced the problem when known. If reproduction is unavailable, say so and provide the observations or source reference you have.
+      placeholder: |
+        1. Start DropSuite and bind listener ...
+        2. Send request or trigger action ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: State the expected result, protocol contract, or recovery action. Cite documentation, source, or standard RFC when available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact-scope
+    attributes:
+      label: Impact and scope
+      description: Describe observed impact and frequency, including effects on traffic integrity, persistence, UI responsiveness, or proxy availability. Leave untested scope unknown rather than guessing.
+    validations:
+      required: true
+
+  - type: input
+    id: dropsuite-version
+    attributes:
+      label: DropSuite version
+      description: Provide the version (e.g. 0.1.0) or source commit SHA.
+      placeholder: DropSuite 0.1.0 or commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Operating system and platform
+      description: Include OS version and architecture (e.g. Windows 11 x64, Ubuntu 24.04 amd64, macOS 15 aarch64).
+      placeholder: Windows 11 x64
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: Target context
+      description: Include target protocol (HTTP/1.1, HTTP/2), server technology, or WAF/CDN if relevant.
+      placeholder: HTTPS / HTTP/2; Cloudflare protected; OWASP Juice Shop
+
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface
+      options:
+        - Desktop UI
+        - Embedded Browser
+        - Proxy Listener (127.0.0.1:8080)
+        - CLI harness
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: failure-stage
+    attributes:
+      label: Earliest failure stage
+      description: Select where the incorrect behavior first becomes observable. Choose Unknown if this has not been established.
+      options:
+        - Client TCP connection or TLS handshake
+        - Upstream connection or HTTP/2 negotiation
+        - Interception, modification, or match-replace
+        - Storage or database write (history.db)
+        - Replay or intruder dispatch
+        - Scanner rule execution or reporting
+        - UI rendering or IPC transport
+        - Cleanup, cancellation, or shutdown
+        - Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: relevant-evidence
+    attributes:
+      label: Relevant output or evidence
+      description: Include the smallest useful log excerpt, error message, screenshot, or exact source reference. Redact all credentials and private target data.
+      placeholder: |
+        Action or request actually run:
+        Relevant error message or log:
+        Missing evidence or remaining uncertainty:
+    validations:
+      required: true
+
+  - type: textarea
+    id: analysis
+    attributes:
+      label: Analysis or suspected cause
+      description: Optional. Link supporting source and distinguish source-derived reasoning from a hypothesis. A fix proposal is not required.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add screenshots, test configuration, or related issues.

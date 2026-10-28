@@ -1,0 +1,95 @@
+name: Feature request
+description: Propose a focused improvement to DropSuite
+title: "[Feature] "
+labels:
+  - enhancement
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe one problem and the outcome you would like. Short answers are
+        welcome. Choose "Not sure yet" wherever needed; you do not need code, a
+        finished design, or a complete test plan to propose an idea.
+        Use concrete examples when available, distinguish current limitations
+        from proposed behavior, and leave unmeasured impact or unknowns explicit.
+
+        Read the [contribution guidelines](https://github.com/fraxzu/dropsuite/blob/main/CONTRIBUTING.md).
+        Maintainers can help resolve scope and technical questions.
+
+  - type: checkboxes
+    id: before-submitting
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the open and closed issues and pull requests for a related proposal.
+          required: true
+        - label: I understand the contribution guidelines and local-first principles.
+          required: true
+        - label: This request does not include credentials, private data, or sensitive target information.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Setup, packaging, or installation (.exe, AppImage, .deb, .rpm, PKGBUILD)
+        - Proxy engine & HTTPS interception (TLS, Certificate, HTTP/1.1, HTTP/2)
+        - Embedded browser & bot challenge solver
+        - HTTP history & request inspector (decompression, filtering, search)
+        - Interactive intercept & queue
+        - Target & scope control (site map, match and replace)
+        - Replay (Repeater) & response diffing
+        - Fuzzer (Intruder) & payload processing
+        - Active & passive scanner (vulnerability checks, WAF backoff)
+        - Drop AI security assistant (BYOK, streaming)
+        - Decoder, Comparer, or JWT analyzer
+        - Listener settings, Root CA, or diagnostics
+        - UI, layout, or window controls (Tauri desktop)
+        - Documentation
+        - Other
+        - Not sure yet
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-limitation
+    attributes:
+      label: Current limitation
+      description: What are you trying to accomplish, and what is difficult or missing today? A short example is enough.
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use cases
+      description: Optional examples of affected workflows, targets, or testing scenarios. Leave blank if covered above.
+
+  - type: textarea
+    id: desired-outcome
+    attributes:
+      label: Desired outcome and success criteria
+      description: What would a useful result look like? Describe the output, workflow, or behavior you want.
+      placeholder: For a selected request in Replay, provide ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe existing DropSuite features, external tools, or workarounds considered and why they do not meet the need.
+
+  - type: textarea
+    id: possible-direction
+    attributes:
+      label: Possible direction
+      description: Optional implementation or integration idea. Treat it as a proposal, not a requirement.
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Optional supporting examples, specifications, RFCs, or prior art.

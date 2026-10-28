@@ -1,0 +1,62 @@
+name: Documentation
+description: Report unclear, missing, or incorrect DropSuite documentation
+title: "[Docs] "
+labels:
+  - documentation
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report one documentation problem with the exact location and the smallest
+        useful supporting passage, example, or command. Keep answers concise.
+        If something is unknown, write `NOT_ENOUGH_INFO` and explain what is missing.
+
+  - type: checkboxes
+    id: before-submitting
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues for a related documentation report.
+          required: true
+        - label: I removed credentials, tokens, private paths, and sensitive target data.
+          required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: Link the page, section, command, or guide.
+      placeholder: README.md#trusting-the-root-ca or docs/ARCHITECTURE.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Quote or describe the current content, explain what is unclear, missing, outdated, or incorrect, and say how to observe the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-content
+    attributes:
+      label: Expected content
+      description: Describe the accurate behavior, command, or example that should be documented, with a reference when available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence
+      description: Include an exact passage, source reference, terminal output, or screenshot supporting the report.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Include screenshots or related issues.

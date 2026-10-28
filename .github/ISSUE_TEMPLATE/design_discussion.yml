@@ -1,0 +1,97 @@
+name: Design discussion
+description: Discuss a DropSuite architecture, engine, protocol, or scope decision
+title: "[Design] "
+labels:
+  - enhancement
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for architectural decisions, proxy engine protocols, public contracts,
+        or scope boundaries. One question and a short explanation are enough to start.
+        Choose "Not sure yet" where needed; maintainers can help with technical details,
+        alternatives, and verification.
+
+        Read the [contribution guidelines](https://github.com/fraxzu/dropsuite/blob/main/CONTRIBUTING.md).
+        Open questions and architectural proposals are welcome.
+
+  - type: checkboxes
+    id: before-submitting
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the open and closed issues and pull requests for a related discussion.
+          required: true
+        - label: I understand the contribution scope and local-first architecture principles.
+          required: true
+        - label: This discussion does not include credentials, private data, or sensitive target information.
+          required: true
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decision needed
+      description: What would you like maintainers to help decide? A short question is enough.
+      placeholder: Should DropSuite ... or ...?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context-evidence
+    attributes:
+      label: Context and motivation
+      description: Explain the problem or motivation and link relevant documentation or RFCs when available. Distinguish observed behavior, source-derived reasoning, proposed behavior, and unknowns.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architectural-area
+    attributes:
+      label: Architectural area
+      description: Select the primary subsystem involved.
+      options:
+        - Proxy engine (Tokio async I/O, raw TCP tunneling, HTTP/2 upstream)
+        - HTTPS interception & dynamic leaf certificate minting
+        - Embedded browser integration (WebView2 / WebKitGTK)
+        - Persistence boundary & credential redaction (SQLite history.db)
+        - Replay, Intruder, or Scanner architecture
+        - Drop AI assistant architecture (BYOK, DPAPI encryption)
+        - Desktop runtime & IPC bridge (Tauri v2)
+        - UI components and state management
+        - Packaging, installer, and auto-updater
+        - Other / Not sure yet
+    validations:
+      required: true
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Options and tradeoffs
+      description: Optional approaches or tradeoffs. One idea is enough; maintainers can help compare alternatives.
+
+  - type: dropdown
+    id: verification-readiness
+    attributes:
+      label: Verification available so far
+      description: Pick the closest match. An idea without test results is welcome.
+      options:
+        - Idea only; I need help defining checks
+        - I can suggest a test scenario or manual check
+        - I have a prototype or benchmark results
+        - Not sure yet
+    validations:
+      required: true
+
+  - type: textarea
+    id: success-criteria
+    attributes:
+      label: Success criteria and open questions
+      description: Optional expected output, prototype behavior, or unresolved questions.
+        A complete test plan is not required to start discussion.
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Link relevant RFCs, specifications, tests, benchmarks, or prior discussions.
