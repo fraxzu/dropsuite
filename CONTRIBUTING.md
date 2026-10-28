@@ -31,7 +31,7 @@ node frontend/node_modules/@tauri-apps/cli/tauri.js build
 - `crates/dropsuite-desktop`: headless dev daemon with an HTTP bridge.
 - `crates/dropsuite-cli`: CLI tools, including a local mock upstream.
 - `frontend/`: React + Vite UI.
-- `docs/`: architecture, security model, and testing guides.
+- `docs/`: architecture specification and visual assets.
 
 ## Before you open a pull request
 
@@ -40,7 +40,7 @@ node frontend/node_modules/@tauri-apps/cli/tauri.js build
 - New behavior comes with a test where it reasonably can.
 - Keep the security guarantees intact: the destination policy, credential
   redaction, and the "nothing leaves the machine unless the operator sends it"
-  rule (see `docs/SECURITY.md`).
+  rule (see `SECURITY.md`).
 
 ### If you add a Tauri command
 

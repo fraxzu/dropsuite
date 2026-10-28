@@ -95,7 +95,7 @@ dropsuite/
     * The origin's `Connection` concerns the upstream hop only. The client connection stays open unless the client asked to close, the body is delimited by connection close, the response is HTTP/1.0, or the origin answered before the request body was complete. In those cases the proxy adds `Connection: close`.
     * No `Via` field is added and `Max-Forwards` is not processed. As a testing tool, DropSuite keeps requests as close to what the client sent as HTTP allows.
     * History stores the request as the client sent it and the response as the origin sent it, both sanitized.
-  * Capture is separate from forwarding. At most 16 KB of each body is kept. Larger, interrupted or uninspectable bodies become omission records (`docs/SECURITY.md`).
+  * Capture is separate from forwarding. At most 16 KB of each body is kept. Larger, interrupted or uninspectable bodies become omission records (`SECURITY.md`).
   * Answers `502 Bad Gateway` when the target cannot be resolved or connected. A request whose target is the proxy's own listener (for example a browser opened at `http://127.0.0.1:8080/`) gets one `508 Loop Detected` and is not forwarded or captured. Before this guard, such a request was forwarded back into the listener until Windows ran out of sockets, and every level stored a 502.
 * **`StorageManager`:**
   * Creates `dropsuite.db` with WAL (Write-Ahead Logging) mode for concurrent read/write performance.

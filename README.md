@@ -220,7 +220,7 @@ node frontend/node_modules/@tauri-apps/cli/tauri.js build
 DropSuite is engineered as a clean-room modular workspace with zero proprietary bytecode or assets:
 
 ```
-rea_software/
+dropsuite/
 ├── crates/
 │   ├── dropsuite-core/      # Protocol engine: HTTP/1.1 & HTTP/2 proxy, HTTPS MITM, CA,
 │   │                        # replay, intruder, active/passive scanner, cookies, storage
@@ -230,7 +230,7 @@ rea_software/
 ├── frontend/                # React 18, TypeScript, Vite UI workspace
 ├── packaging/
 │   └── arch/                # Arch Linux PKGBUILD and packaging documentation
-└── docs/                    # Architecture blueprints, security audits, and screenshots
+└── docs/                    # Architecture blueprints and visual assets
 ```
 
 ---
