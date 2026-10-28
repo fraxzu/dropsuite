@@ -1,6 +1,6 @@
 # DropSuite Architecture Specification
 
-**Product:** DropSuite — Free & Open-Source Security Platform  
+**Product:** DropSuite: Free & Open-Source Security Platform  
 **Architecture Phase:** P1 (Proxy & History MVP)  
 **Selected Stack:** Rust (Tokio, Rusqlite) + React (TypeScript, Vite, Impeccable Style)
 
@@ -131,7 +131,7 @@ DropSuite ships as a Tauri 2 desktop app: `crates/dropsuite-app` (binary `dropsu
   - The edges stay resizable, and Windows snapping by dragging to a screen edge comes from the system move loop.
   - The window-state plugin does not restore the decorations flag, so a state file from an older build cannot bring the native bar back.
   - Below 1120 px the version label and the "planned" badges are hidden, so the bar fits down to the 960 px minimum.
-- **Listener settings (P1.9).** A panel beside Start/Stop sets the loopback port. The default is 8080; ports 1024–65535 are allowed, and the port can only be changed while the listener is stopped. A port in use is reported and never taken from the program using it. The choice is saved in `settings.json` in the data folder. Capture is still off at every launch, and no system proxy setting is touched.
+- **Listener settings (P1.9).** A panel beside Start/Stop sets the loopback port. The default is 8080; ports 1024-65535 are allowed, and the port can only be changed while the listener is stopped. A port in use is reported and never taken from the program using it. The choice is saved in `settings.json` in the data folder. Capture is still off at every launch, and no system proxy setting is touched.
 - **Diagnostics (P1.9).** The app logs to `logs/dropsuite.log` in the data folder, rotated at 1 MiB with two older files kept. It records startup and exit, listener start and stop, port conflicts, settings changes, upstream connection failures (host and port only) and internal errors (panics, with location). It never records captured headers, bodies, cookies, tokens or URLs. Nothing is sent anywhere.
 - **Lifecycle.**
   - Capture is off at launch until the user presses Start.

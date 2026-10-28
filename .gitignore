@@ -38,20 +38,34 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Local agent & verification scratch
+# Local agent, design, planning & verification scratch (never publish)
 target-check/
 .kilo/
 deepseek/
 drop-ai-proof.md
 AGENTS.md
+DESIGN.md
+PRODUCT.md
+VERIFICATION.md
+handoff.md*
+*.bak
+DropSuite Pro + Drop AI*
+run_smoke_test.bat
+verify/
+brand/
+.codex/
 .claude/
 .gemini/
 .github/hooks/
 *.local.json
-.impeccable/config.json
-.impeccable/config.local.json
-.impeccable/hook.cache.json
-.impeccable/critique/
+.impeccable/
+**/.impeccable/
+
+# Internal planning and roadmap notes in docs/
+docs/P*
+docs/ROADMAP*
+docs/FINGERPRINT-AND-CHALLENGE.md
+docs/SECURITY.md
 
 # Unrelated side tool (X/Twitter info), not part of DropSuite
 tools/xinfo/

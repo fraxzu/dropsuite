@@ -18,12 +18,12 @@
 <br />
 
 <a href="https://github.com/fraxzu/dropsuite2/releases/latest">
-  <img src="https://img.shields.io/badge/🚀%20Download%20Latest%20Release-v0.1.0-238636?style=for-the-badge" alt="Download DropSuite">
+  <img src="https://img.shields.io/badge/Download%20Latest%20Release-v0.1.0-238636?style=for-the-badge" alt="Download DropSuite">
 </a>
 
 <br /><br />
 
-[**Downloads**](#install) • [**Highlights**](#key-highlights) • [**What It Does**](#what-it-does) • [**Showcase**](#visual-showcase) • [**Quick Start**](#getting-started) • [**Root CA Setup**](#trusting-the-root-ca) • [**Build from Source**](#build-from-source)
+[**Downloads**](#install) | [**Highlights**](#key-highlights) | [**What It Does**](#what-it-does) | [**Showcase**](#visual-showcase) | [**Quick Start**](#getting-started) | [**Root CA Setup**](#trusting-the-root-ca) | [**Build from Source**](#build-from-source)
 
 </div>
 
@@ -48,11 +48,11 @@ Everything captured stays inside your local SQLite database (`history.db`). The 
 
 ## Key Highlights
 
-- 🔒 **Zero Telemetry & 100% Local-First** — All request history, cookies, and tokens stay in local SQLite storage (`history.db`). Redaction filters automatically strip credentials at the persistence boundary while allowing on-demand, in-memory inspection.
-- 🔓 **No Paywalled Workflows** — Unthrottled fuzzing (Sniper, Cluster Bomb), multi-tab Repeater with response diffing, and native Active Vulnerability Scanning are free under the MIT License.
-- ⚡ **High-Performance Rust Core** — Powered by Tokio async I/O with HTTP/1.1 and upstream HTTP/2 multiplexing, handling high concurrency and large traffic volumes without UI lag.
-- 🌐 **Embedded Browser & Bot Challenge Solver** — Built-in isolated browser (`WebView2` on Windows, `WebKitGTK` on Linux) pre-routed to the proxy with automatic cookie harvesting (`cf_clearance`, Akamai tokens) and User-Agent pinning into the session Cookie Jar.
-- 🤖 **Drop AI (Bring Your Own Key)** — Contextual AI security assistant (OpenAI and Anthropic compatible) with streaming responses. Prompts are previewed before sending, and API keys are encrypted at rest using Windows DPAPI or 0600 file permissions.
+- **Zero Telemetry & 100% Local-First**: All request history, cookies, and tokens stay in local SQLite storage (`history.db`). Redaction filters automatically strip credentials at the persistence boundary while allowing on-demand, in-memory inspection.
+- **No Paywalled Workflows**: Unthrottled fuzzing (Sniper, Cluster Bomb), multi-tab Repeater with response diffing, and native Active Vulnerability Scanning are free under the MIT License.
+- **High-Performance Rust Core**: Powered by Tokio async I/O with HTTP/1.1 and upstream HTTP/2 multiplexing, handling high concurrency and large traffic volumes without UI lag.
+- **Embedded Browser & Bot Challenge Solver**: Built-in isolated browser (`WebView2` on Windows, `WebKitGTK` on Linux) pre-routed to the proxy with automatic cookie harvesting (`cf_clearance`, Akamai tokens) and User-Agent pinning into the session Cookie Jar.
+- **Drop AI (Bring Your Own Key)**: Contextual AI security assistant (OpenAI and Anthropic compatible) with streaming responses. Prompts are previewed before sending, and API keys are encrypted at rest using Windows DPAPI or 0600 file permissions.
 
 ---
 
