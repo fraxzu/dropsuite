@@ -496,6 +496,13 @@ kbd {
   animation: toast-in 140ms var(--ease-out);
 }
 
+.popover.listener-settings {
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
 .popover-title {
   font-size: var(--fs-sm);
   font-weight: 600;

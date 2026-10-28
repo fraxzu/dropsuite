@@ -88,32 +88,36 @@ export const CookieJarPanel: React.FC<Props> = ({ onToast }) => {
 
   if (!available) {
     return (
-      <div className="field">
-        <span className="field-label">Browser fingerprint</span>
-        <span className="field-hint">Available in the desktop app.</span>
+      <div className="cookie-jar-section" style={{ borderTop: '1px solid var(--line)', marginTop: 12, paddingTop: 10 }}>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <span className="field-label">Browser fingerprint</span>
+          <span className="field-hint">Available in the desktop app.</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="field" data-cookie-panel>
-      <span className="field-label">Browser fingerprint</span>
-      <select
-        aria-label="Browser header preset"
-        value={apply?.preset ?? 'off'}
-        onChange={(e) => apply && void saveApply({ ...apply, preset: e.target.value as BrowserPreset })}
-      >
-        {PRESETS.map((p) => (
-          <option key={p.value} value={p.value}>
-            {p.label}
-          </option>
-        ))}
-      </select>
-      <span className="field-hint">
+    <div className="cookie-jar-section" data-cookie-panel style={{ borderTop: '1px solid var(--line)', marginTop: 12, paddingTop: 10 }}>
+      <div className="field" style={{ marginBottom: 4 }}>
+        <span className="field-label">Browser fingerprint</span>
+        <select
+          aria-label="Browser header preset"
+          value={apply?.preset ?? 'off'}
+          onChange={(e) => apply && void saveApply({ ...apply, preset: e.target.value as BrowserPreset })}
+        >
+          {PRESETS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <span className="field-hint" style={{ display: 'block', marginBottom: 10 }}>
         Fills only headers you left empty. Typed headers always win.
       </span>
 
-      <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '8px 0', fontSize: 'var(--fs-sm)', cursor: 'pointer' }}>
         <input
           type="checkbox"
           checked={apply?.cookie_jar ?? false}
@@ -124,53 +128,63 @@ export const CookieJarPanel: React.FC<Props> = ({ onToast }) => {
 
       <form onSubmit={addCookie} style={{ marginTop: 8 }}>
         <input
+          className="text-input"
           aria-label="Cookie host"
           placeholder="api.example.com"
           value={host}
           onChange={(e) => setHost(e.target.value)}
           spellCheck={false}
+          style={{ width: '100%', boxSizing: 'border-box' }}
         />
         <input
+          className="text-input"
           aria-label="Cookie value"
           placeholder="cf_clearance=... (attributes allowed)"
           value={raw}
           onChange={(e) => setRaw(e.target.value)}
           spellCheck={false}
-          style={{ marginTop: 6 }}
+          style={{ width: '100%', boxSizing: 'border-box', marginTop: 6 }}
         />
-        <div className="popover-actions" style={{ marginTop: 6 }}>
-          <button type="submit" className="btn" disabled={busy || !host.trim() || !raw.trim()}>
+        <div className="popover-actions" style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+          <button type="submit" className="btn btn-sm" disabled={busy || !host.trim() || !raw.trim()}>
             {busy ? 'Saving...' : 'Add cookie'}
           </button>
           <span className="chrome-spacer" />
-          <button type="button" className="btn" onClick={clearAll} disabled={cookies.length === 0}>
+          <button type="button" className="btn btn-sm" onClick={clearAll} disabled={cookies.length === 0}>
             Clear jar
           </button>
         </div>
       </form>
 
-      {error && <span className="field-hint" style={{ color: 'var(--danger, #f87171)' }}>{error}</span>}
+      {error && <span className="field-hint" style={{ color: 'var(--danger, #f87171)', display: 'block', marginTop: 4 }}>{error}</span>}
 
       {cookies.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, maxHeight: 140, overflowY: 'auto' }}>
+        <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, maxHeight: 150, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 'var(--radius)', background: 'var(--ground)' }}>
           {cookies.map((c) => (
-            <li key={`${c.host}|${c.name}|${c.path}`} className="cookie-row">
-              <span className="mono cookie-name">
-                {c.name}
-                <span className="field-hint"> @ {c.host}{c.path}</span>
+            <li key={`${c.host}|${c.name}|${c.path}`} className="cookie-row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderBottom: '1px solid var(--line-subtle, rgba(255,255,255,0.05))' }}>
+              <span className="mono cookie-name" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 'var(--fs-xs)' }}>
+                <strong>{c.name}</strong>
+                <span className="field-hint" style={{ marginLeft: 4 }}>@{c.host}{c.path}</span>
               </span>
-              <span className="chrome-spacer" />
               {(c.secure || c.http_only) && (
-                <span className="field-hint">{[c.secure ? 'Secure' : '', c.http_only ? 'HttpOnly' : ''].filter(Boolean).join(' ')}</span>
+                <span className="field-hint" style={{ fontSize: '10px', opacity: 0.8, whiteSpace: 'nowrap' }}>
+                  {[c.secure ? 'Secure' : '', c.http_only ? 'HttpOnly' : ''].filter(Boolean).join(' ')}
+                </span>
               )}
-              <button type="button" className="btn" onClick={() => void remove(c)} aria-label={`Delete ${c.name}`}>
+              <button
+                type="button"
+                className="btn btn-xs"
+                onClick={() => void remove(c)}
+                aria-label={`Delete ${c.name}`}
+                style={{ padding: '1px 6px', fontSize: '11px', lineHeight: 1 }}
+              >
                 x
               </button>
             </li>
           ))}
         </ul>
       )}
-      {cookies.length === 0 && <span className="field-hint">Jar is empty.</span>}
+      {cookies.length === 0 && <span className="field-hint" style={{ display: 'block', marginTop: 8 }}>Jar is empty.</span>}
     </div>
   );
 };
