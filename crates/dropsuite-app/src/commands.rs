@@ -10,7 +10,7 @@ use dropsuite_core::models::HistoryFilter;
 use dropsuite_core::replay::{self, ReplayError, ReplayOptions, ReplayRequest, ReplayResponse};
 use dropsuite_core::{ProxyStatus, ScopeEngine, TransactionRecord, TransactionSummary};
 use serde::Serialize;
-use tauri::{Manager, State};
+use tauri::{Emitter, Manager, State};
 
 use crate::engine::{Engine, EngineState, BIND_IP, DEFAULT_PROXY_PORT};
 use crate::settings;
@@ -1593,9 +1593,17 @@ pub struct UpdateInfo {
     pub newer: bool,
     pub notes: String,
     pub url: String,
+    pub asset_url: Option<String>,
     /// Whether the check actually reached GitHub. False with a `message` on any network/no-release case.
     pub checked: bool,
     pub message: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct DownloadProgress {
+    pub percent: f64,
+    pub downloaded: u64,
+    pub total: u64,
 }
 
 fn parse_semver(tag: &str) -> Option<(u64, u64, u64)> {
@@ -1621,6 +1629,7 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
         newer: false,
         notes: String::new(),
         url: releases_url.clone(),
+        asset_url: None,
         checked: false,
         message: message.to_string(),
     };
@@ -1676,12 +1685,47 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
         _ => false,
     };
 
+    let asset_name = if cfg!(windows) {
+        format!("DropSuite_{tag}_x64-setup.exe")
+    } else if cfg!(target_os = "linux") {
+        format!("DropSuite_{tag}_amd64.AppImage")
+    } else {
+        format!("DropSuite_{tag}_aarch64.dmg")
+    };
+
+    let asset_url = v
+        .get("assets")
+        .and_then(|a| a.as_array())
+        .and_then(|arr| {
+            arr.iter().find_map(|item| {
+                let name = item.get("name")?.as_str()?;
+                if (cfg!(windows) && (name.ends_with("-setup.exe") || name.ends_with(".exe")))
+                    || (cfg!(target_os = "linux") && name.ends_with(".AppImage"))
+                    || (cfg!(target_os = "macos") && name.ends_with(".dmg"))
+                {
+                    item.get("browser_download_url")?.as_str().map(|s| s.to_string())
+                } else {
+                    None
+                }
+            })
+        })
+        .or_else(|| {
+            if tag.is_empty() {
+                None
+            } else {
+                Some(format!(
+                    "https://github.com/fraxzu/dropsuite2/releases/download/v{tag}/{asset_name}"
+                ))
+            }
+        });
+
     Ok(UpdateInfo {
         current,
         latest: if tag.is_empty() { None } else { Some(tag) },
         newer,
         notes,
         url: html,
+        asset_url,
         checked: true,
         message: String::new(),
     })
@@ -1716,6 +1760,164 @@ pub fn open_release_page() -> Result<(), String> {
             .map_err(|e| format!("could not open the browser: {e}"))?;
     }
     Ok(())
+}
+
+/// Streams and downloads the update asset directly from GitHub Releases, emitting progress events
+/// to the UI. Returns the path of the downloaded file in the temp directory.
+#[tauri::command]
+pub async fn download_update(
+    app: tauri::AppHandle,
+    version: String,
+    download_url: Option<String>,
+) -> Result<String, String> {
+    use std::io::Write;
+
+    let v = version.trim().trim_start_matches(['v', 'V']);
+    let asset_name = if cfg!(windows) {
+        format!("DropSuite_{v}_x64-setup.exe")
+    } else if cfg!(target_os = "linux") {
+        format!("DropSuite_{v}_amd64.AppImage")
+    } else {
+        format!("DropSuite_{v}_aarch64.dmg")
+    };
+
+    let target_url = match download_url.filter(|u| !u.trim().is_empty()) {
+        Some(u) => u,
+        None => format!("https://github.com/fraxzu/dropsuite2/releases/download/v{v}/{asset_name}"),
+    };
+
+    let client = reqwest::Client::builder()
+        .user_agent(format!("DropSuite/{v}"))
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
+
+    let mut resp = match client.get(&target_url).send().await {
+        Ok(r) if r.status().is_success() => r,
+        _ => {
+            // Fallback to secondary releases feed if primary URL 404s
+            let fallback_url = format!(
+                "https://github.com/fraxzu/dropsuite-updates/releases/download/v{v}/{asset_name}"
+            );
+            client
+                .get(&fallback_url)
+                .send()
+                .await
+                .map_err(|e| format!("Failed to reach update server: {e}"))?
+        }
+    };
+
+    if !resp.status().is_success() {
+        return Err(format!("Download failed with status: {}", resp.status()));
+    }
+
+    let total = resp.content_length().unwrap_or(0);
+    let temp_dest = std::env::temp_dir().join(&asset_name);
+    let mut file = std::fs::File::create(&temp_dest)
+        .map_err(|e| format!("Failed to create file {}: {e}", temp_dest.display()))?;
+
+    let mut downloaded: u64 = 0;
+    while let Some(chunk) = resp
+        .chunk()
+        .await
+        .map_err(|e| format!("Network error while downloading: {e}"))?
+    {
+        file.write_all(&chunk)
+            .map_err(|e| format!("Failed to write chunk: {e}"))?;
+        downloaded += chunk.len() as u64;
+
+        let percent = if total > 0 {
+            ((downloaded as f64 / total as f64) * 100.0).clamp(0.0, 100.0)
+        } else {
+            0.0
+        };
+
+        let _ = app.emit(
+            "update-download-progress",
+            DownloadProgress {
+                percent,
+                downloaded,
+                total,
+            },
+        );
+    }
+
+    file.flush()
+        .map_err(|e| format!("Failed to flush file: {e}"))?;
+    Ok(temp_dest.to_string_lossy().to_string())
+}
+
+/// Executes the installer / update binary, launches the new application, and closes the current process.
+#[tauri::command]
+pub async fn install_and_restart(app: tauri::AppHandle, file_path: String) -> Result<(), String> {
+    let path = std::path::PathBuf::from(&file_path);
+    if !path.exists() {
+        return Err(format!("Update file does not exist: {}", path.display()));
+    }
+
+    #[cfg(windows)]
+    {
+        let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
+
+        // On Windows, NSIS takes `/S` for silent background update.
+        // We trigger a background PowerShell script that:
+        // 1) Waits 800ms for current DropSuite process to exit and release file locks.
+        // 2) Executes installer /S silently and waits for installation to finish.
+        // 3) Launches the updated DropSuite application.
+        let script = format!(
+            "Start-Sleep -Milliseconds 800; Start-Process -FilePath '{}' -ArgumentList '/S' -Wait; Start-Process -FilePath '{}'",
+            path.to_string_lossy().replace('\'', "''"),
+            current_exe.to_string_lossy().replace('\'', "''")
+        );
+
+        let _ = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &script])
+            .spawn()
+            .map_err(|e| format!("Failed to spawn updater process: {e}"))?;
+
+        app.exit(0);
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(meta) = std::fs::metadata(&path) {
+            let mut perms = meta.permissions();
+            perms.set_mode(0o755);
+            let _ = std::fs::set_permissions(&path, perms);
+        }
+
+        // If running from AppImage, atomically replace the current AppImage file and relaunch
+        if let Ok(appimage_path) = std::env::var("APPIMAGE") {
+            let target = std::path::PathBuf::from(appimage_path);
+            if let Ok(_) = std::fs::copy(&path, &target) {
+                let _ = std::process::Command::new(&target).spawn();
+                app.exit(0);
+                return Ok(());
+            }
+        }
+
+        // Otherwise spawn downloaded file
+        let _ = std::process::Command::new(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to launch update: {e}"))?;
+
+        app.exit(0);
+        Ok(())
+    }
+
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("open").arg(&path).spawn();
+            app.exit(0);
+            Ok(())
+        }
+        #[cfg(not(target_os = "macos"))]
+        Err("Unsupported operating system for in-app update.".into())
+    }
 }
 
 #[cfg(all(test, unix, not(target_os = "macos")))]

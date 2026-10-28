@@ -109,6 +109,8 @@ fn main() {
             commands::set_start_at_login,
             commands::check_for_update,
             commands::open_release_page,
+            commands::download_update,
+            commands::install_and_restart,
             commands::get_scope_config,
             commands::set_scope_config,
             commands::get_match_replace_config,

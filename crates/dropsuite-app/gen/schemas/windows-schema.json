@@ -231,6 +231,12 @@
           "markdownDescription": "Enables the delete_repeater_tab command without any pre-configured scope."
         },
         {
+          "description": "Enables the download_update command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-download-update",
+          "markdownDescription": "Enables the download_update command without any pre-configured scope."
+        },
+        {
           "description": "Enables the drop_all_intercepted command without any pre-configured scope.",
           "type": "string",
           "const": "allow-drop-all-intercepted",
@@ -373,6 +379,12 @@
           "type": "string",
           "const": "allow-import-challenge-cookies",
           "markdownDescription": "Enables the import_challenge_cookies command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the install_and_restart command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-install-and-restart",
+          "markdownDescription": "Enables the install_and_restart command without any pre-configured scope."
         },
         {
           "description": "Enables the list_cookies command without any pre-configured scope.",
@@ -621,6 +633,12 @@
           "markdownDescription": "Denies the delete_repeater_tab command without any pre-configured scope."
         },
         {
+          "description": "Denies the download_update command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-download-update",
+          "markdownDescription": "Denies the download_update command without any pre-configured scope."
+        },
+        {
           "description": "Denies the drop_all_intercepted command without any pre-configured scope.",
           "type": "string",
           "const": "deny-drop-all-intercepted",
@@ -763,6 +781,12 @@
           "type": "string",
           "const": "deny-import-challenge-cookies",
           "markdownDescription": "Denies the import_challenge_cookies command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the install_and_restart command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-install-and-restart",
+          "markdownDescription": "Denies the install_and_restart command without any pre-configured scope."
         },
         {
           "description": "Denies the list_cookies command without any pre-configured scope.",

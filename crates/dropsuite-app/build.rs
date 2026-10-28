@@ -41,6 +41,8 @@ fn main() {
             "set_start_at_login",
             "check_for_update",
             "open_release_page",
+            "download_update",
+            "install_and_restart",
             "get_scope_config",
             "set_scope_config",
             "get_match_replace_config",

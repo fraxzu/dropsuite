@@ -314,6 +314,18 @@ export const engine = {
       () => Promise.reject(new Error('Desktop only')),
     ),
 
+  downloadUpdate: (version: string, downloadUrl?: string) =>
+    call(
+      () => invoke<string>('download_update', { version, downloadUrl }),
+      () => Promise.reject(new Error('Desktop only')),
+    ),
+
+  installAndRestart: (filePath: string) =>
+    call(
+      () => invoke<void>('install_and_restart', { filePath }),
+      () => Promise.reject(new Error('Desktop only')),
+    ),
+
   openReleasePage: () =>
     call(
       () => invoke<void>('open_release_page'),

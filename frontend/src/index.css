@@ -3446,3 +3446,161 @@ span.ab.b {
   gap: 6px;
   padding: 10px 10px 0;
 }
+
+/* ============================================================================
+   In-App Auto-Updater Modal (MixMusic style)
+   ============================================================================ */
+.update-modal-backdrop {
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.update-dialog-card {
+  width: min(560px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line);
+  padding: 32px 36px;
+  color: var(--text);
+  animation: updateModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes updateModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.update-dialog-title {
+  margin: 0 0 16px 0;
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.update-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.update-dialog-notes {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.update-dialog-subtext {
+  margin: 0 0 8px 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+.update-dialog-installed {
+  margin: 8px 0 24px 0;
+  font-size: var(--fs-md);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.update-dialog-error {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  font-size: var(--fs-sm);
+}
+
+/* Progress bar */
+.update-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.update-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--sunken);
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.update-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 9999px;
+  transition: width 0.25s ease-out;
+}
+
+.update-progress-label {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+/* Pill buttons for restart / later */
+.update-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.update-btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 24px;
+  border-radius: 9999px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.update-btn-later {
+  background: transparent;
+  border: 1.5px solid var(--line);
+  color: var(--text);
+}
+
+.update-btn-later:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: var(--text-3);
+}
+
+.update-btn-restart {
+  background: var(--text);
+  color: var(--panel);
+  border: 1.5px solid var(--text);
+}
+
+.update-btn-restart:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.update-btn-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

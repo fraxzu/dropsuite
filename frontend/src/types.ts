@@ -12,8 +12,15 @@ export interface UpdateInfo {
   newer: boolean;
   notes: string;
   url: string;
+  asset_url?: string | null;
   checked: boolean;
   message: string;
+}
+
+export interface DownloadProgress {
+  percent: number;
+  downloaded: number;
+  total: number;
 }
 
 export interface TransactionSummary {

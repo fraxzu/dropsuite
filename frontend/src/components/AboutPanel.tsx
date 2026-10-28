@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { X, FolderOpen, Loader2, RefreshCw, ExternalLink } from 'lucide-react';
+import { X, FolderOpen, Loader2, RefreshCw, ExternalLink, Download } from 'lucide-react';
 import { engine } from '../lib/transport';
 import { AppInfo, UpdateInfo } from '../types';
 import { useStoredState } from '../lib/useStoredState';
 import { applyTheme, DEFAULT_THEME, THEME_KEY, THEMES, ThemeId } from '../lib/theme';
+import { UpdateModal, isAutoInstallEnabled, setAutoInstallEnabled } from './UpdateModal';
 
 interface Props {
   onClose: () => void;
@@ -43,8 +44,10 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
   const [error, setError] = useState<string | null>(null);
   const [startup, setStartup] = useState<boolean | null>(null);
   const [checkOnLaunch, setCheckOnLaunch] = useState<boolean>(checkOnLaunchEnabled());
+  const [autoInstall, setAutoInstall] = useState<boolean>(isAutoInstallEnabled());
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [checking, setChecking] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [theme, setTheme] = useStoredState<ThemeId>(THEME_KEY, DEFAULT_THEME);
 
   // Keep <html data-theme> in step with the stored choice (also covers storage set elsewhere).
@@ -88,6 +91,11 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
     } catch {
       /* ignore */
     }
+  };
+
+  const toggleAutoInstall = (v: boolean) => {
+    setAutoInstall(v);
+    setAutoInstallEnabled(v);
   };
 
   const checkNow = async () => {
@@ -162,6 +170,14 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
               <Toggle on={checkOnLaunch} onChange={toggleCheckOnLaunch} label="Check for updates on launch" />
             </div>
 
+            <div className="about-row">
+              <div className="about-row-text">
+                <strong>Install updates without asking</strong>
+                <span className="fz-hint">Download and prepare new versions in the background when available.</span>
+              </div>
+              <Toggle on={autoInstall} onChange={toggleAutoInstall} label="Install updates without asking" />
+            </div>
+
             {update && (
               <p className={update.newer ? 'fz-issue' : 'fz-hint'}>
                 {update.newer
@@ -173,6 +189,11 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
             )}
 
             <div className="about-actions">
+              {update?.newer && (
+                <button className="btn btn-primary" onClick={() => setShowUpdateModal(true)}>
+                  <Download size={13} /> Update to {update.latest}
+                </button>
+              )}
               <button className="btn" onClick={checkNow} disabled={checking}>
                 {checking ? <Loader2 size={13} className="spin" /> : <RefreshCw size={13} />} Check for updates
               </button>
@@ -181,8 +202,7 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
               </button>
             </div>
             <p className="fz-hint">
-              A new version opens on GitHub to download. Fully automatic install arrives once signed
-              releases are set up.
+              Updates download directly from GitHub Releases and install silently on restart.
             </p>
           </section>
 
@@ -229,6 +249,14 @@ export const AboutPanel: React.FC<Props> = ({ onClose, onToast }) => {
           </button>
         </div>
       </div>
+
+      {showUpdateModal && update && (
+        <UpdateModal
+          update={update}
+          onClose={() => setShowUpdateModal(false)}
+          onToast={onToast}
+        />
+      )}
     </div>
   );
 };
